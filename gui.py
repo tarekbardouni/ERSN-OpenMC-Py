@@ -2011,9 +2011,12 @@ class Application(QtWidgets.QMainWindow):
 
                     <span style='color: #000000; font-size: 14pt;'>
                     created by 
-                    <a title='M. Lahdour & T. El Bardouni' href='https://github.com/tarekbardouni' target='_blank'>M. Lahdour & T. El Bardouni </a> <br><br>
+                    <a title='M. Lahdour & T. El Bardouni' href='https://github.com/mohamedlahdour' target='_blank'>M. Lahdour & T. El Bardouni </a> <br><br>
                     from University Abdelmalek Essaadi, 
-                    Radiations and Nuclear Systems Laboratory ERSN, Tetouan, Morocco </strong></span></p><h3>
+                    Radiations and Nuclear Systems Laboratory ERSN, Tetouan, Morocco  </strong></span></p><h3>
+
+                    <a title='paper: https://doi.org/10.1016/j.cpc.2024.109121' href='https://doi.org/10.1016/j.cpc.2024.109121' target='_blank'>https://doi.org/10.1016/j.cpc.2024.109121 </a> <br><br>
+                    </strong></span></p><h3>
 
                     ©2024 M. Lahdour & T. El Bardouni </strong></span></p>
                         """
@@ -2023,16 +2026,18 @@ class Application(QtWidgets.QMainWindow):
     def Help(self):
         title = "How to use ERSN-OpenMC-Py"
         message = """
-                            <span style='color: #000000; font-size: 12pt;'>
+                            <span style='color: #000000; font-size: 11pt;'>
                             contact us     
                             <a title='M. Lahdour' href='mailto:mlahdour@uae.ac.ma' target='_blank'>M. Lahdour  </a> 
                             or 
                             <a title='T. El Bardouni' href='mailto:telbardouni@uae.ac.ma' target='_blank'>T. El Bardouni </a> <br><br>
-                            <span style='color: #000000; font-size: 10pt;'>
                             University Abdelmalek Essaadi, 
-                            Radiations and Nuclear Systems Laboratory ERSN, Tetouan, Morocco</strong></span></p><h2>
-                            <a title:'Github repository' href='https://github.com/tarekbardouni' target='_blank'>Github repository</a> <br><br> 
-                            <a title:'Readme' href='https://github.com/tarekbardouni/ERSN-OpenMC-Py/blob/master/README.md' target='_blank'>Readme</a> <br><br> 
+                            Radiations and Nuclear Systems Laboratory ERSN, Tetouan, Morocco</strong></span></p><h3>
+                            
+                            Our paper:</strong></span></p><h3>
+                            <a title=' ' href='https://doi.org/10.1016/j.cpc.2024.109121' target='_blank'> ERSN-OpenMC-Py: A python-based open-source software for OpenMC Monte Carlo code </strong></span></p><h3>
+                            <a title:'Github M. Lahdour repository' href='https://github.com/mohamedlahdour/ERSN-OpenMC-Py' target='_blank'>Dr. M. Lahdour Github repository </strong></span></p><h3> 
+                            <a title:'Github T. El Bardouni repository' href='https://github.com/tarekbardouni/ERSN-OpenMC-Py' target='_blank'>Pr. T. El Bardouni Github repository </strong></span></p><h3>
 
                             ©2024 M. Lahdour & T. El Bardouni </strong></span></p>
                                 """
