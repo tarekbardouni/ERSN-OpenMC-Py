@@ -53,7 +53,6 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         except:
             self.openmc_version = 0
 
-        self.groupBox_15.hide()
         self.FILTER_TYPES = ['UniverseFilter', 'MaterialFilter', 'CellFilter', 'CellFromFilter', 'CellbornFilter',
                         'CellInstanceFilter', 'CollisionFilter', 'SurfaceFilter', 'MeshFilter', 'MeshSurfaceFilter',
                         'EnergyFilter', 'EnergyoutFilter', 'MuFilter', 'PolarFilter', 'AzimuthalFilter',
@@ -68,6 +67,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         self.Mesh_yz_RB.hide()
         self.spinBox.hide()
         self.spinBox_2.hide()
+        self.Normalizing_GB.hide()
         self.buttons = [self.xLog_CB, self.yLog_CB, self.Add_error_bars_CB, self.xGrid_CB, self.yGrid_CB, self.MinorGrid_CB, self.label_2, self.label_3]
         self.buttons_Stack = [self.label_5, self.label_6, self.label_7, self.row_SB, self.col_SB]
         for elm in self.buttons: 
@@ -160,6 +160,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         self.Nuclides_List_LE.textChanged.connect(lambda:self.score_plot_PB.setEnabled(False))
         self.Scores_List_LE.textChanged.connect(lambda:self.score_plot_PB.setEnabled(False))
         self.lineEdit.textChanged.connect(self.Reset_Tally_CB)
+        self.Tally_Normalizing_CB.toggled.connect(self.Enable_Tally_Normalising)
         self.Define_Buttons()
         
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -183,26 +184,43 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         global sp
         self.Heating_LE.clear()
         self.Factor_LE.clear()
+        if not os.path.isfile(self.sp_file):
+            return
+        self._f = h5py.File(self.sp_file, 'r')
+        self.run_mode = self._f['run_mode'][()].decode()
         try:
             for i in range(len(self.Bins_comboBox)):
                 self.Bins_comboBox[i].hide()
         except:
             pass
         try:
-            if os.path.isfile(self.sp_file):
-                sp = openmc.StatePoint(self.sp_file)
-                self.names = {}
-                self.Nuclides = {}
-                self.Scores = {}
-                self.Estimator = {}                
-                self.Tallies['tallies_ids'] = []
-                self.Tallies['names'] = []
-                self.meshes = {}
-                _f = h5py.File(self.sp_file, 'r')
-                self.tallies_group = _f['tallies']
-                self.n_tallies = self.tallies_group.attrs['n_tallies']
+            sp = openmc.StatePoint(self.sp_file)
+            self.names = {}
+            self.Nuclides = {}
+            self.Scores = {}
+            self.Estimator = {}                
+            self.Tallies['tallies_ids'] = []
+            self.Tallies['names'] = []
+            self.meshes = {}
+            self.Tally_id_comboBox.clear()
+            self.Tally_id_comboBox.addItem("Select the tally's ID")
+            if self.run_mode == 'eigenvalue':
+                self.H = None
+                self.Tally_id_comboBox.addItem('Keff result')
+                self.batches = [i+1 for i in range(sp.n_batches)]
+                self.Keff_List = sp.k_generation.tolist()
+                self.keff = sp.keff.nominal_value
+                self.dkeff = sp.keff.std_dev
+                try:
+                    self.H = sp.entropy.tolist()
+                except:
+                    pass
+
+            self.tallies_group = self._f['tallies']
+            self.n_tallies = self.tallies_group.attrs['n_tallies']
+            if self.n_tallies > 0:
                 self.tally_ids = self.tallies_group.attrs['ids']
-                self.filters_group = _f['tallies/filters']
+                self.filters_group = self._f['tallies/filters']
                 for tally_id in self.tally_ids:
                     tally = sp.get_tally(id=tally_id)  # Ok
                     name = tally.name
@@ -213,26 +231,12 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                             heat = tally.mean.ravel()[0]
                             self.Heating_LE.setText(str(heat))
                 # Read all meshes
-                mesh_group = _f['tallies/meshes']
+                mesh_group = self._f['tallies/meshes']
                 # Iterate over all meshes
                 for group in mesh_group.values():
                     mesh = openmc.MeshBase.from_hdf5(group)
                     self.meshes[mesh.id] = mesh
-                self.Tally_id_comboBox.clear()
-                self.Tally_id_comboBox.addItem("Select the tally's ID")
-
                 self.Tallies_in_SP = list(sp.tallies.keys())
-                if sp.run_mode == 'eigenvalue':
-                    self.H = None
-                    self.Tally_id_comboBox.addItem('Keff result')
-                    self.batches = [i+1 for i in range(sp.n_batches)]
-                    self.Keff_List = sp.k_generation.tolist()
-                    self.keff = sp.keff.nominal_value
-                    self.dkeff = sp.keff.std_dev
-                    try:
-                        self.H = sp.entropy.tolist()
-                    except:
-                        pass
 
                 for key in self.Tallies_in_SP:
                     self.names[key] = []
@@ -255,58 +259,55 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                             estimator = line.split('=')[1].lstrip()
                             self.Estimator[key].append(estimator)
                     self.Tally_id_comboBox.addItem(str(key))
-            else:
-                pass
+
+            self.lineLabel1.setText('Statepoint file : ' + self.sp_file)
+            self.lineLabel2.setText('containing :  ' + str(self.n_tallies) + '  tallies')
         except:
             pass
 
-        self.lineLabel1.setText('Statepoint file : ' + self.sp_file)
-        self.lineLabel2.setText('containing :  ' + str(self.n_tallies) + '  tallies')
 
     def Display_Tallies_Inf(self):
         self.Display = False
         self.Normalization = False
-        print(self.tallies_group)
-        if self.lineEdit.text():
-            self.sp_file = self.lineEdit.text()
+        self.sp_file = self.lineEdit.text()
         if not os.path.isfile(self.sp_file):
             self.showDialog('Warning', 'Load valid sp file!')
             return
         self.editor1.clear()
         self.tabWidget_2.setCurrentIndex(1)
-        if True:
-            if os.path.isfile(self.sp_file):
-                sp = openmc.StatePoint(self.sp_file)
-                # print tallies summary
-                self.editor1.insertPlainText('*'*57 + ' TALLIES SUMMARY ' + '*'*58 + '\n')
-                for key in sp.tallies.keys():
-                    self.editor1.insertPlainText(str(sp.tallies[key])+ '\n')
-                self.editor1.insertPlainText('*'*134 + '\n')
-                if sp.run_mode == 'eigenvalue':
-                    # print Keff results
-                    n = sp.n_batches
-                    keff_glob = sp.global_tallies
-                    INDEX = [str(idx,encoding='utf-8').ljust(25)  for idx in keff_glob['name']]
-                    df = pd.DataFrame(keff_glob, index=INDEX, columns = ['name', 'mean', 'std_dev'])
-                    for item in df['name']:
-                        elem = str(item,encoding='utf-8').ljust(25)
-                        df = df.replace({'name': item}, {'name': elem})
-                    df.loc['Combined keff'] = ['Combined keff', self.keff, self.dkeff]
-                    df.iloc[4], df.iloc[3] = df.iloc[3], df.iloc[4]
-                    self.Print_Formated_df_Keff(df, self.editor1, '', 0)
-                    # print Keff vs batches
-                    self.batches = [i+1 for i in range(n)]
-                    self.Keff_List = sp.k_generation.tolist()
-                    df1 = pd.DataFrame({'batch': self.batches, 'Keff': self.Keff_List})
-                    self.Print_Formated_df_Keff(df1, self.editor1, ' K EFFECTIVE VS BATCH ', 1)
-                    try:    
-                        self.H = sp.entropy.tolist()
-                        df1 = pd.DataFrame({'batch': self.batches, 'Entropy': self.H}) 
-                        self.Print_Formated_df_Keff(df1, self.editor1, '   SHANNON  ENTROPY   ', 1)
-                    except:
-                        pass
+
+        try:
+            sp = openmc.StatePoint(self.sp_file)
+            # print tallies summary
+            self.editor1.insertPlainText('*'*57 + ' TALLIES SUMMARY ' + '*'*58 + '\n')
+            for key in sp.tallies.keys():
+                self.editor1.insertPlainText(str(sp.tallies[key])+ '\n')
+            self.editor1.insertPlainText('*'*134 + '\n')
+            if self.run_mode == 'eigenvalue':
+                # print Keff results
+                n = sp.n_batches
+                keff_glob = sp.global_tallies
+                INDEX = [str(idx,encoding='utf-8').ljust(25)  for idx in keff_glob['name']]
+                df = pd.DataFrame(keff_glob, index=INDEX, columns = ['name', 'mean', 'std_dev'])
+                for item in df['name']:
+                    elem = str(item,encoding='utf-8').ljust(25)
+                    df = df.replace({'name': item}, {'name': elem})
+                df.loc['Combined keff'] = ['Combined keff', self.keff, self.dkeff]
+                df.iloc[4], df.iloc[3] = df.iloc[3], df.iloc[4]
+                self.Print_Formated_df_Keff(df, self.editor1, '', 0)
+                # print Keff vs batches
+                self.batches = [i+1 for i in range(n)]
+                self.Keff_List = sp.k_generation.tolist()
+                df1 = pd.DataFrame({'batch': self.batches, 'Keff': self.Keff_List})
+                self.Print_Formated_df_Keff(df1, self.editor1, ' K EFFECTIVE VS BATCH ', 1)
+                try:    
+                    self.H = sp.entropy.tolist()
+                    df1 = pd.DataFrame({'batch': self.batches, 'Entropy': self.H}) 
+                    self.Print_Formated_df_Keff(df1, self.editor1, '   SHANNON  ENTROPY   ', 1)
+                except:
+                    pass
+            if self.n_tallies > 0:
                 # print tallies results
-                _f = h5py.File(self.sp_file, 'r')
                 self.tally_ids = self.tallies_group.attrs['ids']
                 self.editor1.insertPlainText('*'*57 + ' TALLIES RESULTS ' + '*'*58 + '\n')
                 for tally_id in self.tally_ids:
@@ -314,12 +315,9 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                     self.tally = sp.get_tally(id=tally_id)
                     df = self.tally.get_pandas_dataframe(float_format = '{:.2e}')  #'{:.6f}') 
                     self.Print_Formated_df(df.copy(), tally_id, self.editor1) 
-            else:
-                msg = 'Select your StatePoint file first !'
-                self.showDialog('Warning', msg)
-                return
-        else:
-            self.showDialog('Warning', 'Verify if OpenMC is installed !')
+
+        except:
+            self.showDialog('Warning', 'Some thing went wrong or invalid statepoint file!')
             return
         self.Tally_id_comboBox.setCurrentIndex(0)
 
@@ -335,7 +333,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             if os.path.isfile(self.lineEdit.text()):
                 self.sp_file = self.lineEdit.text()
                 sp = openmc.StatePoint(self.sp_file)
-                if sp.run_mode == 'eigenvalue':
+                if self.run_mode == 'eigenvalue':
                     self.Tally_id_comboBox.addItem('Keff result')
                 self.Tally_id_comboBox.addItems([str(tally) for tally in list(sp.tallies.keys())])
             else:
@@ -359,7 +357,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         if self.lineEdit.text():
             self.sp_file = self.lineEdit.text()
         if not os.path.isfile(str(self.sp_file)):
-            self.lineLabel1.setText("Current statepoint file : No valid statepoint file", 0)
+            self.lineLabel1.setText("Current statepoint file : No valid statepoint file")
             return
         self.score_plot_PB.setText('plot data')
         self.filters = []
@@ -541,7 +539,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         self.tabWidget_2.setCurrentIndex(0)
         cursor = self.editor.textCursor()
         cursor.movePosition(cursor.End)
-        if True:
+        try:
             if os.path.isfile(self.sp_file):
                 sp = openmc.StatePoint(self.sp_file)
                 self.tabWidget_2.setCurrentIndex(0)
@@ -578,7 +576,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             else:
                 self.showDialog('Warning', 'Select a valid StatePoint file first!')
                 return
-        else:
+        except:
             return
 
     def Print_Formated_df(self, df, tally_id, editor):
@@ -616,9 +614,9 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             elif 'level' in KEY:
                 FMT = '{:<10d}'
             df.loc[:, key] = df[key].map(FMT.format)
-            if True:
+            try:
                 LJUST = int(FMT.split('<')[1].split('.')[0].replace('d', '').replace('}', ''))
-            else:
+            except:
                 LJUST = 20
             LTOT += LJUST
             #for KEY in df.keys():    
@@ -2304,6 +2302,12 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                                     
                                 i += 1
 
+    def Enable_Tally_Normalising(self, checked):
+        if checked:
+            self.Normalizing_GB.show()
+        else:
+            self.Normalizing_GB.hide()
+
     def Normalizing_Settings(self):    # called by Display_scores
         # Set normalizing parameters 
         self.ENERGY_ANGLE_FILTER = ['EnergyFilter', 'EnergyoutFilter', 'MuFilter', 'PolarFilter', 'AzimuthalFilter', 'TimeFilter']
@@ -2318,7 +2322,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         self.Norm_Bins_comboBox.addItem('Check item')        
         self.Norm_Bins_comboBox.addItems([key.split()[0] for key in self.df_Keys if 'low' in key])
         self.Norm_Bins_comboBox.model().item(0).setEnabled(False)
-        if sp.run_mode == 'eigenvalue': 
+        if self.run_mode == 'eigenvalue': 
             for item in power_items:
                 item.setEnabled(True)
             self.Norm_to_Heating_CB.stateChanged.connect(self.onStateChange)
@@ -3782,12 +3786,6 @@ class VLine(QFrame):
     def __init__(self):
         super(VLine, self).__init__()
         self.setFrameShape(self.VLine | self.Sunken)
-
-#  to be removed if called by gui.py
-'''qapp = QApplication(sys.argv)
-mainwindow = TallyDataProcessing()
-mainwindow.show()
-sys.exit(qapp.exec())'''
 
 
 
