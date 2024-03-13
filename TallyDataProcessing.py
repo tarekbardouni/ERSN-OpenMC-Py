@@ -2199,11 +2199,11 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                                     y = y[df[key4] == bin4]  
                                                     y_error = y_error[df[key4] == bin4]   
                                                     if self.n_filters >= 5:
-                                                        y = y[self.df[key5] == bin5]
-                                                        y_error = y_error[self.df[key5] == bin5]
+                                                        y = y[df[key5] == bin5]
+                                                        y_error = y_error[df[key5] == bin5]
                                                         if self.n_filters >= 6:
-                                                            y = y[self.df[key6] == bin6]
-                                                            y_error = y_error[self.df[key6] == bin6]   
+                                                            y = y[df[key6] == bin6]
+                                                            y_error = y_error[df[key6] == bin6]   
 
                                         y = y.tolist()[0]          
                                         y_error = y_error.tolist()[0]          
