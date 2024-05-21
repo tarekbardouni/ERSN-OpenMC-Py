@@ -3,10 +3,10 @@
 # source bash_scripts/openmc_env.sh
 
 # Cross sections based on ENDF-B8.0
-# export OPENMC_CROSS_SECTIONS=$HOME/Py-OpenMC-2023/data/endfb80_hdf5/cross_sections.xmlexport OPENMC_CROSS_SECTIONS=$HOME/Py-OpenMC-2023/data/endfb80_hdf5/cross_sections.xml
+# export OPENMC_CROSS_SECTIONS=$HOME/Py-OpenMC-2023/data/endfb80_hdf5/cross_sections.xmle
 
 # Cross sections based on ENDF-B7.1
-export OPENMC_CROSS_SECTIONS=$HOME/Py-OpenMC-2023/data/endfb80_hdf5/cross_sections.xmlexport OPENMC_CROSS_SECTIONS=$HOME/Py-OpenMC-2023/data/endfb71_hdf5/cross_sections.xml
+export OPENMC_CROSS_SECTIONS=$HOME/Py-OpenMC-2023/data/endfb71_hdf5/cross_sections.xml
 
 
 

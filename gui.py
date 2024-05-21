@@ -2004,43 +2004,50 @@ class Application(QtWidgets.QMainWindow):
         return self.fname  
                 
     def About(self):
-        title = "about ERSN-OpenMC-Py"
+        title = "About ERSN-OpenMC-Py"
         message = """
                     <span style='color: #3465a4; font-size: 20pt;font-weight: bold;'>
-                    ERSN-OpenMC-Py v 1.2 </strong></span></p><h3>
+                    ERSN-OpenMC-Py v 1.3 </strong></span></p><h3>
 
                     <span style='color: #000000; font-size: 14pt;'>
-                    created by 
-                    <a title='M. Lahdour & T. El Bardouni' href='https://github.com/mohamedlahdour' target='_blank'>M. Lahdour & T. El Bardouni </a> <br><br>
+                    created by M. Lahdour & T. El Bardouni
                     from University Abdelmalek Essaadi, 
                     Radiations and Nuclear Systems Laboratory ERSN, Tetouan, Morocco  </strong></span></p><h3>
 
-                    <a title='paper: https://doi.org/10.1016/j.cpc.2024.109121' href='https://doi.org/10.1016/j.cpc.2024.109121' target='_blank'>https://doi.org/10.1016/j.cpc.2024.109121 </a> <br><br>
+                    <a title='' href='https://doi.org/10.1016/j.cpc.2024.109121' target='_blank'>https://doi.org/10.1016/j.cpc.2024.109121 </a> <br><br>
                     </strong></span></p><h3>
 
                     ©2024 M. Lahdour & T. El Bardouni </strong></span></p>
                         """
         QMessageBox(QMessageBox.Information, title, message, QMessageBox.NoButton, self,
                     Qt.Dialog | Qt.NoDropShadowWindowHint).show()
-        
+
     def Help(self):
         title = "How to use ERSN-OpenMC-Py"
         message = """
-                            <span style='color: #000000; font-size: 11pt;'>
-                            contact us     
-                            <a title='M. Lahdour' href='mailto:mlahdour@uae.ac.ma' target='_blank'>M. Lahdour  </a> 
-                            or 
-                            <a title='T. El Bardouni' href='mailto:telbardouni@uae.ac.ma' target='_blank'>T. El Bardouni </a> <br><br>
-                            University Abdelmalek Essaadi, 
-                            Radiations and Nuclear Systems Laboratory ERSN, Tetouan, Morocco</strong></span></p><h3>
-                            
-                            Our paper:</strong></span></p><h3>
-                            <a title=' ' href='https://doi.org/10.1016/j.cpc.2024.109121' target='_blank'> ERSN-OpenMC-Py: A python-based open-source software for OpenMC Monte Carlo code </strong></span></p><h3>
-                            <a title:'Github M. Lahdour repository' href='https://github.com/mohamedlahdour/ERSN-OpenMC-Py' target='_blank'>Dr. M. Lahdour Github repository </strong></span></p><h3> 
-                            <a title:'Github T. El Bardouni repository' href='https://github.com/tarekbardouni/ERSN-OpenMC-Py' target='_blank'>Pr. T. El Bardouni Github repository </strong></span></p><h3>
+                    <span style='color: #3465a4; font-size: 20pt;font-weight: bold;'>
+                    ERSN-OpenMC-Py v 1.3 </strong></span></p><h3>
 
-                            ©2024 M. Lahdour & T. El Bardouni </strong></span></p>
-                                """
+                    <span style='color: #000000; font-size: 14pt;'>
+                    contact us <br>
+                    M. Lahdour :      
+                    <a title='' href='mlahdour@uae.ac.ma' target='_blank'> mlahdour@uae.ac.ma</a> <br>
+                    T. El Bardouni : 
+                    <a title='' href='telbardouni@uae.ac.ma' target='_blank'> telbardouni@uae.ac.ma</a> <br><br>
+                    
+                    from University Abdelmalek Essaadi, 
+                    Radiations and Nuclear Systems Laboratory ERSN, Tetouan, Morocco  </strong></span></p><h3>
+
+                    Our paper:
+                    <a title='' href='https://doi.org/10.1016/j.cpc.2024.109121' target='_blank'>ERSN-OpenMC-Py: A python-based open-source software for OpenMC Monte Carlo code </a> <br>
+                    </strong></span></p><h3>
+
+                    Our Github repositories:<br>
+                    <a title='' href='https://github.com/mohamedlahdour/ERSN-OpenMC-Py' target='_blank'>Dr. M. Lahdour </strong></span></p><h3> </a>
+                    <a title='' href='https://github.com/tarekbardouni/ERSN-OpenMC-Py' target='_blank'>Pr. T. El Bardouni  </strong></span></p><h3></a>
+
+                    <br>©2024 M. Lahdour & T. El Bardouni 
+                        """
         QMessageBox(QMessageBox.Information, title, message, QMessageBox.NoButton, self,
                     Qt.Dialog | Qt.NoDropShadowWindowHint).show()
 
@@ -2832,7 +2839,7 @@ class Application(QtWidgets.QMainWindow):
     #######################################################################################
     #######################################################################################
 
-version = '1.2'
+version = '1.3'
 qapp = QApplication(sys.argv)  
 app  = Application(u'ERSN-OpenMC-Py')
 qapp.setStyleSheet("QPushButton { background-color: palegoldenrod; border-width: 2px; border-color: darkkhaki}"

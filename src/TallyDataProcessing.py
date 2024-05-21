@@ -1194,7 +1194,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             self.Deactivate_Curve_Type()
             self.Curve_xLabel.setText('Nuclides')        
         elif self.n_filters >= 1:                                 # scores are filtered 
-           self.Display_scores_2()
+           self.Filtered_Scores()
         
         # add keys to Plot_by_CB combobox
         if 'distribcell' in self.df.keys():    #  to be revised
@@ -1247,10 +1247,8 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         self.editor.setTextCursor(cursor)
 
         if 'MeshFilter' not in self.Filters_comboBox.currentText():
-            #if self.n_filters == 0:   
             self.df_filtered = self.df.loc[(self.df['nuclide'].isin(self.selected_nuclides)) & (self.df['score'].isin(self.selected_scores))]       
             if self.n_filters > 0:
-                #self.df_filtered = self.df.loc[(self.df['nuclide'].isin(self.selected_nuclides)) & (self.df['score'].isin(self.selected_scores))]
                 for idx in range(self.n_filters):
                     self.df_filtered = self.df_filtered.loc[self.df[self.Keys[idx]].isin(self.Key_Selected_Bins[idx])].copy()
             self.Print_Formated_df(self.df_filtered.copy(), self.tally_id, self.editor)
@@ -1267,7 +1265,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
        
         self.Normalizing_Settings()
  
-    def Display_scores_2(self):
+    def Filtered_Scores(self):
         self.DATA = {}
         if 'MeshFilter' in self.Filters_comboBox.currentText(): # MeshFilter
             for elm in self.buttons:
@@ -1301,7 +1299,6 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             self.DATA[idx] = {}
             self.filter_id = self.filter_ids[idx] 
             self.filter_name = self.Tallies[self.tally_id]['filter_names'][idx]
-            #self.Filter_Bins_Select(self.tally_id, self.filter_id)
             if 'cell' in self.df_Keys and self.filter_name == 'CellFilter':
                 self.Keys[idx] = 'cell'
                 self.Checked_cells = self.Select_Bins(idx)
@@ -1572,8 +1569,8 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                         self.std['root'][nuclide][index] = []
                         print(df)
                         return
-                        self.mean['root'][nuclide][index] += list(Score1['mean'])   
-                        self.std['root'][nuclide][index] += list(Score1['std. dev.'])   
+                        self.mean['root'][nuclide][index] += list(Score['mean'])   
+                        self.std['root'][nuclide][index] += list(Score['std. dev.'])   
 
     def Plot(self):
         if 'MeshFilter' in self.Filters_comboBox.currentText():
@@ -1955,26 +1952,26 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                         x = X 
                                         multiplier = 1  
                                         
-                                        y = self.df[self.df[KEY0] == bin0][self.df[KEY01] == bin01]['mean']
-                                        y_error = self.df[self.df[KEY0] == bin0][self.df[KEY01] == bin01]['std. dev.']
+                                        y = df[df[KEY0] == bin0][df[KEY01] == bin01]['mean']
+                                        y_error = df[df[KEY0] == bin0][df[KEY01] == bin01]['std. dev.']
                                         if self.n_filters >= 1: 
-                                            y = y[self.df[key1] == bin1]
-                                            y_error = y_error[self.df[key1] == bin1]
+                                            y = y[df[key1] == bin1]
+                                            y_error = y_error[df[key1] == bin1]
                                             if self.n_filters >= 2:
-                                                y = y[self.df[key2] == bin2]
-                                                y_error = y_error[self.df[key2] == bin2]
+                                                y = y[df[key2] == bin2]
+                                                y_error = y_error[df[key2] == bin2]
                                                 if self.n_filters >= 3:
-                                                    y = y[self.df[key3] == bin3]
-                                                    y_error = y_error[self.df[key3] == bin3]
+                                                    y = y[df[key3] == bin3]
+                                                    y_error = y_error[df[key3] == bin3]
                                                     if self.n_filters >= 4:
-                                                        y = y[self.df[key4] == bin4]
-                                                        y_error = y_error[self.df[key4] == bin4]
+                                                        y = y[df[key4] == bin4]
+                                                        y_error = y_error[df[key4] == bin4]
                                                         if self.n_filters >= 5:
-                                                            y = y[self.df[key5] == bin5]
-                                                            y_error = y_error[self.df[key5] == bin5]
+                                                            y = y[df[key5] == bin5]
+                                                            y_error = y_error[df[key5] == bin5]
                                                             if self.n_filters >= 6:
-                                                                y = y[self.df[key6] == bin6]
-                                                                y_error = y_error[self.df[key6] == bin6]
+                                                                y = y[df[key6] == bin6]
+                                                                y_error = y_error[df[key6] == bin6]
 
                                         y = y.tolist()[0]   
                                         y_error = y_error.tolist()[0]    
@@ -2200,7 +2197,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                                     y_error = y_error[df[key4] == bin4]   
                                                     if self.n_filters >= 5:
                                                         y = y[df[key5] == bin5]
-                                                        y_error = y_error[df[key5] == bin5]
+                                                        y_error = y_error[[key5] == bin5]
                                                         if self.n_filters >= 6:
                                                             y = y[df[key6] == bin6]
                                                             y_error = y_error[df[key6] == bin6]   
@@ -2377,13 +2374,16 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             Checked_bins[idx] = self.DATA[idx]['Checked_bins']
             key[idx] = self.DATA[idx]['KEY']  
 
-        # Normalize to cells volume
+        # Normalize to power
         if self.Norm_to_Power_CB.isChecked() or self.Norm_to_Heating_CB.isChecked():
             self.Normalizing_Factor *= np.array(self.Power_Factor)             
-        if self.Norm_to_Vol_CB.isChecked():  # and 'cell' in self.df_Keys: 
+        # Normalize to cells volume
+        if self.Norm_to_Vol_CB.isChecked():   
             self.Normalizing_Factor *= self.Volume_Factor
+        # Normalize to variable bin width
         if self.Norm_to_BW_CB.isChecked():
             self.Normalizing_Factor *= self.Bin_Factor
+        # Normalize to unit of lethargy
         elif self.Norm_to_UnitLethargy_CB.isChecked():
             self.Normalizing_Factor *= self.Lethargy_Factor
     
@@ -3786,6 +3786,7 @@ class VLine(QFrame):
     def __init__(self):
         super(VLine, self).__init__()
         self.setFrameShape(self.VLine | self.Sunken)
+
 
 
 

@@ -112,7 +112,7 @@ if [[ $INSTALL_PQTY == yes ]]; then
             #conda install -y pyqt
             pip install pyqt5
             echo
-            echo "==> If QtCore module cannot be loeded from PyQt5 force reinstall PyQt5 <=="
+            echo "==> If QtCore module cannot be loaded from PyQt5 force reinstall PyQt5 <=="
             echo "==> Command : python3 -m pip install --upgrade --force-reinstall PyQt5 <=="
             echo
             echo "==> For changes to take effect, close and re-open your current shell. <=="
