@@ -2512,8 +2512,6 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         self.df_filtered_normalized = df
         self.Print_Formated_df(self.df_filtered_normalized.copy(), self.tally_id, self.editor)
 
-        self.showDialog('','')
-
     @pyqtSlot(int)
     def onStateChange(self, state):
         if state == Qt.Checked:
