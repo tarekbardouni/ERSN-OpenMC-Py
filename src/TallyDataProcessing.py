@@ -53,13 +53,14 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         except:
             self.openmc_version = 0
 
-        self.FILTER_TYPES = ['UniverseFilter', 'MaterialFilter', 'CellFilter', 'CellFromFilter', 'CellbornFilter',
+        self.FILTER_TYPES = ['UniverseFilter', 'MaterialFilter', 'CellFilter', 'CellFromFilter', 'CellBornFilter',
                         'CellInstanceFilter', 'CollisionFilter', 'SurfaceFilter', 'MeshFilter', 'MeshSurfaceFilter',
                         'EnergyFilter', 'EnergyoutFilter', 'MuFilter', 'PolarFilter', 'AzimuthalFilter',
                         'DistribcellFilter', 'DelayedGroupFilter', 'EnergyFunctionFilter', 'LegendreFilter',
                         'SpatialLegendreFilter', 'SphericalHarmonicsFilter', 'ZernikeFilter', 'ZernikeRadialFilter',
                         'ParticleFilter', 'TimeFilter']
         self.sp_file = 'None'
+        self.Filter_names = ['']
         self.Display = False
         self.Tallies = {}
         self.Mesh_xy_RB.hide()
@@ -76,7 +77,6 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             elm.setEnabled(False)
         self.Graph_Layout_CB.setEnabled(False)
         self.Graph_type_CB.setEnabled(False)
-        #self.set_Graph_stack()
         
         # add new editor for output window
         self.editor = TextEdit()
@@ -132,6 +132,8 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         else:
             self.lineEdit.setText(self.sp_file)
             self.Get_data_from_SP_file()
+
+        self.Omit_Blank_Graph_CB.setEnabled(False)
                   
     def _initButtons(self):
         self.browse_PB.clicked.connect(self.Get_SP_File)
@@ -144,9 +146,9 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         self.Nuclides_comboBox.currentIndexChanged.connect(self.SelectNuclides)
         self.Scores_comboBox.currentIndexChanged.connect(self.SelectScores)
         self.scores_display_PB.clicked.connect(self.Display_scores)
-        self.Mesh_xy_RB.toggled.connect(self.Mesh_settings)
-        self.Mesh_xz_RB.toggled.connect(self.Mesh_settings)
-        self.Mesh_yz_RB.toggled.connect(self.Mesh_settings)
+        self.Mesh_xy_RB.clicked.connect(self.Mesh_settings)
+        self.Mesh_xz_RB.clicked.connect(self.Mesh_settings)
+        self.Mesh_yz_RB.clicked.connect(self.Mesh_settings)
         self.Graph_type_CB.currentIndexChanged.connect(self.set_Scales)
         self.Plot_by_CB.currentIndexChanged.connect(self.set_Scales)
         self.xGrid_CB.stateChanged.connect(self.plot_grid_settings)
@@ -265,7 +267,6 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         except:
             pass
 
-
     def Display_Tallies_Inf(self):
         self.Display = False
         self.Normalization = False
@@ -314,7 +315,10 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                     self.tally_id = tally_id
                     self.tally = sp.get_tally(id=tally_id)
                     df = self.tally.get_pandas_dataframe(float_format = '{:.2e}')  #'{:.6f}') 
-                    self.Print_Formated_df(df.copy(), tally_id, self.editor1) 
+                    try:
+                        self.Print_Formated_df(df, tally_id, self.editor1) 
+                    except:
+                        self.showDialog('Warning', 'The size of statepoint file may be huge!')
 
         except:
             self.showDialog('Warning', 'Some thing went wrong or invalid statepoint file!')
@@ -426,13 +430,13 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                     self.Tallies[tally_id]['filter_types'] += [filter_type]
                     self.Tallies[tally_id]['filter_names'] += [filter_name]
                 self.Filter_names = self.Tallies[tally_id]['filter_names']
-                filters = [filter + ' , id= ' + str(id) for filter, id in zip(self.Tallies[tally_id]['filter_names'], self.filter_ids)]
+                filters = [filter + ' , id= ' + str(id) for filter, id in zip(self.Filter_names, self.filter_ids)]
                 self.Filters_comboBox.addItems(filters)
-
                 self.Filters_comboBox.setCurrentIndex(1)
                 for i in range(len(self.Bins_comboBox)):
                     self.Bins_comboBox[i].currentIndexChanged.connect(self.SelectBins) 
                     self.Bins_comboBox[i].currentIndexChanged.connect(lambda:self.score_plot_PB.setEnabled(False)) 
+                    self.Bins_comboBox[i].setCurrentIndex(0)
                 self.filters = self.Tallies[tally_id]['filter_types']
             else:                                    # no filter defined
                 self.Tallies[tally_id]['scores'] = []
@@ -459,7 +463,8 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             self.scores_display_PB.setEnabled(True)     
             self.label.setText('plot by')   
             self.Plot_by_CB.clear()
-        elif self.Tally_id_comboBox.currentIndex() > 0 and 'Keff' in self.Tally_id_comboBox.currentText():
+
+        elif 'Keff' in self.Tally_id_comboBox.currentText():
             self.Checked_batches = []
             self.Checked_batches_bins = []
             self.Tally_name_LE.setText('Keff vs batches')
@@ -472,7 +477,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             self.Bins_comboBox[0] = CheckableComboBox()
             self.gridLayout_20.addWidget(self.Bins_comboBox[0], 0, 0)
             self.Filters_comboBox.setCurrentIndex(1)
-            self.SelectFilter()
+            #self.SelectFilter()
             self.nuclides_display_PB.setEnabled(False)
             self.scores_display_PB.setEnabled(False)
             self.score_plot_PB.setEnabled(True)
@@ -529,8 +534,6 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         if tally_id != '':
             self.lineLabel2.setText('Selected tally id : ' + str(tally_id))
             self.lineLabel3.setText('  Tally name : ' + name)
-        #except:
-        #pass
 
     def Display_tally(self):
         self.Display = False
@@ -583,14 +586,18 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         columns_header = []
         LTOT = 0
         for key in df.keys():
-            if type(key) is tuple:  # and 'mesh' in key[0]:
-                KEY = key[0]
-                KEY1 = key[1]
+            if type(key) is tuple:
+                if 'mesh' in key[0]:
+                    KEY = key[0]
+                    KEY1 = key[1]
+                else:
+                    KEY = key[0]
+                    KEY1 = ''
             else:
                 KEY = key
                 KEY1 = ''
-            if KEY1 in ['x', 'y', 'z']:   #'mesh' in key:
-                pass
+            """if KEY1 in ['x', 'y', 'z']:   #'mesh' in key:
+                pass"""
             if 'mesh' in KEY:
                 FMT = '{:<20}'
             elif KEY in ['surface', 'cell', 'cellfrom', 'cellborn', 'universe', 'material', 'collision']:
@@ -619,14 +626,13 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             except:
                 LJUST = 20
             LTOT += LJUST
-            #for KEY in df.keys():    
-            if type(KEY) is tuple:
-                if 'mesh' in KEY[0]:
-                    column_name = str(KEY[0] + ', ' + KEY[1]).ljust(LJUST)
+            if type(key) is tuple:
+                if 'mesh' in key[0]:
+                    column_name = str(key).ljust(LJUST)
                 else:
-                    column_name = KEY[0].ljust(LJUST)
+                    column_name = key[0].ljust(LJUST)
             else:   
-                column_name = KEY.ljust(LJUST)
+                column_name = key.ljust(LJUST)
             columns_header.append(column_name)
 
         LTOT += 30
@@ -693,7 +699,8 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         self.Curve_title.clear()
 
         if self.Tally_id_comboBox.currentIndex() > 0 and 'Keff' not in self.Tally_id_comboBox.currentText():
-            tally_id = int(self.Tally_id_comboBox.currentText())
+            self.tally_id = int(self.Tally_id_comboBox.currentText())
+            tally_id = self.tally_id
             self.tally = sp.get_tally(id=tally_id)
             tally = self.tally 
             try:
@@ -703,163 +710,53 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 pass
 
             if self.Filters_comboBox.currentIndex() > 0:
+                if 'MeshFilter' in self.Filter_names:
+                    df_KEYS = [key[0] for key in self.df_Keys]
+                else:
+                    df_KEYS = [key for key in self.df_Keys]
                 for idx in range(self.n_filters):
                     filter_name = self.Tallies[tally_id]['filter_names'][idx]
-                    self.label_4.setText('Select bins')
-                    filter_id = self.filter_ids[idx]
-                    self.Tallies[tally_id][filter_id]['bins'] = [item for item in tally.filters[idx].bins]
-                    Bins = self.Tallies[tally_id][filter_id]['bins']
-                    if 'MeshFilter' in self.Filters_comboBox.currentText():
-                        self.Mesh_xy_RB.show()
-                        self.Mesh_xz_RB.show()
-                        self.Mesh_yz_RB.show()
-                        self.spinBox.show()
-                        self.spinBox_2.show()
-                        self.Mesh_xy_RB.setChecked(True)
-                        self.Curve_xLabel.setText('x/cm')
-                        self.Curve_yLabel.setText('y/cm')
-                        self.Curve_title.setText(self.Tally_name_LE.text())
-                        self.mesh_id = tally.filters[0].mesh.id
-                        self.mesh_type = str(tally.filters[0].mesh).split('\n')[0]
-                        
-                        self.mesh_name = tally.name
-                        self.mesh_dimension = tally.filters[0].mesh.dimension
-                        self.mesh_n_dim = tally.filters[0].mesh.n_dimension    
-
-                        
-                        print('Meshes : ', tally.filters[0].mesh)
-                        print('*******************************************************************************************')
-                        print('********************                           Mesh summary                             ******************')
-                        print('*******************************************************************************************\n')
-                        if self.mesh_type == 'RectilinearMesh':
-                            self.mesh_LL = (tally.filters[0].mesh.x_grid[0], tally.filters[0].mesh.y_grid[0], tally.filters[0].mesh.z_grid[0],)
-                            self.mesh_UR = (tally.filters[0].mesh.x_grid[-1], tally.filters[0].mesh.y_grid[-1], tally.filters[0].mesh.z_grid[-1],)                        
-                            print('id               :  ', self.mesh_id)
-                            print('name            :  ', self.mesh_name)
-                            print('type            :  ', self.mesh_type)
-                            print('dimension     :  ', self.mesh_n_dim)
-                            print('voxels          :  ', self.mesh_dimension)
-                            print('lower_left   :  ', self.mesh_LL)
-                            print('upper_right  :  ', self.mesh_UR, '\n')
-                            print('Tally filters : ', tally.filters, '\n')
-                            print('*******************************************************************************************\n')
-                            
-                        else:                  #self.mesh_type == 'RegularMesh':
-                            self.mesh_width = tally.filters[0].mesh.width
-                            self.mesh_LL = tally.filters[0].mesh.lower_left
-                            self.mesh_UR = tally.filters[0].mesh.upper_right
-
-                            self.mesh_ids = tally.filters[0].bins
-                            if len(tally.filters[0].mesh._grids) == 3:
-                                self.x = tally.filters[0].mesh._grids[0][:-1] + tally.filters[0].mesh.width[0] * 0.5
-                                self.y = tally.filters[0].mesh._grids[1][:-1] + tally.filters[0].mesh.width[1] * 0.5
-                                self.z = tally.filters[0].mesh._grids[2][:-1] + tally.filters[0].mesh.width[2] * 0.5  
-                                self.Mesh_xz_RB.setEnabled(True) 
-                                self.Mesh_yz_RB.setEnabled(True) 
-                            else:
-                                self.x = tally.filters[0].mesh._grids[0][:-1] + tally.filters[0].mesh.width[0] * 0.5
-                                self.y = tally.filters[0].mesh._grids[1][:-1] + tally.filters[0].mesh.width[1] * 0.5
-                                self.z = ['z axis integrated']
-                                self.mesh_dimension = np.append(self.mesh_dimension, 1)
-                                self.Mesh_xz_RB.setEnabled(False) 
-                                self.Mesh_yz_RB.setEnabled(False)   
-                            # ******************************************************************************                     
-                            print('id                :  ', self.mesh_id)
-                            print('name          :  ', self.mesh_name)
-                            print('type            :  ', self.mesh_type)
-                            print('dimension   :  ', self.mesh_n_dim)
-                            print('voxels         :  ', self.mesh_dimension)
-                            print('width          :  ', self.mesh_width)
-                            print('lower_left     :  ', self.mesh_LL)
-                            print('upper_right  :  ', self.mesh_UR, '\n')
-                            print('x grid      :  ', self.x)
-                            print('y grid      :  ', self.y)
-                            print('z grid      :  ', self.z, '\n')
-                            print('Tally filters : ', tally.filters, '\n')
-                            print('*******************************************************************************************\n')
-
-                            self.Tallies[tally_id][filter_id]['slice_x'] = self.x
-                            self.Tallies[tally_id][filter_id]['slice_y'] = self.y
-                            self.Tallies[tally_id][filter_id]['slice_z'] = self.z
-                            self.id_step = self.mesh_dimension[0] * self.mesh_dimension[1]
-                            ij_indices = [(self.mesh_ids[i][0], self.mesh_ids[i][1],) for i in range(self.id_step)]
-                            if len(tally.filters[0].mesh._grids) == 3:   
-                                ik_indices = []
-                                for k in range(self.mesh_dimension[2]):
-                                    ik_indices += [(self.mesh_ids[i][0], self.mesh_ids[i][2],) for i in
-                                                range(k * self.id_step, (k * self.id_step + self.mesh_dimension[0]))]
-                                jk_indices = [(self.mesh_ids[i][1], self.mesh_ids[i][2],) for i in
-                                            range(0, len(self.mesh_ids), self.mesh_dimension[0])]
-                                self.Tallies[tally_id][filter_id]['ik_indices'] = ik_indices
-                                self.Tallies[tally_id][filter_id]['jk_indices'] = jk_indices
-                                
-                            self.Tallies[tally_id][filter_id]['ij_indices'] = ij_indices
-                            
-                            if self.Mesh_xy_RB.isChecked():
-                                if len(tally.filters[0].mesh._grids) == 3:
-                                    self.z_id = [item[2] for item in [self.mesh_ids[i] for i in range(0, len(self.mesh_ids), self.id_step)]]
-                                    self.list_axis = ['slice at z = ' + str("{:.1E}".format(z_)) for z_ in self.z]
-                                else:
-                                    self.z_id = [0]
-                                    self.list_axis = ['z axis integrated']
-                                #self.Tallies[tally_id][filter_id]['basis'] = [(x, y,) for y in self.y for x in self.y]
-                                #self.Tallies[tally_id][filter_id]['basis_ids'] = [(i, j,) for i,j in zip(self.mesh_ids[0], self.mesh_ids[1])]
-                            elif self.Mesh_xz_RB.isChecked():
-                                self.id_step1 = self.mesh_dimension[0] * self.mesh_dimension[2]
-                                self.y_id = [item[2] for item in [self.mesh_ids[i] for i in range(0, len(self.mesh_ids), self.id_step)]]
-                                self.list_axis = ['slice at y = ' + str("{:.1E}".format(y_)) for y_ in self.y]
-                                #self.Tallies[tally_id][filter_id]['basis'] = [(x, z,) for z in self.z for x in self.x]
-                            elif self.Mesh_yz_RB.isChecked():
-                                self.id_step2 = self.mesh_dimension[1] * self.mesh_dimension[2]
-                                self.x_id = [item[2] for item in [self.mesh_ids[i] for i in range(0, len(self.mesh_ids), self.id_step)]]
-                                self.list_axis = ['slice at x = ' + str("{:.1E}".format(x_)) for x_ in self.x]
-                                #self.Tallies[tally_id][filter_id]['basis'] = [(y, z,) for z in self.z for y in self.y]
-                            bins = self.list_axis  
-                    else: 
-                        self.Mesh_xy_RB.hide()
-                        self.Mesh_xz_RB.hide()
-                        self.Mesh_yz_RB.hide()
-                        self.spinBox.hide()
-                        self.spinBox_2.hide()
-                        self.Curve_title.clear()                     
-                        self.xlabel.setText('xlabel')
-                        self.ylabel.setText('ylabel')
-                        if 'energy low [eV]' in self.df_Keys and filter_name == 'EnergyFilter':
+                    if filter_name != 'MeshFilter':
+                        self.label_4.setText('Select bins')
+                        filter_id = self.filter_ids[idx]
+                        self.Tallies[tally_id][filter_id]['bins'] = [item for item in tally.filters[idx].bins]
+                        Bins = self.Tallies[tally_id][filter_id]['bins']
+                        if 'energy low [eV]' in df_KEYS and filter_name == 'EnergyFilter':
                             first = [item[0] for item in Bins]
                             last = [item[1] for item in Bins]
                             self.Checked_energies_Low = first
                             self.Checked_energies_High = last
                             bins = [str(("{:.3E}".format(x), "{:.3E}".format(y),)).replace("'", "") for x, y in
                                     zip(first, last)]
-                        elif 'energyout low [eV]' in self.df_Keys and filter_name == 'EnergyoutFilter':                            
+                        elif 'energyout low [eV]' in df_KEYS and filter_name == 'EnergyoutFilter':                            
                             first = [item[0] for item in Bins]
                             last = [item[1] for item in Bins]
                             self.Checked_energiesout_Low = first
                             self.Checked_energiesout_High = last
                             bins = [str(("{:.3E}".format(x), "{:.3E}".format(y),)).replace("'", "") for x, y in
                                     zip(first, last)]
-                        elif 'mu low' in self.df_Keys and filter_name == 'MuFilter':
+                        elif 'mu low' in df_KEYS and filter_name == 'MuFilter':
                             first = [item[0] for item in Bins]
                             last = [item[1] for item in Bins]
                             self.Checked_mu_Low = first
                             self.Checked_mu_High = last
                             bins = [str(("{:.3f}".format(x), "{:.3f}".format(y),)).replace("'", "") for x, y in
                                     zip(first, last)]
-                        elif 'polar low [rad]' in self.df_Keys and filter_name == 'PolarFilter':
+                        elif 'polar low [rad]' in df_KEYS and filter_name == 'PolarFilter':
                             first = [item[0] for item in Bins]
                             last = [item[1] for item in Bins]
                             self.Checked_polar_Low = first
                             self.Checked_polar_High = last
                             bins = [str(("{:.3f}".format(x), "{:.3f}".format(y),)).replace("'", "") for x, y in
                                     zip(first, last)]
-                        elif 'azimuthal low [rad]' in self.df_Keys and filter_name == 'AzimuthalFilter':
+                        elif 'azimuthal low [rad]' in df_KEYS and filter_name == 'AzimuthalFilter':
                             first = [item[0] for item in Bins]
                             last = [item[1] for item in Bins]
                             self.Checked_azimuthal_Low = first
                             self.Checked_azimuthal_High = last
                             bins = [str(("{:.3f}".format(x), "{:.3f}".format(y),)).replace("'", "") for x, y in
                                     zip(first, last)]
-                        elif 'time low [s]' in self.df_Keys and filter_name == 'TimeFilter':
+                        elif 'time low [s]' in df_KEYS and filter_name == 'TimeFilter':
                             first = [item[0] for item in Bins]
                             last = [item[1] for item in Bins]
                             self.Checked_time_Low = first
@@ -867,35 +764,45 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                             bins = [str(("{:.3f}".format(x), "{:.3f}".format(y),)).replace("'", "") for x, y in
                                     zip(first, last)]
                         else:
-                            for KEY in self.df_Keys:
+                            for KEY in df_KEYS:
                                 if 'distribcell' in KEY[0] and filter_name == 'DistribcellFilter':
                                     bins = [str(item) for item in range(len(self.tally.mean))]
                                 if KEY in ['cell', 'cellfrom', 'cellborn', 'surface', 'universe', 'material', 
-                                           'collision', 'particle', 'legendre', 'spatiallegendre', 
-                                           'sphericalharmonics', 'delayedgroup', 'zernike', 'zernikeradial']:
+                                            'collision', 'particle', 'legendre', 'spatiallegendre', 
+                                            'sphericalharmonics', 'delayedgroup', 'zernike', 'zernikeradial']:
                                     self.Curve_title.setText(self.Tally_name_LE.text())
                                     bins = sorted([str(item) for item in Bins])
+                        self.Tallies[tally_id][filter_id]['bins'] = bins
+                        self.Bins_comboBox[idx].addItem('Select ' + self.Tallies[tally_id]['filter_names'][idx] + ' bins')
+                        self.Bins_comboBox[idx].addItem('All bins')
+                        self.Bins_comboBox[idx].model().item(0).setEnabled(False)
+                        self.Bins_comboBox[idx].addItems(bins)
+                        try:
+                            if self.Tallies[tally_id][filter_id]['Checked_bins_indices']:
+                                for j in self.Tallies[tally_id][filter_id]['Checked_bins_indices']: 
+                                    self.Bins_comboBox[idx].setItemChecked(j, False)   # (j, True)
+                            else:
+                                for i in range(len(bins) + 1):
+                                    self.Bins_comboBox[idx].setItemChecked(i, False)
+                        except:
+                            self.showDialog('Warning', 'Filter bins not checked!')
+                    else:
+                        self.idx = idx
+                        self.filter_name = filter_name
+                
+                if 'MeshFilter' in self.Filter_names:
+                    self.SelectFilterMesh()
+                else:         
+                    self.Mesh_xy_RB.hide()
+                    self.Mesh_xz_RB.hide()
+                    self.Mesh_yz_RB.hide()
+                    self.spinBox.hide()
+                    self.spinBox_2.hide()
+                    self.Curve_title.clear()                     
+                    self.xlabel.setText('xlabel')
+                    self.ylabel.setText('ylabel')
 
-                    self.Tallies[tally_id][filter_id]['bins'] = bins
-                    self.Bins_comboBox[idx].addItem('Select ' + self.Tallies[tally_id]['filter_names'][idx] + ' bins')
-                    self.Bins_comboBox[idx].addItem('All bins')
-                    self.Bins_comboBox[idx].model().item(0).setEnabled(False)
-                    #self.Bins_comboBox[idx].setItemChecked(0, False)
-                    self.Bins_comboBox[idx].addItems(bins)
-                    if 'MeshFilter' in self.Filters_comboBox.currentText() and len(tally.filters[0].mesh._grids) == 2:
-                        self.Bins_comboBox[self.Filters_comboBox.currentIndex() - 1].setCurrentIndex(2)
-                    try:
-                        if self.Tallies[tally_id][filter_id]['Checked_bins_indices']:
-
-                            for j in self.Tallies[tally_id][filter_id]['Checked_bins_indices']: 
-                                self.Bins_comboBox[idx].setItemChecked(j, False)   # (j, True)
-                        else:
-                            for i in range(len(bins) + 1):
-                                self.Bins_comboBox[idx].setItemChecked(i, False)
-                    except:
-                        self.showDialog('Warning', 'Filter bins not checked!')
-            
-        elif self.Tally_id_comboBox.currentIndex() > 0 and 'Keff' in self.Tally_id_comboBox.currentText():
+        elif 'Keff' in self.Tally_id_comboBox.currentText():
             try:
                 self.Bins_comboBox[0].clear()
             except:
@@ -921,7 +828,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                         for i in range(len(self.batches) + 1):
                             self.Bins_comboBox[0].setItemChecked(i, False)
                 except:
-                    self.showDialog('Warning', '** Filter bins not checked!')
+                    self.showDialog('Warning', 'Filter bins not checked!')
             else:
                 self.Graph_type_CB.setEnabled(False)
                 try:
@@ -929,40 +836,129 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 except:
                     pass
 
-    def Display_filters(self):
-        self.tabWidget_2.setCurrentIndex(0)
-        cursor = self.editor.textCursor()
-        cursor.movePosition(cursor.End)
-        
-        if os.path.isfile(self.sp_file):
-            if self.Tally_id_comboBox.currentIndex() > 0 and 'Keff' not in self.Tally_id_comboBox.currentText():
-                tally_id = int(self.Tally_id_comboBox.currentText())
-                if self.Filters_comboBox.currentIndex() > 0:
-                    for id in self.filter_ids:
-                        Filter_Type = self.Tallies[tally_id]['filter_types'][self.filter_ids.index(id)]
-                        filter_id = id  
-                        self.Filter_Bins_Select(tally_id, filter_id)
-                        cursor.insertText('\n************************************************************' +
-                            '\nTally Id            : ' + str(tally_id) +
-                            '\nFilter Id           : ' + str(filter_id) +
-                            '\nFilter type         : ' + Filter_Type +    
-                            '\nChecked bins        : ' + str(self.Tallies[tally_id][filter_id]['Checked_bins']).replace("'", "") +
-                            '\nChecked bins indices: ' + str(self.checked_bins_indices) +
-                            '\n************************************************************')
-            elif self.Tally_id_comboBox.currentIndex() > 0 and 'Keff' in self.Tally_id_comboBox.currentText():
-                self.Filter_Bins_Select(0, 0)
-                cursor.insertText('\n************************************************************' +
-                    '\nKeff vs batches' +            
-                    '\nChecked batches     : ' + str(self.Checked_batches) +
-                    '\nChecked batches bins: ' + str(self.Checked_batches_bins) +
-                    '\n************************************************************')
-                self.Bins_comboBox[0].setCurrentIndex(0)  
-            else:
-                self.showDialog('Warning', 'Select Tally first!')
-        else:
-            self.showDialog('Warning', 'Select your StatePoint file first !')
+    def SelectFilterMesh(self):
+        tally_id = self.tally_id
+        tally = self.tally 
+        idx = self.idx
+        filter_name = self.filter_name
+        filter_id = self.filter_ids[idx]   
+        self.Mesh_xy_RB.show()
+        self.Mesh_xz_RB.show()
+        self.Mesh_yz_RB.show()
+        self.spinBox.show()
+        self.spinBox_2.show()
+        self.Mesh_xy_RB.setChecked(True)
+        self.Curve_xLabel.setText('x/cm')
+        self.Curve_yLabel.setText('y/cm')
+        self.Curve_title.setText(self.Tally_name_LE.text())
+        self.mesh_id = tally.filters[idx].mesh.id
+        self.mesh_type = str(tally.filters[idx].mesh).split('\n')[0]
+        self.mesh_name = tally.name
+        self.mesh_dimension = tally.filters[idx].mesh.dimension
+        self.mesh_n_dim = tally.filters[idx].mesh.n_dimension 
+        self.mesh_key = f'mesh {tally.filters[idx].mesh.id}'
+        print('*******************************************************************************************')
+        print('********************                           Mesh summary                             ******************')
+        print('*******************************************************************************************\n')
+        if self.mesh_type == 'RectilinearMesh':
+            self.mesh_LL = (tally.filters[idx].mesh.x_grid[0], tally.filters[idx].mesh.y_grid[0], tally.filters[idx].mesh.z_grid[0],)
+            self.mesh_UR = (tally.filters[idx].mesh.x_grid[-1], tally.filters[idx].mesh.y_grid[-1], tally.filters[idx].mesh.z_grid[-1],)                        
+            print('id               :  ', self.mesh_id)
+            print('name            :  ', self.mesh_name)
+            print('type            :  ', self.mesh_type)
+            print('dimension     :  ', self.mesh_n_dim)
+            print('voxels          :  ', self.mesh_dimension)
+            print('lower_left   :  ', self.mesh_LL)
+            print('upper_right  :  ', self.mesh_UR, '\n')
+            print('Tally filters : \n', tally.filters, '\n')
+            print('*******************************************************************************************\n')
+            self.showDialog('Warning', 'Under development!')
+            return
+        elif self.mesh_type == 'RegularMesh':
+            self.mesh_width = tally.filters[idx].mesh.width
+            self.mesh_LL = tally.filters[idx].mesh.lower_left
+            self.mesh_UR = tally.filters[idx].mesh.upper_right
 
-        self.editor.setTextCursor(cursor)
+            self.mesh_ids = tally.filters[idx].bins
+            if len(tally.filters[idx].mesh._grids) == 3:
+                self.x = tally.filters[idx].mesh._grids[0][:-1] + tally.filters[idx].mesh.width[0] * 0.5
+                self.y = tally.filters[idx].mesh._grids[1][:-1] + tally.filters[idx].mesh.width[1] * 0.5
+                self.z = tally.filters[idx].mesh._grids[2][:-1] + tally.filters[idx].mesh.width[2] * 0.5  
+                self.Mesh_xz_RB.setEnabled(True) 
+                self.Mesh_yz_RB.setEnabled(True) 
+            else:
+                self.x = tally.filters[idx].mesh._grids[0][:-1] + tally.filters[idx].mesh.width[0] * 0.5
+                self.y = tally.filters[idx].mesh._grids[1][:-1] + tally.filters[idx].mesh.width[1] * 0.5
+                self.z = ['z axis integrated']
+                self.mesh_dimension = np.append(self.mesh_dimension, 1)
+                self.Mesh_xz_RB.setEnabled(False) 
+                self.Mesh_yz_RB.setEnabled(False)   
+            # ******************************************************************************                     
+            print('id                :  ', self.mesh_id)
+            print('name          :  ', self.mesh_name)
+            print('type            :  ', self.mesh_type)
+            print('dimension   :  ', self.mesh_n_dim)
+            print('voxels         :  ', self.mesh_dimension)
+            print('width          :  ', self.mesh_width)
+            print('lower_left     :  ', self.mesh_LL)
+            print('upper_right  :  ', self.mesh_UR, '\n')
+            print('x grid      :  ', self.x)
+            print('y grid      :  ', self.y)
+            print('z grid      :  ', self.z, '\n')
+            print('Tally filters : \n', tally.filters, '\n')
+            print('*******************************************************************************************\n')
+
+            self.Tallies[tally_id][filter_id]['slice_x'] = self.x
+            self.Tallies[tally_id][filter_id]['slice_y'] = self.y
+            self.Tallies[tally_id][filter_id]['slice_z'] = self.z
+            self.id_step = self.mesh_dimension[0] * self.mesh_dimension[1]
+            ij_indices = [(self.mesh_ids[i][0], self.mesh_ids[i][1],) for i in range(self.id_step)]
+            if len(tally.filters[idx].mesh._grids) == 3:   
+                ik_indices = []
+                for k in range(self.mesh_dimension[2]):
+                    ik_indices += [(self.mesh_ids[i][0], self.mesh_ids[i][2],) for i in
+                                range(k * self.id_step, (k * self.id_step + self.mesh_dimension[0]))]
+                jk_indices = [(self.mesh_ids[i][1], self.mesh_ids[i][2],) for i in
+                            range(0, len(self.mesh_ids), self.mesh_dimension[0])]
+                self.Tallies[tally_id][filter_id]['ik_indices'] = ik_indices
+                self.Tallies[tally_id][filter_id]['jk_indices'] = jk_indices
+                
+            self.Tallies[tally_id][filter_id]['ij_indices'] = ij_indices
+            
+            if self.Mesh_xy_RB.isChecked():
+                if len(tally.filters[idx].mesh._grids) == 3:
+                    self.z_id = [item[2] for item in [self.mesh_ids[i] for i in range(0, len(self.mesh_ids), self.id_step)]]
+                    self.list_axis = ['slice at z = ' + str("{:.1E}".format(z_)) for z_ in self.z]
+                else:
+                    self.z_id = [0]
+                    self.list_axis = ['z axis integrated']
+            elif self.Mesh_xz_RB.isChecked():
+                self.id_step1 = self.mesh_dimension[0] * self.mesh_dimension[2]
+                self.y_id = [item[2] for item in [self.mesh_ids[i] for i in range(0, len(self.mesh_ids), self.id_step)]]
+                self.list_axis = ['slice at y = ' + str("{:.1E}".format(y_)) for y_ in self.y]
+            elif self.Mesh_yz_RB.isChecked():
+                self.id_step2 = self.mesh_dimension[1] * self.mesh_dimension[2]
+                self.x_id = [item[2] for item in [self.mesh_ids[i] for i in range(0, len(self.mesh_ids), self.id_step)]]
+                self.list_axis = ['slice at x = ' + str("{:.1E}".format(x_)) for x_ in self.x]
+            bins = self.list_axis
+            self.Tallies[tally_id][filter_id]['bins'] = bins
+            self.label_4.setText('Select bins')
+            filter_id = self.filter_ids[idx]
+            self.Bins_comboBox[idx].addItem('Select ' + self.Tallies[tally_id]['filter_names'][idx] + ' bins')
+            self.Bins_comboBox[idx].addItem('All bins')
+            self.Bins_comboBox[idx].model().item(0).setEnabled(False)
+            self.Bins_comboBox[idx].addItems(bins)
+            if 'MeshFilter' in self.Filter_names and len(tally.filters[idx].mesh._grids) == 2:
+                self.Bins_comboBox[self.Filters_comboBox.currentIndex() - 1].setCurrentIndex(2)
+            try:
+                if self.Tallies[tally_id][filter_id]['Checked_bins_indices']:
+                    for j in self.Tallies[tally_id][filter_id]['Checked_bins_indices']: 
+                        self.Bins_comboBox[idx].setItemChecked(j, False)   # (j, True)
+                else:
+                    for i in range(len(bins) + 1):
+                        self.Bins_comboBox[idx].setItemChecked(i, False)
+            except:
+                self.showDialog('Warning', 'Filter bins not checked!')
 
     def SelectBins(self):
         if self.Tally_id_comboBox.currentIndex() > 0 and 'Keff' not in self.Tally_id_comboBox.currentText():
@@ -976,18 +972,19 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             for idx in range(self.n_filters):   
                 if self.Filters_comboBox.currentIndex() > 0:
                     filter_id = self.filter_ids[idx]
-                    if 'MeshFilter' in self.Filters_comboBox.currentText():
+                    filter_name = self.Filter_names[idx]
+                    if filter_name == 'MeshFilter':
                         if self.Mesh_xy_RB.isChecked():
-                            if len(tally.filters[0].mesh._grids) == 3:
-                                z = self.z[self.Bins_comboBox[self.Filters_comboBox.currentIndex() - 1].currentIndex()-2]
+                            if len(tally.filters[idx].mesh._grids) == 3:
+                                z = self.z[self.Bins_comboBox[idx].currentIndex()-2]
                             else:
                                 z = self.z[0]
                             self.xyz = [(x, y) + (z,) for y in self.y[:self.mesh_dimension[1]] for x in self.x[:self.mesh_dimension[0]]]
                         if self.Mesh_xz_RB.isChecked():
-                            y = self.y[self.Bins_comboBox[self.Filters_comboBox.currentIndex() - 1].currentIndex()-2]
+                            y = self.y[self.Bins_comboBox[idx].currentIndex()-2]
                             self.xyz = [(x,) + (y,) + (z,) for z in self.z[:self.mesh_dimension[1]] for x in self.x[:self.mesh_dimension[0]]]
                         if self.Mesh_yz_RB.isChecked():
-                            x = self.x[self.Bins_comboBox[self.Filters_comboBox.currentIndex() - 1].currentIndex()-2]
+                            x = self.x[self.Bins_comboBox[idx].currentIndex()-2]
                             self.xyz = [(x,) + (y, z) for z in self.z[:self.mesh_dimension[1]] for y in self.y[:self.mesh_dimension[0]]]
                     self.Filter_Bins_Select(tally_id, filter_id)
                     self.Bins_comboBox[idx].setCurrentIndex(0)
@@ -1024,9 +1021,9 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 indices = self.Tallies[tally_id][filter_id]['Checked_bins_indices']
                 lst = self.Tallies[tally_id][filter_id]['bins']
                 self.Tallies[tally_id][filter_id]['Checked_bins'] = [elm for elm in lst if lst.index(elm) + 2 in indices]
-                self.checked_bins_indices = self.Tallies[tally_id][filter_id]['Checked_bins_indices']
 
-                if 'MeshFilter' in self.Filters_comboBox.currentText():
+                if filter_name == 'MeshFilter':  
+                    self.checked_bins_indices = self.Tallies[tally_id][filter_id]['Checked_bins_indices']
                     self.Tallies[tally_id][filter_id]['ijk_indices'] = {}
                     if self.Mesh_xy_RB.isChecked():
                         for bin_id in range(len(self.checked_bins_indices)):
@@ -1046,51 +1043,87 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                             i = self.checked_bins_indices[bin_id]
                             ijk_indices = [(i,) + item for item in self.Tallies[tally_id][filter_id]['ij_indices']]
                             self.Tallies[tally_id][filter_id]['ijk_indices'][self.checked_bins_indices[bin_id]] = ijk_indices
-                else:
-                    if 'cell' in self.df_Keys and filter_name == 'CellFilter':
-                        self.Checked_cells = self.Tallies[tally_id][filter_id]['Checked_bins']
-                    if 'cellfrom' in self.df_Keys and filter_name == 'CellFromFilter':
-                        self.Checked_cellsfrom = self.Tallies[tally_id][filter_id]['Checked_bins']
-                    if 'cellborn' in self.df_Keys and filter_name == 'CellBornFilter':
-                        self.Checked_cellsborn = self.Tallies[tally_id][filter_id]['Checked_bins']
-                    if 'distribcell' in self.df_Keys and filter_name == 'DistribcellFilter':
-                        self.Checked_distribcell = self.Tallies[tally_id][filter_id]['Checked_bins'] 
-                    if 'surface' in self.df_Keys and filter_name == 'SurfaceFilter':
-                        self.Checked_surfaces = self.Tallies[tally_id][filter_id]['Checked_bins']
-                    if 'energy low [eV]' in self.df_Keys and filter_name == 'EnergyFilter':
-                        self.Checked_energies_Low = self.Tallies[tally_id][filter_id]['Checked_bins']
-                    if 'energyout low [eV]' in self.df_Keys and filter_name == 'EnergyoutFilter':
-                        self.Checked_energiesout_Low = self.Tallies[tally_id][filter_id]['Checked_bins']
-                    if 'mu low' in self.df_Keys and filter_name == 'MuFilter':
-                        self.Checked_mu_Low = self.Tallies[tally_id][filter_id]['Checked_bins']
-                    if 'universe' in self.df_Keys and filter_name == 'UniverseFilter':
-                        self.Checked_universes = self.Tallies[tally_id][filter_id]['Checked_bins']
-                    if 'material' in self.df_Keys and filter_name == 'MaterialFilter':
-                        self.Checked_materials = self.Tallies[tally_id][filter_id]['Checked_bins']
-                    if 'collision' in self.df_Keys and filter_name == 'CollisionFilter':
-                        self.Checked_collisions = self.Tallies[tally_id][filter_id]['Checked_bins']
-                    if 'particle' in self.df_Keys and filter_name == 'ParticleFilter':
-                        self.Checked_particles = self.Tallies[tally_id][filter_id]['Checked_bins']
-                    if 'polar low [rad]' in self.df_Keys and filter_name == 'PolarFilter':
-                        self.Checked_polar_Low = self.Tallies[tally_id][filter_id]['Checked_bins']
-                    if 'azimuthal low [rad]' in self.df_Keys and filter_name == 'AzimuthalFilter':
-                        self.Checked_azimuthal_Low = self.Tallies[tally_id][filter_id]['Checked_bins']
-                    if 'legendre' in self.df_Keys and filter_name == 'LegendreFilter':
-                        self.Checked_legendre = self.Tallies[tally_id][filter_id]['Checked_bins']
-                    if 'spatiallegendre' in self.df_Keys and filter_name == 'SpatialLegendreFilter':
-                        self.Checked_spatiallegendre = self.Tallies[tally_id][filter_id]['Checked_bins']
-                    if 'sphericalharmonics' in self.df_Keys and filter_name == 'SphericalHarmonicsFilter':
-                        self.Checked_sphericalharmonics = self.Tallies[tally_id][filter_id]['Checked_bins']
-                    if 'time' in self.df_Keys and filter_name == 'TimeFilter':
-                        self.Checked_times = self.Tallies[tally_id][filter_id]['Checked_bins']
-                    if 'delayedgroup' in self.df_Keys and filter_name == 'DelayedGroupFilter':
-                        self.Checked_delayed = self.Tallies[tally_id][filter_id]['Checked_bins']
-                    if 'zernike' in self.df_Keys and filter_name == 'ZernikeFilter':
-                        self.Checked_zernike = self.Tallies[tally_id][filter_id]['Checked_bins']
-                    if 'zernikeradial' in self.df_Keys and filter_name == 'ZernikeRadialFilter':
-                        self.Checked_zernikeradial = self.Tallies[tally_id][filter_id]['Checked_bins']
+                elif filter_name == 'CellFilter':
+                    self.Checked_cells = self.Tallies[tally_id][filter_id]['Checked_bins']
+                elif filter_name == 'CellFromFilter':
+                    self.Checked_cellsfrom = self.Tallies[tally_id][filter_id]['Checked_bins']
+                elif filter_name == 'CellBornFilter':
+                    self.Checked_cellsborn = self.Tallies[tally_id][filter_id]['Checked_bins']
+                elif filter_name == 'DistribcellFilter':
+                    self.Checked_distribcell = self.Tallies[tally_id][filter_id]['Checked_bins'] 
+                elif filter_name == 'SurfaceFilter':
+                    self.Checked_surfaces = self.Tallies[tally_id][filter_id]['Checked_bins']
+                elif filter_name == 'EnergyFilter':
+                    self.Checked_energies_Low = self.Tallies[tally_id][filter_id]['Checked_bins']
+                elif filter_name == 'EnergyoutFilter':
+                    self.Checked_energiesout_Low = self.Tallies[tally_id][filter_id]['Checked_bins']
+                elif filter_name == 'MuFilter':
+                    self.Checked_mu_Low = self.Tallies[tally_id][filter_id]['Checked_bins']
+                elif filter_name == 'UniverseFilter':
+                    self.Checked_universes = self.Tallies[tally_id][filter_id]['Checked_bins']
+                elif filter_name == 'MaterialFilter':
+                    self.Checked_materials = self.Tallies[tally_id][filter_id]['Checked_bins']
+                elif filter_name == 'CollisionFilter':
+                    self.Checked_collisions = self.Tallies[tally_id][filter_id]['Checked_bins']
+                elif filter_name == 'ParticleFilter':
+                    self.Checked_particles = self.Tallies[tally_id][filter_id]['Checked_bins']
+                elif filter_name == 'PolarFilter':
+                    self.Checked_polar_Low = self.Tallies[tally_id][filter_id]['Checked_bins']
+                elif filter_name == 'AzimuthalFilter':
+                    self.Checked_azimuthal_Low = self.Tallies[tally_id][filter_id]['Checked_bins']
+                elif filter_name == 'LegendreFilter':
+                    self.Checked_legendre = self.Tallies[tally_id][filter_id]['Checked_bins']
+                elif filter_name == 'SpatialLegendreFilter':
+                    self.Checked_spatiallegendre = self.Tallies[tally_id][filter_id]['Checked_bins']
+                elif filter_name == 'SphericalHarmonicsFilter':
+                    self.Checked_sphericalharmonics = self.Tallies[tally_id][filter_id]['Checked_bins']
+                elif filter_name == 'TimeFilter':
+                    self.Checked_times = self.Tallies[tally_id][filter_id]['Checked_bins']
+                elif filter_name == 'DelayedGroupFilter':
+                    self.Checked_delayed = self.Tallies[tally_id][filter_id]['Checked_bins']
+                elif filter_name == 'ZernikeFilter':
+                    self.Checked_zernike = self.Tallies[tally_id][filter_id]['Checked_bins']
+                elif filter_name == 'ZernikeRadialFilter':
+                    self.Checked_zernikeradial = self.Tallies[tally_id][filter_id]['Checked_bins']
         except:
             return
+
+    def Display_filters(self):
+        self.tabWidget_2.setCurrentIndex(0)
+        cursor = self.editor.textCursor()
+        cursor.movePosition(cursor.End)
+        
+        if os.path.isfile(self.sp_file):
+            if self.Tally_id_comboBox.currentIndex() > 0 and 'Keff' not in self.Tally_id_comboBox.currentText():
+                tally_id = int(self.Tally_id_comboBox.currentText())
+                if self.Filters_comboBox.currentIndex() > 0:
+                    for id in self.filter_ids:
+                        Filter_Type = self.Tallies[tally_id]['filter_types'][self.filter_ids.index(id)]
+                        filter_id = id  
+                        idx = self.filter_ids.index(id)
+                        self.Filter_Bins_Select(tally_id, filter_id)
+                        cursor.insertText('\n************************************************************' +
+                            '\nTally Id            : ' + str(tally_id) +
+                            '\nFilter Id           : ' + str(filter_id) +
+                            '\nFilter name         : ' + str(self.Filter_names[idx]) +
+                            '\nFilter type         : ' + Filter_Type +    
+                            '\nChecked bins        : ' + str(self.Tallies[tally_id][filter_id]['Checked_bins']).replace("'", "") +
+                            '\nChecked bins indices: ' + str(self.checked_bins_indices) +
+                            '\n************************************************************')
+            elif self.Tally_id_comboBox.currentIndex() > 0 and 'Keff' in self.Tally_id_comboBox.currentText():
+                self.Filter_Bins_Select(0, 0)
+                cursor.insertText('\n************************************************************' +
+                    '\nKeff vs batches' +            
+                    '\nChecked batches     : ' + str(self.Checked_batches) +
+                    '\nChecked batches bins: ' + str(self.Checked_batches_bins) +
+                    '\n************************************************************')
+                self.Bins_comboBox[0].setCurrentIndex(0)  
+            else:
+                self.showDialog('Warning', 'Select Tally first!')
+        else:
+            self.showDialog('Warning', 'Select your StatePoint file first !')
+
+        self.editor.setTextCursor(cursor)
 
     def SelectScores(self):        
         if self.Tally_id_comboBox.currentIndex() > 0 and 'Keff' not in self.Tally_id_comboBox.currentText():
@@ -1220,7 +1253,14 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
 
         self.Curve_title.setText(self.Tally_name_LE.text())
 
-        if 'MeshFilter' not in self.Filters_comboBox.currentText():
+        if 'MeshFilter' in self.Filter_names:
+            self.Omit_Blank_Graph_CB.setEnabled(True)
+        else:
+            self.Omit_Blank_Graph_CB.setEnabled(False)
+        
+        self.Omit_Blank_Graph_CB.setChecked(False)
+
+        if 'MeshFilter' not in self.Filter_names:   #self.Filters_comboBox.currentText():
             if len(self.selected_scores) == 1: 
                 if self.selected_scores[0] == 'flux':
                     self.Curve_yLabel.setText(self.selected_scores[0] + ' / cm ')
@@ -1246,12 +1286,37 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         
         self.editor.setTextCursor(cursor)
 
-        if 'MeshFilter' not in self.Filters_comboBox.currentText():
-            self.df_filtered = self.df.loc[(self.df['nuclide'].isin(self.selected_nuclides)) & (self.df['score'].isin(self.selected_scores))]       
+        self.df_filtered = self.df.loc[(self.df['nuclide'].isin(self.selected_nuclides)) & (self.df['score'].isin(self.selected_scores))]       
+        if 'MeshFilter' in self.Filter_names:  
+            for index in range(len(self.df.keys()) - 4):
+                key = self.df.keys()[index][0]
+                if 'mesh' in key:
+                    filter_name = key.split(' ')[0].capitalize() +'Filter'
+                    idx = self.Filter_names.index(filter_name)                  
+                    if self.Mesh_xy_RB.isChecked():
+                        self.mesh_axis_key = (key, 'z',)
+                    elif self.Mesh_xz_RB.isChecked():
+                        self.mesh_axis_key = (key, 'y',)
+                    elif self.Mesh_yz_RB.isChecked():
+                        self.mesh_axis_key = (key, 'x',)
+                    self.df_filtered = self.df_filtered.loc[self.df[self.mesh_axis_key].isin(self.Key_Selected_Bins[idx])].copy()
+                elif 'low' in key:
+                    filter_name = key.split(' ')[0].capitalize() +'Filter'
+                    idx = self.Filter_names.index(filter_name) 
+                    self.df_filtered = self.df_filtered.loc[self.df[key].isin(self.Key_Selected_Bins[idx])].copy()
+                elif 'high' in key:
+                    pass
+                else:
+                    filter_name = key.capitalize() +'Filter'
+                    if 'from' in filter_name: filter_name = filter_name.replace('from', 'From')
+                    idx = self.Filter_names.index(filter_name) 
+                    self.df_filtered = self.df_filtered.loc[self.df[key].isin(self.Key_Selected_Bins[idx])].copy()
+        else:
             if self.n_filters > 0:
                 for idx in range(self.n_filters):
                     self.df_filtered = self.df_filtered.loc[self.df[self.Keys[idx]].isin(self.Key_Selected_Bins[idx])].copy()
-            self.Print_Formated_df(self.df_filtered.copy(), self.tally_id, self.editor)
+
+        self.Print_Formated_df(self.df_filtered.copy(), self.tally_id, self.editor)
         self.Plot_by_CB.setCurrentIndex(1)
         self.Graph_Layout_CB.setCurrentIndex(1)
         self.Graph_type_CB.setCurrentIndex(1)
@@ -1264,27 +1329,21 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                     self.Curve_xLabel.setText(self.Plot_By_Key.replace('center', '').replace('low', '').replace('[', '/ ').replace(']', ''))
        
         self.Normalizing_Settings()
- 
+
     def Filtered_Scores(self):
         self.DATA = {}
-        if 'MeshFilter' in self.Filters_comboBox.currentText(): # MeshFilter
+        if 'MeshFilter' in self.Filter_names:                    # MeshFilter
             for elm in self.buttons:
                 elm.setEnabled(False)
             self.Graph_Layout_CB.setCurrentIndex(0)             
             self.Graph_type_CB.setCurrentIndex(0)             
             self.Plot_by_CB.setCurrentIndex(0)             
-            self.Graph_Layout_CB.setEnabled(False)
+            self.Graph_Layout_CB.setEnabled(True)
             self.Graph_type_CB.setEnabled(False)
             self.Plot_by_CB.setEnabled(False)
             self.score_plot_PB.setEnabled(True)
             self.label.setEnabled(False)
-            self.xLog_CB.setEnabled(True)
-            self.Curve_xLabel.setText('x/cm')
-            self.Curve_yLabel.setText('y/cm')
-            self.xLog_CB.setText('Interp')
-            self.score_plot_PB.setText('plot mesh')
-            self.Mesh_scores()
-            return
+            self.Mesh_Spec()
         else:
             self.Plot_by_CB.setEnabled(True)
 
@@ -1299,47 +1358,47 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             self.DATA[idx] = {}
             self.filter_id = self.filter_ids[idx] 
             self.filter_name = self.Tallies[self.tally_id]['filter_names'][idx]
-            if 'cell' in self.df_Keys and self.filter_name == 'CellFilter':
+            if self.filter_name == 'CellFilter':
                 self.Keys[idx] = 'cell'
                 self.Checked_cells = self.Select_Bins(idx)
                 self.Key_Selected_Bins[idx] = self.Checked_cells
                 self.BIN[idx] = ' in cell '
-            elif 'cellfrom' in self.df_Keys and self.filter_name == 'CellFromFilter':
+            elif self.filter_name == 'CellFromFilter':
                 self.Keys[idx] = 'cellfrom'
                 self.Checked_cellsfrom = self.Select_Bins(idx)
                 self.Key_Selected_Bins[idx] = self.Checked_cellsfrom
                 self.BIN[idx] = ' from cell '
-            elif 'cellborn' in self.df_Keys and self.filter_name == 'CellBornFilter':
+            elif self.filter_name == 'CellBornFilter':
                 self.Keys[idx] = 'cellborn'
                 self.Checked_cellsborn = self.Select_Bins(idx)
                 self.Key_Selected_Bins[idx] = self.Checked_cellsborn
                 self.BIN[idx] = ' born in cell '
-            elif 'surface' in self.df_Keys and self.filter_name == 'SurfaceFilter':
+            elif self.filter_name == 'SurfaceFilter':
                 self.Keys[idx] = 'surface'
                 self.Checked_surfaces = self.Select_Bins(idx)
                 self.Key_Selected_Bins[idx] = self.Checked_surfaces
                 self.BIN[idx] = ' at surface '
-            elif 'universe' in self.df_Keys and self.filter_name == 'UniverseFilter':
+            elif self.filter_name == 'UniverseFilter':
                 self.Keys[idx] = 'universe'
                 self.Checked_universes = self.Select_Bins(idx)
                 self.Key_Selected_Bins[idx] = self.Checked_universes
                 self.BIN[idx] = ' in universe '
-            elif 'material' in self.df_Keys and self.filter_name == 'MaterialFilter':
+            elif self.filter_name == 'MaterialFilter':
                 self.Keys[idx] = 'material'
                 self.Checked_materials = self.Select_Bins(idx)
                 self.Key_Selected_Bins[idx] = self.Checked_materials
                 self.BIN[idx] = ' for material '
-            elif 'collision' in self.df_Keys and self.filter_name == 'CollisionFilter':
+            elif self.filter_name == 'CollisionFilter':
                 self.Keys[idx] = 'collision'
                 self.Checked_collisions = self.Select_Bins(idx)
                 self.Key_Selected_Bins[idx] = self.Checked_collisions
                 self.BIN[idx] = ' at collision '
-            elif 'particle' in self.df_Keys and self.filter_name == 'ParticleFilter':
+            elif self.filter_name == 'ParticleFilter':
                 self.Keys[idx] = 'particle'
                 self.Checked_particles = self.Select_Bins(idx)
                 self.Key_Selected_Bins[idx] = [item for item in self.Checked_particles]
                 self.BIN[idx] = ' for '
-            elif 'energy low [eV]' in self.df_Keys and self.filter_name == 'EnergyFilter':
+            elif self.filter_name == 'EnergyFilter':
                 self.Keys[idx] = 'energy low [eV]'
                 self.Checked_energies_Low, self.Checked_energies_High, self.Checked_energies_Center, self.Checked_Energy_Bins = self.Select_Bins_Energy_Angle_Time(idx)
                 self.Key_Selected_Bins[idx] = self.Checked_energies_Low
@@ -1360,7 +1419,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                     zip(Low, High)]
                 self.BIN[idx] = ' at energy '
                 self.UNIT[idx] = ' eV '
-            elif 'energyout low [eV]' in self.df_Keys and self.filter_name == 'EnergyoutFilter':
+            elif self.filter_name == 'EnergyoutFilter':
                 self.Keys[idx] = 'energyout low [eV]'
                 self.Checked_energiesout_Low, self.Checked_energiesout_High, self.Checked_energiesout_Center, self.Checked_Energyout_Bins = self.Select_Bins_Energy_Angle_Time(idx)
                 self.Key_Selected_Bins[idx] = self.Checked_energiesout_Low
@@ -1381,7 +1440,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                     zip(Low, High)]                
                 self.BIN[idx] = ' at energyout '
                 self.UNIT[idx] = ' eV '
-            elif 'mu low' in self.df_Keys and self.filter_name == 'MuFilter':
+            elif self.filter_name == 'MuFilter':
                 self.Keys[idx] = 'mu low'
                 self.Checked_mu_Low, self.Checked_mu_High, self.Checked_mu_Center, self.Checked_Mu_Bins = self.Select_Bins_Energy_Angle_Time(idx)
                 self.Key_Selected_Bins[idx] = self.Checked_mu_Low
@@ -1401,7 +1460,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 self.Bins_For_Title[idx] = [str((Format.format(x), Format.format(y),)).replace("'", "") for x, y in
                                     zip(Low, High)]
                 self.BIN[idx] = " at $\mu$ "
-            elif 'polar low [rad]' in self.df_Keys and self.filter_name == 'PolarFilter':
+            elif self.filter_name == 'PolarFilter':
                 self.Keys[idx] = 'polar low [rad]'
                 self.Checked_polar_Low, self.Checked_polar_High, self.Checked_polar_Center, self.Checked_Polar_Bins = self.Select_Bins_Energy_Angle_Time(idx)
                 self.Key_Selected_Bins[idx] = self.Checked_polar_Low
@@ -1422,7 +1481,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                     zip(Low, High)]
                 self.BIN[idx] = " at polar "
                 self.UNIT[idx] = ' rad '
-            elif 'azimuthal low [rad]' in self.df_Keys and self.filter_name == 'AzimuthalFilter':
+            elif self.filter_name == 'AzimuthalFilter':
                 self.Keys[idx] = 'azimuthal low [rad]'
                 self.Checked_azimuthal_Low, self.Checked_azimuthal_High, self.Checked_azimuthal_Center, self.Checked_Azimuthal_Bins = self.Select_Bins_Energy_Angle_Time(idx)
                 self.Key_Selected_Bins[idx] = self.Checked_azimuthal_Low
@@ -1443,7 +1502,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                     zip(Low, High)]
                 self.BIN[idx] = " at azimuthal "
                 self.UNIT[idx] = ' rad '
-            elif 'time low [s]' in self.df_Keys and self.filter_name == 'TimeFilter':
+            elif self.filter_name == 'TimeFilter':
                 self.Keys[idx] = 'time low [s]'
                 self.Checked_time_Low, self.Checked_time_High, self.Checked_time_Center, self.Checked_Time_Bins = self.Select_Bins_Energy_Angle_Time(idx)
                 self.Key_Selected_Bins[idx] = self.Checked_time_Low
@@ -1464,36 +1523,41 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                     zip(Low, High)]
                 self.BIN[idx] = " at time "
                 self.UNIT[idx] = ' s '
-            elif 'legendre' in self.df_Keys and self.filter_name == 'LegendreFilter':
+            elif self.filter_name == 'LegendreFilter':
                 self.Keys[idx] = 'legendre'
                 self.Checked_legendres = self.Select_Bins(idx)
                 self.Key_Selected_Bins[idx] = self.Checked_legendres
                 self.BIN[idx] = " Legendre "
-            elif 'spatiallegendre' in self.df_Keys and self.filter_name == 'SpatialLegendreFilter':
+            elif self.filter_name == 'SpatialLegendreFilter':
                 self.Keys[idx] = 'spatiallegendre'
                 self.Checked_spatiallegendres = self.Select_Bins(idx)
                 self.Key_Selected_Bins[idx] = self.Checked_spatiallegendres  
                 self.BIN[idx] = " spatial Legendre "    
-            elif 'sphericalharmonics' in self.df_Keys and self.filter_name == 'SphericalHarmonicsFilter':
+            elif self.filter_name == 'SphericalHarmonicsFilter':
                 self.Keys[idx] = 'sphericalharmonics'
                 self.Checked_sphericalharmonics = self.Select_Bins(idx)
                 self.Key_Selected_Bins[idx] = self.Checked_sphericalharmonics  
                 self.BIN[idx] = " spherical Harmonics "
-            elif 'delayedgroup' in self.df_Keys and self.filter_name == 'DelayedGroupFilter':
+            elif self.filter_name == 'DelayedGroupFilter':
                 self.Keys[idx] = 'delayedgroup'
-                self.Checked_times = self.Select_Bins(idx)
-                self.Key_Selected_Bins[idx] = self.Checked_times  
+                self.Checked_delayedgroup = self.Select_Bins(idx)
+                self.Key_Selected_Bins[idx] = self.Checked_delayedgroup  
                 self.BIN[idx] = " delayedgroup "
-            elif 'zernike' in self.df_Keys and self.filter_name == 'ZernikeFilter':
+            elif self.filter_name == 'ZernikeFilter':
                 self.Keys[idx] = 'zernike'
-                self.Checked_times = self.Select_Bins(idx)
-                self.Key_Selected_Bins[idx] = self.Checked_times  
+                self.Checked_zernike = self.Select_Bins(idx)
+                self.Key_Selected_Bins[idx] = self.Checked_zernike  
                 self.BIN[idx] = " zernike "
-            elif 'zernikeradial' in self.df_Keys and self.filter_name == 'ZernikeRadialFilter':
+            elif self.filter_name == 'ZernikeRadialFilter':
                 self.Keys[idx] = 'zernikeradial'
-                self.Checked_times = self.Select_Bins(idx)
-                self.Key_Selected_Bins[idx] = self.Checked_times  
+                self.Checked_zernikeradial = self.Select_Bins(idx)
+                self.Key_Selected_Bins[idx] = self.Checked_zernikeradial  
                 self.BIN[idx] = " zernikeradial "
+            elif self.filter_name == 'MeshFilter':
+                self.Keys[idx] = 'mesh ' + str(self.mesh_id)
+                self.Checked_meshes = self.Select_Bins(idx)
+                self.Key_Selected_Bins[idx] = [i - 1 for i in self.Tallies[self.tally_id][self.filter_id]['Checked_bins_indices']]
+                self.BIN[idx] = " mesh "            
             else:
                 for KEY in self.df_Keys:
                     if 'distribcell' in KEY[0]:           
@@ -1501,10 +1565,10 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                         self.Checked_distribcells = self.Select_Bins(idx)
                         self.Key_Selected_Bins[idx] = self.Checked_distribcells
                         self.BIN[idx] = " Distrib cell "
-            
+
             if not self.Bins_For_Title[idx]:
                 self.Bins_For_Title[idx] = self.Key_Selected_Bins[idx]   
-            
+
             # fill dic to plot data            
             self.DATA[idx]['Filter_name'] = self.filter_name
             self.DATA[idx]['KEY'] = self.Keys[idx]
@@ -1567,16 +1631,47 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                         index = self.selected_scores.index(score)
                         self.mean['root'][nuclide][index] = []
                         self.std['root'][nuclide][index] = []
-                        print(df)
                         return
-                        self.mean['root'][nuclide][index] += list(Score['mean'])   
-                        self.std['root'][nuclide][index] += list(Score['std. dev.'])   
-
+                        
     def Plot(self):
-        if 'MeshFilter' in self.Filters_comboBox.currentText():
-            self.Plot_Mesh()
-        elif 'DistribcellFilter' in self.Filters_comboBox.currentText() and self.Graph_type_CB.currentText() == 'mesh graph':
-            self.Plot_Distribcell()
+        if 'MeshFilter' in self.Filter_names:  
+            self.Normalization = False
+            if self.Tally_Normalizing_CB.isChecked():
+                self.Normalizing() 
+            if self.Normalization:
+                df = self.df_filtered_normalized
+            else:
+                df = self.df_filtered
+            if self.n_filters == 1:
+                if self.Graph_Layout_CB.currentText() == 'Multiple curves':        # Multiple curves
+                    self.Plot_Mesh(df) 
+                elif self.Graph_Layout_CB.currentText() == 'Stacking subplots':    # Stacking subplots
+                    self.Stack_Plot_Mesh(df)      
+            else:    
+                key = [''] * int(self.n_filters)
+                Checked_bins = [''] * int(self.n_filters)
+                self.Bins_For_Title = [''] * int(self.n_filters)
+                self.BIN = [''] * int(self.n_filters)
+                self.UNIT = [''] * int(self.n_filters)
+                i = 1
+                for filter in self.Filter_names:
+                    if filter != 'MeshFilter':
+                        idx = self.Filter_names.index(filter)
+                        Checked_bins[i] = self.DATA[idx]['Checked_bins']
+                        key[i] = self.DATA[idx]['KEY']
+                        self.Bins_For_Title[i] = self.DATA[idx]['BINforTitle']
+                        self.BIN[i] = self.DATA[idx]['BIN']
+                        self.UNIT[i] = self.DATA[idx]['UNIT']
+                        i += 1
+                if self.Graph_Layout_CB.currentText() == 'Multiple curves':        # Multiple curves
+                    self.Plot_Mesh(df)
+                elif self.Graph_Layout_CB.currentText() == 'Stacking subplots':    # Stacking subplots
+                    self.Stack_Plot_Mesh(df)      
+
+        elif 'DistribcellFilter' in self.Filter_names: 
+            self.showDialog('Warning', 'Under development!')
+            return
+            #self.Plot_Distribcell()
         elif 'Keff' in self.Tally_id_comboBox.currentText():
             self.Plot_Keff()
         else:
@@ -1632,7 +1727,6 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                         ax2.plot(x, H, label='entropy', color='g')
                     elif Graph_type == 'Scatter':
                         ax2.scatter(x, H, marker='^', color='g')
-                    #plt.xlabel('Generation')
                     plt.ylabel('Shannon entropy', color='g', fontsize=int(self.yFont_CB.currentText()))
                     ax2.yaxis.set_tick_params(labelsize=int(self.yFont_CB.currentText())*0.75)
                 except:
@@ -1648,7 +1742,6 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                         ax.plot(x, H, label='entropy', color='g')
                     elif Graph_type == 'Scatter':
                         ax.scatter(x, H, marker='^', color='g')
-                    #plt.xlabel('Generation')
                     plt.ylabel('Shannon entropy', color='g')
                 except:
                     self.showDialog('Warning', 'Shannon entropy was not specified in simulation settings!')
@@ -1675,17 +1768,9 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             self.showDialog('Warning', 'Select graph layout first !')
             return
         
-        """if self.row_SB.value()*self.col_SB.value() > 20 and self.Graph_Layout_CB.currentText() == 'Multiple curves':
-                qm = QMessageBox
-                ret = qm.question(self, 'Warning',' Warning : ' + str(self.N_Fig) + ' curves will be generated! \n continue ploting ?', qm.Yes | qm.No)
-                if ret == qm.Yes:
-                    pass 
-                elif ret == qm.No:
-                    self.WillPlot = False
-                    return"""
-
         self.Normalization = False
-        self.Normalizing() 
+        if self.Tally_Normalizing_CB.isChecked():
+            self.Normalizing() 
 
         if self.Normalization:
             df = self.df_filtered_normalized
@@ -1707,6 +1792,15 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             self.Stack_Plot = False
    
     def set_Graph_stack(self):  
+        if self.Graph_Layout_CB.currentIndex() == 2:
+            self.TitleFont_CB.setCurrentIndex(6)
+            self.xFont_CB.setCurrentIndex(6)
+            self.yFont_CB.setCurrentIndex(6)
+        else:
+            self.TitleFont_CB.setCurrentIndex(8)
+            self.xFont_CB.setCurrentIndex(7)
+            self.yFont_CB.setCurrentIndex(7)
+
         if 'Keff' not in self.Tally_id_comboBox.currentText():
             if self.Graph_Layout_CB.currentIndex() in [0, 3]:
                 for elm in self.buttons:
@@ -1716,7 +1810,6 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 self.Graph_type_CB.setEnabled(False)
                 self.Graph_type_CB.setCurrentIndex(0)
                 if self.Graph_Layout_CB.currentIndex() == 0:
-                    self.score_plot_PB.setText('plot score')
                     self.score_plot_PB.setEnabled(False)
                 elif self.Graph_Layout_CB.currentIndex() == 3:
                     self.score_plot_PB.setText('plot Box Plot')
@@ -1727,7 +1820,23 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 for elm in self.buttons:
                     elm.setEnabled(True)            
                 self.score_plot_PB.setEnabled(True)
-                self.score_plot_PB.setText('plot score')
+                if 'MeshFilter' in self.Filter_names:
+                    self.score_plot_PB.setText('plot mesh')
+                    self.label_2.setEnabled(True)
+                    self.xLog_CB.setEnabled(True)
+                    self.yLog_CB.setEnabled(True)
+                    self.xLog_CB.setText('Interp')
+                    self.yLog_CB.setText('Log')
+                    self.Add_error_bars_CB.setText('Plot Errors')
+                    self.label_3.setEnabled(False)
+                    self.xGrid_CB.setEnabled(False)
+                    self.yGrid_CB.setEnabled(False)
+                    self.MinorGrid_CB.setEnabled(False)
+                else:
+                    self.score_plot_PB.setText('plot score')
+                    self.xLog_CB.setText('xLog')
+                    self.yLog_CB.setText('yLog')
+                    self.Add_error_bars_CB.setText('Error bars')
                 self.Graph_type_CB.setEnabled(True) 
                 self.Graph_type_CB.setCurrentIndex(1)
                 if self.Graph_Layout_CB.currentIndex() == 1:
@@ -1755,22 +1864,27 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                     self.Graph_type_CB.setCurrentIndex(1)
             else:
                 self.Activate_Curve_Type()
-               
+
             try:     # try is needed because this will be executed before calculating self.Key
                 # determine stack size
-                self.N_Fig = 1
-                if self.Plot_By_Key not in ['nuclide', 'score']:
-                    self.N_Fig = len(self.selected_nuclides)
-                if self.n_filters > 0:
+                if 'MeshFilter' in self.Filter_names:
+                    self.N_Fig = len(self.selected_nuclides) * len(self.selected_scores) #* len(self.checked_bins_indices) 
                     for idx in range(len(self.filter_ids)):
                         self.N_Fig = self.N_Fig * len(self.Key_Selected_Bins[idx])
-                    for idx in range(len(self.filter_ids)):
-                        if self.Plot_By_Key == self.Keys[idx]:
+                else:
+                    self.N_Fig = 1
+                    if self.Plot_By_Key not in ['nuclide', 'score']:
+                        self.N_Fig = len(self.selected_nuclides)
+                    if self.n_filters > 0:
+                        for idx in range(len(self.filter_ids)):
+                            self.N_Fig = self.N_Fig * len(self.Key_Selected_Bins[idx])
+                        for idx in range(len(self.filter_ids)):
+                            if self.Plot_By_Key == self.Keys[idx]:
+                                self.N_Fig = int(self.N_Fig / len(self.Key_Selected_Bins[idx]))
+                        if 'center' in self.Plot_By_Key:
+                            index = self.Plot_by_CB.currentIndex() - 1
+                            idx = self.Keys.index(self.Plot_by_CB.itemText(index))
                             self.N_Fig = int(self.N_Fig / len(self.Key_Selected_Bins[idx]))
-                    if 'center' in self.Plot_By_Key:
-                        index = self.Plot_by_CB.currentIndex() - 1
-                        idx = self.Keys.index(self.Plot_by_CB.itemText(index))
-                        self.N_Fig = int(self.N_Fig / len(self.Key_Selected_Bins[idx]))
                 
                 self.row_SB.setValue(int(np.sqrt(self.N_Fig) + 0.5))
                 col = self.N_Fig / self.row_SB.value()
@@ -1790,7 +1904,9 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
     def Multiple_Curves(self, df):
         if self.row_SB.value()*self.col_SB.value() > 20:
                 qm = QMessageBox
-                ret = qm.question(self, 'Warning',' Warning : ' + str(self.N_Fig) + ' curves will be generated! \n continue ploting ?', qm.Yes | qm.No)
+                ret = qm.question(self, 'Warning',' More than 20 figures (' + str(self.N_Fig) + ') have been opened! \n This may consume too much memory.'+
+                                  '\n continue ploting ?', qm.Yes | qm.No)
+            
                 if ret == qm.Yes:
                     pass 
                 elif ret == qm.No:
@@ -1916,6 +2032,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                 key6 = key[5]; BIN6 = BIN[5]; UNIT6 = UNIT[5]; Checked_bins6 = Checked_bins[5]; Bins_For_Title6 = Bins_For_Title[5]
 
         i = 0
+        Delete_AX = False
         for bin6 in Checked_bins6:
             j6 = Checked_bins6.index(bin6)
             for bin5 in Checked_bins5:
@@ -1988,6 +2105,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                                 ax[i].scatter(x, y, marker='^', label = Label, color=prop_cycle_color[index])
                                             if self.Add_error_bars_CB.isChecked():
                                                 ax[i].errorbar(x, y, np.array(y_error), ecolor='black')
+                                    
                                     ax[i].set_prop_cycle(None)
 
                                 if Graph_type == 'Stacked Bars':
@@ -2197,7 +2315,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                                     y_error = y_error[df[key4] == bin4]   
                                                     if self.n_filters >= 5:
                                                         y = y[df[key5] == bin5]
-                                                        y_error = y_error[[key5] == bin5]
+                                                        y_error = y_error[df[key5] == bin5]
                                                         if self.n_filters >= 6:
                                                             y = y[df[key6] == bin6]
                                                             y_error = y_error[df[key6] == bin6]   
@@ -2394,8 +2512,6 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         self.df_filtered_normalized = df
         self.Print_Formated_df(self.df_filtered_normalized.copy(), self.tally_id, self.editor)
 
-        self.showDialog('','')
-
     @pyqtSlot(int)
     def onStateChange(self, state):
         if state == Qt.Checked:
@@ -2422,9 +2538,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 for i in  range(self.n_filters): 
                     if i < len(self.Checked_Keys_Norm):
                         elem = self.Checked_Keys_Norm[i]
-                        print(i, elem)
                         for key in self.Keys:
-                            print(i, elem, key)
                             if elem in key and 'low' in key:
                                 idx = self.Keys.index(key)
                                 Low = df[key].values[:]
@@ -2433,24 +2547,44 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         else:
             self.Norm_to_UnitLethargy_CB.setEnabled(True)
         
-        if checked:
-            yText = self.Curve_yLabel.text()
-            for elem in self.Checked_Keys_Norm:
-                i = self.Checked_Keys_Norm.index(elem)
-                if self.UNIT[i] == '':
-                    unit = ''
-                else:
+        if 'MeshFilter' not in self.Filter_names:
+            if checked:
+                yText = self.Curve_yLabel.text()
+                for elem in self.Checked_Keys_Norm:
+                    i = self.Checked_Keys_Norm.index(elem)
+                    if self.UNIT[i] == '':
+                        unit = ''
+                    else:
+                        unit = ' /' + self.UNIT[i]
+                    if unit not in yText:
+                        self.Curve_yLabel.setText(yText + unit)
+                    else:
+                        self.Curve_yLabel.setText(yText)
+            else:
+                for elem in self.Norm_Available_Keys:
+                    i = self.Norm_Available_Keys.index(elem)
                     unit = ' /' + self.UNIT[i]
-                if unit not in yText:
-                    self.Curve_yLabel.setText(yText + unit)
-                else:
-                    self.Curve_yLabel.setText(yText)
+                    yText = self.Curve_yLabel.text().replace(unit, '')
+                self.Curve_yLabel.setText(yText)
         else:
-            for elem in self.Norm_Available_Keys:
-                i = self.Norm_Available_Keys.index(elem)
-                unit = ' /' + self.UNIT[i]
-                yText = self.Curve_yLabel.text().replace(unit, '')
-            self.Curve_yLabel.setText(yText)
+            if checked:
+                Title = self.Curve_title.text()
+                for elem in self.Checked_Keys_Norm:
+                    i = self.Checked_Keys_Norm.index(elem)
+                    if self.UNIT[i] == '':
+                        unit = ''
+                    else:
+                        unit = ' /' + self.UNIT[i]
+                    if unit not in Title:
+                        self.Curve_title.setText(Title + unit)
+                    else:
+                        self.Curve_title.setText(Title)
+            else:
+                for elem in self.Norm_Available_Keys:
+                    i = self.Norm_Available_Keys.index(elem)
+                    unit = ' /' + self.UNIT[i]
+                    Title = self.Curve_title.text().replace(unit, '')
+                self.Curve_title.setText(Title)
 
     def Normalize_to_Power(self):
         self.Factor_LE.clear()
@@ -2491,16 +2625,27 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             self.Power_Factor = 1.
         self.Factor_LE.setText(str(self.Power_Factor))
 
-        if self.Norm_to_Power_CB.isChecked() or self.Norm_to_Heating_CB.isChecked():
-            yText = self.Curve_yLabel.text()
-            if ' / s ' not in yText:
-                self.Curve_yLabel.setText(yText + ' / s ')
+        if 'MeshFilter' not in self.Filter_names:
+            if self.Norm_to_Power_CB.isChecked() or self.Norm_to_Heating_CB.isChecked():
+                yText = self.Curve_yLabel.text()
+                if ' / s ' not in yText:
+                    self.Curve_yLabel.setText(yText + ' / s ')
+                else:
+                    self.Curve_yLabel.setText(yText)
             else:
-                self.Curve_yLabel.setText(yText)
+                yText = self.Curve_yLabel.text()
+                self.Curve_yLabel.setText(yText.replace(' / s ', ''))
         else:
-            yText = self.Curve_yLabel.text()
-            self.Curve_yLabel.setText(yText.replace(' / s ', ''))
-    
+            if self.Norm_to_Power_CB.isChecked() or self.Norm_to_Heating_CB.isChecked():
+                Title = self.Curve_title.text()
+                if ' / s ' not in Title:
+                    self.Curve_title.setText(Title + ' / s ')
+                else:
+                    self.Curve_title.setText(Title)
+            else:
+                Title = self.Curve_title.text()
+                self.Curve_title.setText(Title.replace(' / s ', ''))
+
     def Normalize_Flux_to_Unit_of_Lethargy(self, checked):
         import math
         df = self.df_filtered.copy()
@@ -2514,20 +2659,30 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 Low = df[key].values[:]
                 High = df[self.df_Keys[idx+1]].values[:]
             self.Lethargy_Factor *= [1. / math.log(y / x) for x,y in zip(Low, High)]
-            print(idx, self.Lethargy_Factor)
             self.Norm_to_BW_CB.setEnabled(False)
         else:
             self.Norm_to_BW_CB.setEnabled(True)
 
-        if checked:    
-            yText = self.Curve_yLabel.text()
-            if ' / unit lethargy ' not in yText:
-                self.Curve_yLabel.setText(yText + ' / unit lethargy ')
+        if 'MeshFilter' not in self.Filter_names:
+            if checked:    
+                yText = self.Curve_yLabel.text()
+                if ' / unit lethargy ' not in yText:
+                    self.Curve_yLabel.setText(yText + ' / unit lethargy ')
+                else:
+                    self.Curve_yLabel.setText(yText)
             else:
-                self.Curve_yLabel.setText(yText)
+                yText = self.Curve_yLabel.text()
+                self.Curve_yLabel.setText(yText.replace(' / unit lethargy ', ''))
         else:
-            yText = self.Curve_yLabel.text()
-            self.Curve_yLabel.setText(yText.replace(' / unit lethargy ', ''))
+            if checked:    
+                Title = self.Curve_title.text()
+                if ' / unit lethargy ' not in Title:
+                    self.Curve_title.setText(Title + ' / unit lethargy ')
+                else:
+                    self.Curve_title.setText(Title)
+            else:
+                Title = self.Curve_title.text()
+                self.Curve_title.setText(Title.replace(' / unit lethargy ', ''))
 
     def Normalize_to_Volume(self, checked):
         # Obtain the width of Lethargy Energy
@@ -2574,24 +2729,43 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                         self.All_Volumes[i] = self.Volumes[0]
 
                 self.Volume_Factor = np.reciprocal(self.All_Volumes).tolist()
-                
-        if checked: 
-            yText = self.Curve_yLabel.text()   
-            if 'flux' in yText:
-                if ' / cm ' in yText:
-                    self.Curve_yLabel.setText(yText.replace(' / cm ', ' / cm\u00b2 '))
+
+        if 'MeshFilter' not in self.Filter_names:        
+            if checked: 
+                yText = self.Curve_yLabel.text()   
+                if 'flux' in yText:
+                    if ' / cm ' in yText:
+                        self.Curve_yLabel.setText(yText.replace(' / cm ', ' / cm\u00b2 '))
+                    else:
+                        self.Curve_yLabel.setText(yText + ' / cm\u00b2 ')
                 else:
-                    self.Curve_yLabel.setText(yText + ' / cm\u00b2 ')
+                    if ' / cc ' not in yText:
+                        self.Curve_yLabel.setText(yText + ' / cc ')
             else:
-                if ' / cc ' not in yText:
-                    self.Curve_yLabel.setText(yText + ' / cc ')
+                yText = self.Curve_yLabel.text()
+                if 'flux' in yText:
+                    yText = self.Curve_yLabel.text().replace(' / cm\u00b2 ', ' / cm ')
+                else:
+                    yText = self.Curve_yLabel.text().replace(' / cc ', '')
+                self.Curve_yLabel.setText(yText)
         else:
-            yText = self.Curve_yLabel.text()
-            if 'flux' in yText:
-                yText = self.Curve_yLabel.text().replace(' / cm\u00b2 ', ' / cm ')
+            if checked:
+                Title = self.Curve_title.text()
+                if 'flux' in Title:
+                    if ' / cm ' in Title:
+                        self.Curve_title.setText(Title.replace(' / cm ', ' / cm\u00b2 '))
+                    else:
+                        self.Curve_title.setText(Title + ' / cm\u00b2 ')
+                else:
+                    if ' / cc ' not in Title:
+                        self.Curve_title.setText(Title + ' / cc ')
             else:
-                yText = self.Curve_yLabel.text().replace(' / cc ', '')
-            self.Curve_yLabel.setText(yText)
+                Title = self.Curve_title.text()
+                if 'flux' in Title:
+                    Title = self.Curve_title.text().replace(' / cm\u00b2 ', ' / cm ')
+                else:
+                    Title = self.Curve_title.text().replace(' / cc ', '')
+                self.Curve_title.setText(Title)
 
     def LE_to_List(self, LineEdit):
         text = LineEdit.text().replace('(', '').replace(')', '')
@@ -2650,11 +2824,11 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             PLT.set_yscale('log')
 
     def set_Scales(self): 
-        if self.Graph_type_CB.currentIndex() == 0:
+        if self.Graph_type_CB.currentIndex() == 0 and 'MeshFilter' not in self.Filter_names:
             for elm in self.buttons:
                 elm.setEnabled(False)        
         else:
-            if 'MeshFilter' in self.Filters_comboBox.currentText():
+            if 'MeshFilter' in self.Filter_names:
                 self.Graph_type_CB.setCurrentIndex(0)
                 self.Graph_type_CB.setEnabled(False)
                 self.Plot_by_CB.clear()            
@@ -2711,61 +2885,62 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             self.Graph_type_CB.model().item(i).setEnabled(False)
 
     def Mesh_settings(self, enabled):
+        if not os.path.isfile(self.sp_file):
+            self.showDialog('Warning', 'Select valid statepoint file!')
+            return
+        
         self.score_plot_PB.setEnabled(False)
-        self.Bins_comboBox[self.Filters_comboBox.currentIndex() - 1].clear()
-        if os.path.isfile(self.sp_file):
-            tally_id = int(self.Tally_id_comboBox.currentText())
-            if self.Tally_id_comboBox.currentIndex() > 0 and 'Keff' not in self.Tally_id_comboBox.currentText():
-                if self.Filters_comboBox.currentIndex() > 0:
-                    filter_id = self.filter_ids[self.Filters_comboBox.currentIndex() - 1]
-                    self.Bins_comboBox[self.Filters_comboBox.currentIndex() - 1].addItems(['Select bin', 'All bins'])
-                    self.Bins_comboBox[self.Filters_comboBox.currentIndex() - 1].model().item(0).setEnabled(False)
-                    if self.Mesh_xy_RB.isChecked():
-                        self.list_axis = ['slice at z = ' + str("{:.1E}".format(z_)) for z_ in self.z]
-                        self.xlabel.setText('xlabel')
-                        self.ylabel.setText('ylabel')
-                        self.Curve_xLabel.setText('x/cm')
-                        self.Curve_yLabel.setText('y/cm')
-                        self.spinBox.setValue(1)
-                        self.spinBox_2.setValue(1)
-                        self.spinBox.setMinimum(1)
-                        self.spinBox.setMaximum(self.mesh_dimension[0])
-                        self.spinBox_2.setMinimum(1)
-                        self.spinBox_2.setMaximum(self.mesh_dimension[1])
-                    elif self.Mesh_xz_RB.isChecked():
-                        self.list_axis = ['slice at y = ' + str("{:.1E}".format(y_)) for y_ in self.y]
-                        self.xlabel.setText('xlabel')
-                        self.ylabel.setText('zlabel')
-                        self.Curve_xLabel.setText('x/cm')
-                        self.Curve_yLabel.setText('z/cm')
-                        self.spinBox.setValue(1)
-                        self.spinBox_2.setValue(1)
-                        self.spinBox.setMinimum(1)
-                        self.spinBox.setMaximum(self.mesh_dimension[0])
-                        self.spinBox_2.setMaximum(self.mesh_dimension[2])
-                    elif self.Mesh_yz_RB.isChecked():
-                        self.list_axis = ['slice at x = ' + str("{:.1E}".format(x_)) for x_ in self.x]
-                        self.xlabel.setText('ylabel')
-                        self.ylabel.setText('zlabel')
-                        self.Curve_xLabel.setText('y/cm')
-                        self.Curve_yLabel.setText('z/cm')
-                        self.spinBox.setValue(1)
-                        self.spinBox_2.setValue(1)
-                        self.spinBox_2.setMinimum(1)
-                        self.spinBox.setMaximum(self.mesh_dimension[1])
-                        self.spinBox_2.setMaximum(self.mesh_dimension[2])
+        for filter in self.Filter_names:
+            if filter == 'MeshFilter':
+                idx = self.Filter_names.index(filter)
+                self.Bins_comboBox[idx].clear()
+                tally_id = int(self.Tally_id_comboBox.currentText())
+                filter_id = self.filter_ids[idx]
+                self.Bins_comboBox[idx].addItems(['Select bin', 'All bins'])
+                self.Bins_comboBox[idx].model().item(0).setEnabled(False)
+                if self.Mesh_xy_RB.isChecked():
+                    self.list_axis = ['slice at z = ' + str("{:.1E}".format(z_)) for z_ in self.z]
+                    self.xlabel.setText('xlabel')
+                    self.ylabel.setText('ylabel')
+                    self.Curve_xLabel.setText('x/cm')
+                    self.Curve_yLabel.setText('y/cm')
+                    self.spinBox.setValue(1)
+                    self.spinBox_2.setValue(1)
+                    self.spinBox.setMinimum(1)
+                    self.spinBox.setMaximum(self.mesh_dimension[0])
+                    self.spinBox_2.setMinimum(1)
+                    self.spinBox_2.setMaximum(self.mesh_dimension[1])
+                elif self.Mesh_xz_RB.isChecked():
+                    self.list_axis = ['slice at y = ' + str("{:.1E}".format(y_)) for y_ in self.y]
+                    self.xlabel.setText('xlabel')
+                    self.ylabel.setText('zlabel')
+                    self.Curve_xLabel.setText('x/cm')
+                    self.Curve_yLabel.setText('z/cm')
+                    self.spinBox.setValue(1)
+                    self.spinBox_2.setValue(1)
+                    self.spinBox.setMinimum(1)
+                    self.spinBox.setMaximum(self.mesh_dimension[0])
+                    self.spinBox_2.setMaximum(self.mesh_dimension[2])
+                elif self.Mesh_yz_RB.isChecked():
+                    self.list_axis = ['slice at x = ' + str("{:.1E}".format(x_)) for x_ in self.x]
+                    self.xlabel.setText('ylabel')
+                    self.ylabel.setText('zlabel')
+                    self.Curve_xLabel.setText('y/cm')
+                    self.Curve_yLabel.setText('z/cm')
+                    self.spinBox.setValue(1)
+                    self.spinBox_2.setValue(1)
+                    self.spinBox_2.setMinimum(1)
+                    self.spinBox.setMaximum(self.mesh_dimension[1])
+                    self.spinBox_2.setMaximum(self.mesh_dimension[2])
 
-                    bins = self.list_axis
-                    self.Tallies[tally_id][filter_id]['bins'] = bins
-                    self.Bins_comboBox[self.Filters_comboBox.currentIndex() - 1].addItems(bins)
-                    for i in range(len(bins) + 1):
-                        self.Bins_comboBox[self.Filters_comboBox.currentIndex() - 1].setItemChecked(i, False)
-                    self.Tallies[tally_id][filter_id]['Checked_bins_indices'].clear()
-    
-    def Mesh_scores(self):
-        df = self.df
-        self.mean = {}
+                bins = self.list_axis
+                self.Tallies[tally_id][filter_id]['bins'] = bins
+                self.Bins_comboBox[idx].addItems(bins)
+                for i in range(len(bins) + 1):
+                    self.Bins_comboBox[idx].setItemChecked(i, False)
+                self.Tallies[tally_id][filter_id]['Checked_bins_indices'].clear()
 
+    def Mesh_Spec(self):
         if self.Mesh_xy_RB.isChecked():
             self.dim1 = self.mesh_dimension[0]
             self.dim2 = self.mesh_dimension[1]
@@ -2787,83 +2962,582 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             self.LL2 = self.mesh_LL[2]
             self.UR1 = self.mesh_UR[1]
             self.UR2 = self.mesh_UR[2]
-        index = self.filter_ids.index(self.filter_id)
-        key = self.Tallies[self.tally_id]['filter_types'][index] + ' ' + str(self.mesh_id)
-        self.mean[key] = {}
 
-        for bin in self.checked_bins_indices:
-            self.mean[key][bin-1] = {}
-            for score in self.selected_scores:
-                if score != '':
-                    self.mean[key][bin-1][score] = {}
-                    Score = df[df['score'] == score]
-                    for nuclide in self.selected_nuclides:
-                        if nuclide != '':
-                            self.mean[key][bin-1][score][nuclide] = []
-                            Scoren = Score[Score['nuclide'] == nuclide]
-                            if self.Mesh_xy_RB.isChecked():
-                                Scoren = Scoren[Scoren[key]['z'] == bin-1]
-                                for x in range(1,self.spinBox.value()+1):
-                                    for y in range(1,self.spinBox_2.value()+1):
-                                        Scorexy = Scoren[Scoren[key]['x'] == x]
-                                        Scorexy = Scorexy[Scorexy[key]['y'] == y]
-                            elif self.Mesh_xz_RB.isChecked():
-                                Scoren = Scoren[Scoren[key]['y'] == bin-1]
-                                for x in range(1,self.spinBox.value()+1):
-                                    for z in range(1,self.spinBox_2.value()+1):
-                                        Scorexz = Scoren[Scoren[key]['x'] == x]
-                                        Scorexz = Scorexz[Scorexz[key]['z'] == z]
-                            elif self.Mesh_yz_RB.isChecked():
-                                Scoren = Scoren[Scoren[key]['x'] == bin-1]
-                                for y in range(1,self.spinBox.value()+1):
-                                    for z in range(1,self.spinBox_2.value()+1):
-                                        Scoreyz = Scoren[Scoren[key]['y'] == y]
-                                        Scoreyz = Scoreyz[Scoreyz[key]['z'] == z]
-                            
-                            self.mean[key][bin-1][score][nuclide] = Scoren['mean'].to_numpy()
+    def Stack_Plot_Mesh(self, df):
+        Stack_Size = self.row_SB.value() * self.col_SB.value()
+        self.WillPlot = True
 
-    def Plot_Mesh(self):
-        index = self.filter_ids.index(self.filter_id)
-        key = self.Tallies[self.tally_id]['filter_types'][index] + ' ' + str(self.mesh_id)
+        if Stack_Size == 1:
+            self.showDialog('Warning', 'Stacking plots need more rows and/or columns !')
+            self.row_SB.setValue(2)
+        if self.N_Fig == 1:
+            self.Stack_Plot = False
+            self.Plot_Mesh(df) 
+            return        
+        if Stack_Size < self.N_Fig:
+            qm = QMessageBox
+            ret = qm.question(self, 'Warning',' Stack size : ' + str(Stack_Size) + ' less than total available plots : ' + 
+                                     str(self.N_Fig) + '\nLast plots will be removed! Continue ploting ?', qm.Yes | qm.No)
+            if ret == qm.Yes:
+                pass 
+            elif ret == qm.No:
+                self.WillPlot = False
+                return
+        
+        fig, axs = plt.subplots(self.row_SB.value(), self.col_SB.value())  #, layout="constrained")   #, sharex=True)
+        if self.N_Fig < Stack_Size:
+            ax = [None] * Stack_Size
+        else:    
+            ax = [None] * self.N_Fig            
+        
+        for i, ax_ in enumerate(axs.flat):
+            ax[i] = ax_
+        
+        self.i_omitted = 0
+        self.Plot_Mesh_Stack(df, fig, ax)
+
+        """if self.n_filters == 1:  
+            self.Plot_Mesh1_Stack(df, fig, ax)
+        else:
+            self.Plot_Mesh_Stack(df, fig, ax)"""
+
+        if Stack_Size > self.N_Fig - self.i_omitted:
+            for i in range(self.N_Fig - self.i_omitted, Stack_Size):
+                if ax[i]:
+                    ax[i].set_visible(False)        # to remove empty plots
+        
+        if self.WillPlot:
+            plt.subplots_adjust(left=0.18, right=0.98, top=0.92, bottom=0.12)
+            plt.tight_layout()
+            plt.show()
+
+    def Plot_Mesh(self, dff):
+        df = dff.copy()
+        key = self.mesh_axis_key
         x = np.linspace(self.LL1, self.UR1, num=self.dim1 + 1)
         y = np.linspace(self.LL2, self.UR2, num=self.dim2 + 1)
+        Filter_Names = [filter for filter in self.Filter_names if filter != 'MeshFilter' ]
+        Keys_Loop = [key[0] for key in self.df.keys()[:-4] if 'mesh' not in key[0] and 'high' not in key[0]]
+        mesh_idx = self.Filter_names.index('MeshFilter')
+        N_Bins = 1
+        idx_s = []
+        Key_BINS = [''] * len(Keys_Loop)
+        key1 = ''; BIN1 = ''; UNIT1 = ''; Checked_bins1 = ['']; Bins_For_Title1 = ['']
+        key2 = ''; BIN2 = ''; UNIT2 = ''; Checked_bins2 = ['']; Bins_For_Title2 = ['']
+        key3 = ''; BIN3 = ''; UNIT3 = ''; Checked_bins3 = ['']; Bins_For_Title3 = ['']
+        key4 = ''; BIN4 = ''; UNIT4 = ''; Checked_bins4 = ['']; Bins_For_Title4 = ['']
+        key5 = ''; BIN5 = ''; UNIT5 = ''; Checked_bins5 = ['']; Bins_For_Title5 = ['']
+        i = 0
+        for key1 in Keys_Loop:
+            filter_name = key1.split(' ')[0].capitalize() +'Filter'
+            if 'from' in filter_name: filter_name = filter_name.replace('from', 'From')
+            idx = self.Filter_names.index(filter_name)
+            idx_s.append(idx)
+            N_Bins = N_Bins * len(self.Key_Selected_Bins[idx])
+            Key_BINS[i] = self.Key_Selected_Bins[idx]
+            i += 1
+        if len(Keys_Loop) >= 1:
+            Checked_bins1 = Key_BINS[0]; key1 = Keys_Loop[0]; BIN1 = self.BIN[1]; UNIT1 = self.UNIT[1]; Bins_For_Title1 = self.Bins_For_Title[1]
+            if len(Keys_Loop) >= 2:
+                Checked_bins2 = Key_BINS[1]; key2 = Keys_Loop[1]; BIN2 = self.BIN[2]; UNIT2 = self.UNIT[2]; Bins_For_Title2 = self.Bins_For_Title[2]
+                if len(Keys_Loop) >= 3:
+                    Checked_bins3 = Key_BINS[2]; key3 = Keys_Loop[2]; BIN3 = self.BIN[3]; UNIT3 = self.UNIT[3]; Bins_For_Title3 = self.Bins_For_Title[3]
+                    if len(Keys_Loop) >= 4:
+                        Checked_bins4 = Key_BINS[3]; key4 = Keys_Loop[3]; BIN4 = self.BIN[4]; UNIT4 = self.UNIT[4]; Bins_For_Title4 = self.Bins_For_Title[4]
+                        if len(Keys_Loop) >= 5:
+                            Checked_bins5 = Key_BINS[4]; key5 = Keys_Loop[4]; BIN5 = self.BIN[5]; UNIT5 = self.UNIT[5]; Bins_For_Title5 = self.Bins_For_Title[5] 
+
+        Stack_Size = self.row_SB.value() * self.col_SB.value()
+        if Stack_Size <= self.N_Fig:
+            N_Figs = Stack_Size
+        else:
+            N_Figs = self.N_Fig
+        if N_Figs > 20:
+            qm = QMessageBox
+            ret = qm.question(self, 'Warning',' More than 20 figures (' + str(N_Figs) + ') have been opened! \n This may consume too much memory.'+
+                                '\n continue ploting ?', qm.Yes | qm.No)
+            if ret == qm.Yes:
+                pass 
+            elif ret == qm.No:
+                self.WillPlot = False
+                return
+        msg = 'Cannot plot in Log scale scores that are all null!\n'
+        msg1 = ''
+        msg2 = ''
+        i_fig = 1
+        for score in self.selected_scores:
+            if score != '':
+                for nuclide in self.selected_nuclides:
+                    if nuclide != '':
+                        for bin in self.checked_bins_indices:
+                            Suptitle2 = 'score at '                            
+                            if len(self.tally.filters[mesh_idx].mesh._grids) == 3:
+                                Suptitle2 = Suptitle2 + str(self.Tallies[self.tally_id][self.filter_ids[mesh_idx]]['bins'][bin-2]).replace('slice at', '') + (' cm')
+                            else:
+                                if self.Mesh_xy_RB.isChecked():
+                                    Suptitle2 = Suptitle2.replace('at ', '') + ' integrated on z axis'
+                                elif self.Mesh_xz_RB.isChecked():
+                                    Suptitle2 = Suptitle2.replace('at ', '') + ' integrated on y axis'
+                                elif self.Mesh_yz_RB.isChecked():
+                                    Suptitle2 = Suptitle2.replace('at ', '') + ' integrated on x axis'
+                            if self.Add_error_bars_CB.isChecked():
+                                Suptitle2 = Suptitle2.replace('score', 'errors on score')
+                            
+                            for bin1 in Checked_bins1: 
+                                i_bin1 = Checked_bins1.index(bin1)
+                                for bin2 in Checked_bins2: 
+                                    i_bin2 = Checked_bins2.index(bin2)
+                                    for bin3 in Checked_bins3: 
+                                        i_bin3 = Checked_bins3.index(bin3)
+                                        for bin4 in Checked_bins4: 
+                                            i_bin4 = Checked_bins4.index(bin4)
+                                            for bin5 in Checked_bins5: 
+                                                i_bin5 = Checked_bins5.index(bin5)
+                                                yy = df[df.nuclide == nuclide][df.score == score][df[key] == bin - 1] #[df[key1] == bin1]
+                                                if len(Keys_Loop) >= 1:
+                                                    yy = yy[df[key1] == bin1]
+                                                    if len(Keys_Loop) >= 2:
+                                                        yy = yy[df[key2] == bin2]
+                                                        if len(Keys_Loop) >= 3:
+                                                            yy = yy[df[key3] == bin3]
+                                                            if len(Keys_Loop) >= 4:
+                                                                yy = yy[df[key4] == bin4]
+                                                                if len(Keys_Loop) >= 5:
+                                                                    yy = yy[df[key5] == bin5]
+                                                self.Print_Formated_df(yy.copy(), self.tally_id, self.editor)
+                                                mean = np.array(yy['mean'].tolist()).reshape((self.dim1, self.dim2))
+                                                errors = np.array(yy['std. dev.'].tolist()).reshape((self.dim1, self.dim2))
+
+                                                if self.Add_error_bars_CB.isChecked():
+                                                    mean = errors
+                                                if self.xLog_CB.isChecked():
+                                                    Interpolation = 'spline36'
+                                                else:
+                                                    Interpolation = None
+                                                if self.yLog_CB.isChecked():
+                                                    if np.count_nonzero(mean) == 0:
+                                                        Norm = None
+                                                        msg1 += 'Figure ' + str(i_fig) + ': ' + score + ' on ' + nuclide + '\n'
+                                                    else:
+                                                        Norm = colors.LogNorm()
+                                                else:
+                                                    Norm = None
+                                                if self.Omit_Blank_Graph_CB.isChecked() and np.count_nonzero(mean) == 0:
+                                                    msg2 += '\nFigure for ' + ': ' + score + ' on ' + nuclide + \
+                                                                    str(BIN1) + str(Bins_For_Title1[i_bin1]).replace("'","") + UNIT1 + ' - ' + \
+                                                                    str(BIN2) + str(Bins_For_Title2[i_bin2]).replace("'","") + UNIT2 + ' - ' + \
+                                                                    str(BIN3) + str(Bins_For_Title3[i_bin3]).replace("'","") + UNIT3 + ' - ' + \
+                                                                    str(BIN4) + str(Bins_For_Title4[i_bin4]).replace("'","") + UNIT4 + ' - ' + \
+                                                                    str(BIN5) + str(Bins_For_Title5[i_bin5]).replace("'","") + UNIT5 + \
+                                                            ' is empty and has been omitted.\n'
+                                                    break
+                                                else:
+                                                    plt.subplots()
+                                                    im = plt.imshow(mean, cmap=cm.rainbow, norm=Norm, interpolation=Interpolation, origin='lower', extent=[x.min(), x.max(), y.min(), y.max()])
+                                                    plt.show()
+                                                
+                                                if score == 'flux':
+                                                    if self.Norm_to_Vol_CB.isChecked():
+                                                        Suptitle1 = score + ' / cm\u00b2'
+                                                    else:
+                                                        Suptitle1 = score + ' / cm'
+                                                else:
+                                                    if self.Norm_to_Vol_CB.isChecked():
+                                                        Suptitle1 = score + ' rate ' 
+                                                    else:
+                                                        Suptitle1 = score + ' rate ' + '/ cm\u00b3'
+                                                if self.Norm_to_Power_CB.isChecked():
+                                                    Suptitle1 = Suptitle1 + ' /s'
+                                                if self.Norm_to_BW_CB.isChecked():
+                                                    Suptitle1 = Suptitle1 + ' /eV'
+                                                elif self.Norm_to_UnitLethargy_CB.isChecked():
+                                                    Suptitle1 = Suptitle1 + ' per unit lethargy'                      
+                                                
+                                                if self.Add_error_bars_CB.isChecked():
+                                                    Suptitle1 = Suptitle1.replace(score, 'errors on ' + score)
+
+                                                if len(Keys_Loop) == 0:
+                                                    Suptitle3 = Suptitle2
+                                                elif len(Keys_Loop) >= 1:
+                                                    Suptitle3 = Suptitle2 + ' - ' + str(BIN1) + str(Bins_For_Title1[i_bin1]).replace("'","") + UNIT1
+                                                    if len(Keys_Loop) >= 2:
+                                                        Suptitle3 = Suptitle3 + '\n' + str(BIN2) + str(Bins_For_Title2[i_bin2]).replace("'","") + UNIT2
+                                                        if len(Keys_Loop) >= 3:
+                                                            Suptitle3 = Suptitle3 + ' - ' + str(BIN3) + str(Bins_For_Title3[i_bin3]).replace("'","") + UNIT3
+                                                            if len(Keys_Loop) >= 4:
+                                                                Suptitle3 = Suptitle3 + '\n' + str(BIN4) + str(Bins_For_Title4[i_bin4]).replace("'","") + UNIT4
+                                                                if len(Keys_Loop) >= 5:
+                                                                    Suptitle3 = Suptitle3 + ' - ' + str(BIN5) + str(Bins_For_Title5[i_bin5]).replace("'","") + UNIT5
+                                                else:
+                                                    self.showDialog('Warning', 'More than 6 filters not supported yet!')
+                                                
+                                                cbar = plt.colorbar()
+                                                cbar.set_label(Suptitle1, rotation=270, labelpad=20)                                                
+                                                
+                                                if nuclide != 'total':
+                                                    plt.title(Suptitle3 + '\nNuclide : ' + nuclide, fontsize=int(self.TitleFont_CB.currentText()))   #, horizontalalignment='center')
+                                                else:    
+                                                    plt.title(Suptitle3, fontsize=int(self.TitleFont_CB.currentText()))   #, horizontalalignment='center')
+
+                                                cbar.ax.tick_params(labelsize=int(self.xFont_CB.currentText())*0.75)
+                                                plt.xlabel(self.Curve_xLabel.text(), fontsize=int(self.xFont_CB.currentText()))
+                                                plt.ylabel(self.Curve_yLabel.text(), fontsize=int(self.yFont_CB.currentText()))
+                                                plt.xticks(fontsize=int(self.xFont_CB.currentText())*0.75, rotation=int(self.xLabelRot_CB.currentText()))
+                                                plt.yticks(fontsize=int(self.yFont_CB.currentText())*0.75)                                    
+                                                i_fig += 1
+        if msg1 != '':
+            self.showDialog('Warning', msg + msg1)
+        if msg2 != '':
+            print(msg2)
+        plt.tight_layout()
+        plt.show()
+
+    def Plot_Mesh1_Stack(self, df, fig, ax):
+        from matplotlib.ticker import FormatStrFormatter
+        from matplotlib.ticker import ScalarFormatter
+        index = self.filter_ids.index(self.filter_id)
+        key = self.mesh_axis_key
+        x = np.linspace(self.LL1, self.UR1, num=self.dim1 + 1)
+        y = np.linspace(self.LL2, self.UR2, num=self.dim2 + 1)
+        msg = 'Cannot plot in Log scale scores that are all null!\n'
+        msg1 = ''
+        i_fig = 1
+
         for bin in self.checked_bins_indices:
             for score in self.selected_scores:
                 if score != '':
                     for nuclide in self.selected_nuclides:
                         if nuclide != '':
-                            mean = self.mean[key][bin-1][score][nuclide].reshape((self.dim1, self.dim2))
-                            plt.subplots()
-                            if self.yLog_CB.isChecked() or self.xLog_CB.isChecked():
-                                if self.yLog_CB.isChecked():
-                                    im = plt.imshow(mean, cmap=cm.rainbow, norm=colors.LogNorm(), origin='lower', extent=[x.min(), x.max(), y.min(), y.max()])
-                                    plt.show()
-                                if self.xLog_CB.isChecked():
-                                    im = plt.imshow(mean, cmap=cm.rainbow, interpolation='spline36', origin='lower', extent=[x.min(), x.max(), y.min(), y.max()])
-                                    plt.show()
+                            z = df[df.nuclide == nuclide][df.score == score]
+                            z1 = z[df[key] == bin - 1]
+                            mean = np.array(z1['mean'].tolist()).reshape((self.dim1, self.dim2))
+                            errors = np.array(z1['std. dev.'].tolist()).reshape((self.dim1, self.dim2))
+                            if self.Add_error_bars_CB.isChecked():
+                                mean = errors
+                            if self.xLog_CB.isChecked():
+                                Interpolation = 'spline36'
                             else:
-                                plt.imshow(mean, interpolation='none', cmap='jet', origin='lower',
-                                        extent=[x.min(), x.max(), y.min(), y.max()])
-                            #plt.colorbar()
-                            if score == 'flux':
-                                Suptitle = score + ' / cm'
+                                Interpolation = None
+                            if self.yLog_CB.isChecked():
+                                if np.count_nonzero(mean) == 0:
+                                    Norm = None
+                                    msg1 += 'Figure ' + str(i_fig) + ': ' + score + ' on ' + nuclide + '\n'
+                                else:
+                                    Norm = colors.LogNorm()
                             else:
-                                Suptitle = score + ' rate '
-                            if len(self.tally.filters[0].mesh._grids) == 3:
-                                Suptitle = Suptitle + str(self.Tallies[self.tally_id][self.filter_id]['bins'][bin-2]).replace('slice', '') + (' cm')
+                                Norm = None
+                            
+                            if self.Omit_Blank_Graph_CB.isChecked() and np.count_nonzero(mean) == 0:
+                                break
                             else:
-                                Suptitle = Suptitle + ' integrated on z axis'
+                                i = i_fig - 1
+                                if i < self.row_SB.value() * self.col_SB.value():
+                                    im = ax[i].imshow(mean, cmap=cm.rainbow, norm=Norm, interpolation=Interpolation, origin='lower', extent=[x.min(), x.max(), y.min(), y.max()])
+                                else:
+                                    break
 
-                            plt.suptitle(Suptitle, fontsize=int(self.TitleFont_CB.currentText()), horizontalalignment='center')
+                            if score == 'flux':
+                                if self.Norm_to_Vol_CB.isChecked():
+                                    Suptitle = score + ' / cm\u00b2'
+                                else:
+                                    Suptitle = score + ' / cm'
+                            else:
+                                if self.Norm_to_Vol_CB.isChecked():
+                                    Suptitle = score + ' rate ' 
+                                else:
+                                    Suptitle = score + ' rate ' + '/ cm\u00b3'
+                            if self.Norm_to_Power_CB.isChecked():
+                                Suptitle = Suptitle + ' /s'
+                            if self.Norm_to_BW_CB.isChecked():
+                                Suptitle = Suptitle + ' /eV'
+                            elif self.Norm_to_UnitLethargy_CB.isChecked():
+                                Suptitle = Suptitle + ' per unit lethargy'
+                            if len(self.tally.filters[0].mesh._grids) == 3:
+                                Suptitle1 = 'score at ' + str(self.Tallies[self.tally_id][self.filter_ids[0]]['bins'][bin-2]).replace('slice at', '') + (' cm')
+                            else:
+                                if self.Mesh_xy_RB.isChecked():
+                                    Suptitle1 = ' score integrated on z axis'
+                                elif self.Mesh_xz_RB.isChecked():
+                                    Suptitle1 = ' score integrated on y axis'
+                                elif self.Mesh_yz_RB.isChecked():
+                                    Suptitle1 = ' score integrated on x axis'
+                            if self.Add_error_bars_CB.isChecked():
+                                Suptitle = Suptitle.replace(score, 'errors on ' + score)
+                                Suptitle1 = Suptitle1.replace('score', 'errors on score')
+                            
                             if nuclide != 'total':
-                                plt.title('Nuclide : ' + nuclide, fontsize=int(self.TitleFont_CB.currentText()))
-                            plt.xlabel(self.Curve_xLabel.text(), fontsize=int(self.xFont_CB.currentText()))
-                            plt.ylabel(self.Curve_yLabel.text(), fontsize=int(self.yFont_CB.currentText()))
-                            plt.xticks(fontsize=int(self.xFont_CB.currentText())*0.75, rotation=int(self.xLabelRot_CB.currentText()))
-                            plt.yticks(fontsize=int(self.yFont_CB.currentText())*0.75)
-                            plt.colorbar().ax.tick_params(labelsize=int(self.xFont_CB.currentText())*0.75)
-        plt.tight_layout()
-        plt.show()
+                                ax[i].set_title(Suptitle1 + '\nNuclide : ' + nuclide, fontsize=int(self.TitleFont_CB.currentText()))
+                            else:    
+                                ax[i].set_title(Suptitle1, fontsize=int(self.TitleFont_CB.currentText()))
+                            ax[i].set_xlabel(self.Curve_xLabel.text(), fontsize=int(self.xFont_CB.currentText()))
+                            ax[i].set_ylabel(self.Curve_yLabel.text(), fontsize=int(self.yFont_CB.currentText()))
+                            #ax[i].xticks(fontsize=int(self.xFont_CB.currentText())*0.75, rotation=int(self.xLabelRot_CB.currentText()))
+                            #ax[i].yticks(fontsize=int(self.yFont_CB.currentText())*0.75)
+                            cbar = fig.colorbar(im, ax=ax[i], location='right')
+                            cbar.set_label(Suptitle, rotation=270, labelpad=20)
+                            
+                            #cbar.tick_params(labelsize=int(self.xFont_CB.currentText())*0.75)
+                            #cbar.ax[i].tick_params(labelsize=int(self.xFont_CB.currentText())*0.75)
+                            #cbar.ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+                            #cbar.ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))                    
+                            #cbar.tick_params(labelsize=int(self.xFont_CB.currentText())*0.75)
+
+                            i_fig += 1
+        if msg1 != '':
+            self.showDialog('Warning', msg + msg1)
+        #plt.tight_layout()
+        #plt.show()
+
+    def Plot_Mesh_Stack(self, dff, fig, ax):
+        df = dff.copy()
+        key = self.mesh_axis_key
+        x = np.linspace(self.LL1, self.UR1, num=self.dim1 + 1)
+        y = np.linspace(self.LL2, self.UR2, num=self.dim2 + 1)
+        Filter_Names = [filter for filter in self.Filter_names if filter != 'MeshFilter' ]
+        Keys_Loop = [key[0] for key in self.df.keys()[:-4] if 'mesh' not in key[0] and 'high' not in key[0]]
+        mesh_idx = self.Filter_names.index('MeshFilter')
+        N_Bins = 1
+        idx_s = []
+        Key_BINS = [''] * len(Keys_Loop)
+        key1 = ''; BIN1 = ''; UNIT1 = ''; Checked_bins1 = ['']; Bins_For_Title1 = ['']
+        key2 = ''; BIN2 = ''; UNIT2 = ''; Checked_bins2 = ['']; Bins_For_Title2 = ['']
+        key3 = ''; BIN3 = ''; UNIT3 = ''; Checked_bins3 = ['']; Bins_For_Title3 = ['']
+        key4 = ''; BIN4 = ''; UNIT4 = ''; Checked_bins4 = ['']; Bins_For_Title4 = ['']
+        key5 = ''; BIN5 = ''; UNIT5 = ''; Checked_bins5 = ['']; Bins_For_Title5 = ['']
+        i = 0
+        for key1 in Keys_Loop:
+            filter_name = key1.split(' ')[0].capitalize() +'Filter'
+            if 'from' in filter_name: filter_name = filter_name.replace('from', 'From')
+            idx = self.Filter_names.index(filter_name)
+            idx_s.append(idx)
+            N_Bins = N_Bins * len(self.Key_Selected_Bins[idx])
+            Key_BINS[i] = self.Key_Selected_Bins[idx]
+            i += 1
+        if len(Keys_Loop) >= 1:
+            Checked_bins1 = Key_BINS[0]; key1 = Keys_Loop[0]; BIN1 = self.BIN[1]; UNIT1 = self.UNIT[1]; Bins_For_Title1 = self.Bins_For_Title[1]
+            if len(Keys_Loop) >= 2:
+                Checked_bins2 = Key_BINS[1]; key2 = Keys_Loop[1]; BIN2 = self.BIN[2]; UNIT2 = self.UNIT[2]; Bins_For_Title2 = self.Bins_For_Title[2]
+                if len(Keys_Loop) >= 3:
+                    Checked_bins3 = Key_BINS[2]; key3 = Keys_Loop[2]; BIN3 = self.BIN[3]; UNIT3 = self.UNIT[3]; Bins_For_Title3 = self.Bins_For_Title[3]
+                    if len(Keys_Loop) >= 4:
+                        Checked_bins4 = Key_BINS[3]; key4 = Keys_Loop[3]; BIN4 = self.BIN[4]; UNIT4 = self.UNIT[4]; Bins_For_Title4 = self.Bins_For_Title[4]
+                        if len(Keys_Loop) >= 5:
+                            Checked_bins5 = Key_BINS[4]; key5 = Keys_Loop[4]; BIN5 = self.BIN[5]; UNIT5 = self.UNIT[5]; Bins_For_Title5 = self.Bins_For_Title[5] 
+
+        N_Figs = len(self.selected_scores) * len(self.selected_nuclides) * len(self.checked_bins_indices) * N_Bins
+        if self.N_Fig > 20 and not self.Omit_Blank_Graph_CB.isChecked():
+            qm = QMessageBox
+            ret = qm.question(self, 'Warning',' More than 20 figures (' + str(N_Figs) + ') have been opened! \n This may consume too much memory.'+
+                                '\n continue ploting ?', qm.Yes | qm.No)
+            if ret == qm.Yes:
+                pass 
+            elif ret == qm.No:
+                self.WillPlot = False
+                return
+        msg = 'Cannot plot in Log scale scores that are all null!\n'
+        msg1 = ''
+        msg2 = ''
+        i_fig = 1
+        self.i_omitted = 0
+
+        for score in self.selected_scores:
+            if score != '':
+                for nuclide in self.selected_nuclides:
+                    if nuclide != '':
+                        for bin in self.checked_bins_indices:
+                            Suptitle2 = 'score at '                            
+                            if len(self.tally.filters[mesh_idx].mesh._grids) == 3:
+                                Suptitle2 = Suptitle2 + str(self.Tallies[self.tally_id][self.filter_ids[mesh_idx]]['bins'][bin-2]).replace('slice at', '') + (' cm')
+                            else:
+                                if self.Mesh_xy_RB.isChecked():
+                                    Suptitle2 = Suptitle2.replace('at ', '') + ' integrated on z axis'
+                                elif self.Mesh_xz_RB.isChecked():
+                                    Suptitle2 = Suptitle2.replace('at ', '') + ' integrated on y axis'
+                                elif self.Mesh_yz_RB.isChecked():
+                                    Suptitle2 = Suptitle2.replace('at ', '') + ' integrated on x axis'
+                            if self.Add_error_bars_CB.isChecked():
+                                Suptitle2 = Suptitle2.replace('score', 'errors on score')
+                            for bin1 in Checked_bins1: 
+                                i_bin1 = Checked_bins1.index(bin1)
+                                for bin2 in Checked_bins2: 
+                                    i_bin2 = Checked_bins2.index(bin2)
+                                    for bin3 in Checked_bins3: 
+                                        i_bin3 = Checked_bins3.index(bin3)
+                                        for bin4 in Checked_bins4: 
+                                            i_bin4 = Checked_bins4.index(bin4)
+                                            for bin5 in Checked_bins5: 
+                                                i_bin5 = Checked_bins5.index(bin5)
+                                                yy = df[df.nuclide == nuclide][df.score == score][df[key] == bin - 1]
+                                                if len(Keys_Loop) >= 1:
+                                                    yy = yy[df[key1] == bin1]
+                                                    if len(Keys_Loop) >= 2:
+                                                        yy = yy[df[key2] == bin2]
+                                                        if len(Keys_Loop) >= 3:
+                                                            yy = yy[df[key3] == bin3]
+                                                            if len(Keys_Loop) >= 4:
+                                                                yy = yy[df[key4] == bin4]
+                                                                if len(Keys_Loop) >= 5:
+                                                                    yy = yy[df[key5] == bin5]
+                                                self.Print_Formated_df(yy.copy(), self.tally_id, self.editor)
+                                                if len(yy) != 0:    
+                                                    mean = np.array(yy['mean'].tolist()).reshape((self.dim1, self.dim2))
+                                                    errors = np.array(yy['std. dev.'].tolist()).reshape((self.dim1, self.dim2))
+                                                else:
+                                                    mean = None
+
+                                                if self.Add_error_bars_CB.isChecked():
+                                                    mean = errors
+                                                if self.xLog_CB.isChecked():
+                                                    Interpolation = 'spline36'
+                                                else:
+                                                    Interpolation = None
+                                                if self.yLog_CB.isChecked():
+                                                    if np.count_nonzero(mean) == 0:
+                                                        Norm = None
+                                                        msg1 += 'Figure ' + str(i_fig) + ': ' + score + ' on ' + nuclide + '\n'
+                                                    else:
+                                                        Norm = colors.LogNorm()
+                                                else:
+                                                    Norm = None
+
+                                                if self.Omit_Blank_Graph_CB.isChecked() and np.count_nonzero(mean) == 0:
+                                                    msg2 += '\nFigure for ' + ': ' + score + ' on ' + nuclide + \
+                                                                    str(BIN1) + str(Bins_For_Title1[i_bin1]).replace("'","") + UNIT1 + ' - ' + \
+                                                                    str(BIN2) + str(Bins_For_Title2[i_bin2]).replace("'","") + UNIT2 + ' - ' + \
+                                                                    str(BIN3) + str(Bins_For_Title3[i_bin3]).replace("'","") + UNIT3 + ' - ' + \
+                                                                    str(BIN4) + str(Bins_For_Title4[i_bin4]).replace("'","") + UNIT4 + ' - ' + \
+                                                                    str(BIN5) + str(Bins_For_Title5[i_bin5]).replace("'","") + UNIT5 + \
+                                                            ' has been omitted.\n'
+                                                    
+                                                    
+                                                    self.i_omitted += 1
+                                                     
+
+                                                    break
+                                                else:
+                                                    i = i_fig - 1
+                                                    if i < self.row_SB.value() * self.col_SB.value():
+                                                        im = ax[i].imshow(mean, cmap=cm.rainbow, norm=Norm, interpolation=Interpolation, origin='lower', extent=[x.min(), x.max(), y.min(), y.max()])
+                                                    else:
+                                                        break
+                                                
+                                                    if score == 'flux':
+                                                        if self.Norm_to_Vol_CB.isChecked():
+                                                            Suptitle1 = score + ' / cm\u00b2'
+                                                        else:
+                                                            Suptitle1 = score + ' / cm'
+                                                    else:
+                                                        if self.Norm_to_Vol_CB.isChecked():
+                                                            Suptitle1 = score + ' rate ' 
+                                                        else:
+                                                            Suptitle1 = score + ' rate ' + '/ cm\u00b3'
+                                                    if self.Norm_to_Power_CB.isChecked():
+                                                        Suptitle1 = Suptitle1 + ' /s'
+                                                    if self.Norm_to_BW_CB.isChecked():
+                                                        Suptitle1 = Suptitle1 + ' /eV'
+                                                    elif self.Norm_to_UnitLethargy_CB.isChecked():
+                                                        Suptitle1 = Suptitle1 + ' per unit lethargy'                      
+                                                    
+                                                    if self.Add_error_bars_CB.isChecked():
+                                                        Suptitle1 = Suptitle1.replace(score, 'errors on ' + score)
+
+                                                    if len(Keys_Loop) == 0:
+                                                        Suptitle3 = Suptitle2
+                                                    elif len(Keys_Loop) >= 1:
+                                                        Suptitle3 = Suptitle2 + '\n' + str(BIN1) + str(Bins_For_Title1[i_bin1]).replace("'","") + UNIT1
+                                                        if len(Keys_Loop) >= 2:
+                                                            Suptitle3 = Suptitle3 + ' - ' + str(BIN2) + str(Bins_For_Title2[i_bin2]).replace("'","") + UNIT2
+                                                            if len(Keys_Loop) >= 3:
+                                                                Suptitle3 = Suptitle3 + '\n' + str(BIN3) + str(Bins_For_Title3[i_bin3]).replace("'","") + UNIT3
+                                                                if len(Keys_Loop) >= 4:
+                                                                    Suptitle3 = Suptitle3 + ' - ' + str(BIN4) + str(Bins_For_Title4[i_bin4]).replace("'","") + UNIT4
+                                                                    if len(Keys_Loop) >= 5:
+                                                                        Suptitle3 = Suptitle3 + '\n' + str(BIN5) + str(Bins_For_Title5[i_bin5]).replace("'","") + UNIT5
+                                                    else:
+                                                        self.showDialog('Warning', 'More than 6 filters not supported yet!')
+
+                                                    if nuclide != 'total':
+                                                        ax[i].set_title(Suptitle3 + '\nNuclide : ' + nuclide, fontsize=int(self.TitleFont_CB.currentText()))   #, horizontalalignment='center')
+                                                    else:    
+                                                        ax[i].set_title(Suptitle3, fontsize=int(self.TitleFont_CB.currentText()))   #, horizontalalignment='center')
+
+                                                    ax[i].set_xlabel(self.Curve_xLabel.text(), fontsize=int(self.xFont_CB.currentText()))
+                                                    ax[i].set_ylabel(self.Curve_yLabel.text(), fontsize=int(self.yFont_CB.currentText()))
+
+                                                    if i < self.row_SB.value() * self.col_SB.value():
+                                                        cbar = fig.colorbar(im, ax=ax[i], location='right')
+                                                        cbar.set_label(Suptitle1, rotation=270, labelpad=20)                                                
+                                                                                                
+                                                    #cbar.tick_params(labelsize=int(self.xFont_CB.currentText())*0.75)
+                                                    #ax[i].set_xticks(fontsize=int(self.xFont_CB.currentText())*0.75, rotation=int(self.xLabelRot_CB.currentText()))
+                                                    #ax[i].set_yticks(fontsize=int(self.yFont_CB.currentText())*0.75)                                    
+                                                    i_fig += 1
+        if msg1 != '':
+            self.showDialog('Warning', msg + msg1)
+        if msg2 != '':
+            print(msg2)
+
+    def Check_For_Empty_Scores(self, dff):
+        df = dff.copy()
+        
+        key = self.mesh_axis_key
+        x = np.linspace(self.LL1, self.UR1, num=self.dim1 + 1)
+        y = np.linspace(self.LL2, self.UR2, num=self.dim2 + 1)
+        Keys_Loop = [key[0] for key in self.df.keys()[:-4] if 'mesh' not in key[0] and 'high' not in key[0]]
+        mesh_idx = self.Filter_names.index('MeshFilter')
+        Key_BINS = [''] * len(Keys_Loop)
+        key1 = ''; BIN1 = ''; UNIT1 = ''; Checked_bins1 = ['']; Bins_For_Title1 = ['']
+        key2 = ''; BIN2 = ''; UNIT2 = ''; Checked_bins2 = ['']; Bins_For_Title2 = ['']
+        key3 = ''; BIN3 = ''; UNIT3 = ''; Checked_bins3 = ['']; Bins_For_Title3 = ['']
+        key4 = ''; BIN4 = ''; UNIT4 = ''; Checked_bins4 = ['']; Bins_For_Title4 = ['']
+        key5 = ''; BIN5 = ''; UNIT5 = ''; Checked_bins5 = ['']; Bins_For_Title5 = ['']
+        i = 0
+        for key1 in Keys_Loop:
+            filter_name = key1.split(' ')[0].capitalize() +'Filter'
+            if 'from' in filter_name: filter_name = filter_name.replace('from', 'From')
+            idx = self.Filter_names.index(filter_name)
+            Key_BINS[i] = self.Key_Selected_Bins[idx]
+            i += 1
+        if len(Keys_Loop) >= 1:
+            Checked_bins1 = Key_BINS[0]; key1 = Keys_Loop[0]; BIN1 = self.BIN[1]; UNIT1 = self.UNIT[1]; Bins_For_Title1 = self.Bins_For_Title[1]
+            if len(Keys_Loop) >= 2:
+                Checked_bins2 = Key_BINS[1]; key2 = Keys_Loop[1]; BIN2 = self.BIN[2]; UNIT2 = self.UNIT[2]; Bins_For_Title2 = self.Bins_For_Title[2]
+                if len(Keys_Loop) >= 3:
+                    Checked_bins3 = Key_BINS[2]; key3 = Keys_Loop[2]; BIN3 = self.BIN[3]; UNIT3 = self.UNIT[3]; Bins_For_Title3 = self.Bins_For_Title[3]
+                    if len(Keys_Loop) >= 4:
+                        Checked_bins4 = Key_BINS[3]; key4 = Keys_Loop[3]; BIN4 = self.BIN[4]; UNIT4 = self.UNIT[4]; Bins_For_Title4 = self.Bins_For_Title[4]
+                        if len(Keys_Loop) >= 5:
+                            Checked_bins5 = Key_BINS[4]; key5 = Keys_Loop[4]; BIN5 = self.BIN[5]; UNIT5 = self.UNIT[5]; Bins_For_Title5 = self.Bins_For_Title[5] 
+
+        for score in self.selected_scores:
+            if score != '':
+                for nuclide in self.selected_nuclides:
+                    if nuclide != '':
+                        for bin in self.checked_bins_indices:
+                            for bin1 in Checked_bins1: 
+                                i_bin1 = Checked_bins1.index(bin1)
+                                for bin2 in Checked_bins2: 
+                                    i_bin2 = Checked_bins2.index(bin2)
+                                    for bin3 in Checked_bins3: 
+                                        i_bin3 = Checked_bins3.index(bin3)
+                                        for bin4 in Checked_bins4: 
+                                            i_bin4 = Checked_bins4.index(bin4)
+                                            for bin5 in Checked_bins5:
+                                                i_bin5 = Checked_bins5.index(bin5)
+                                                yy = df[df.nuclide == nuclide][df.score == score][df[key] == bin - 1][df[key1] == bin1]
+                                                if len(Keys_Loop) >= 2:
+                                                    yy = yy[df[key2] == bin2]
+                                                    if len(Keys_Loop) >= 3:
+                                                        yy = yy[df[key3] == bin3]
+                                                        if len(Keys_Loop) >= 4:
+                                                            yy = yy[df[key4] == bin4]
+                                                            if len(Keys_Loop) >= 5:
+                                                                yy = yy[df[key5] == bin5]
+                                                mean = np.array(yy['mean'].tolist())   #.reshape((self.dim1, self.dim2))
+                                                errors = np.array(yy['std. dev.'].tolist())  #.reshape((self.dim1, self.dim2))
+                                                if self.Omit_Blank_Graph_CB.isChecked() and np.count_nonzero(mean) == 0:
+                                                    self.N_Fig -= 1
+                                                    break
 
     def Plot_Distribcell(self):       # needs more developemnt
         # Distributed Cell Tally Visualization
@@ -2906,7 +3580,6 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                         # If a point appears outside the geometry, you'll get a GeometryError exception.
                         # These lines catch the exception and continue on
                         continue
-                    print( self.tally.filters[idx].bins[0])
                     if cell.id == self.tally.filters[idx].bins[0]:  # fuel_cell.id:
                         # When the cell ID matches, we set the corresponding pixel in the image using the
                         # distribcell index. Note that we're taking advantage of the fact that the i-th element
@@ -2961,10 +3634,10 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 plt.title('RR ')
 
     def Reset_Plot_Settings(self):
-        self.xLabelRot_CB.setCurrentIndex(0)
         self.TitleFont_CB.setCurrentIndex(8)
         self.xFont_CB.setCurrentIndex(7)
-        self.yFont_CB.setCurrentIndex(7)
+        self.yFont_CB.setCurrentIndex(7)        
+        self.xLabelRot_CB.setCurrentIndex(0)
         self.Legende_CB.setCurrentIndex(6)
         self.Graph_Layout_CB.setCurrentIndex(0)
         self.Graph_type_CB.setCurrentIndex(0)
@@ -3205,6 +3878,9 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         widget.layout().addWidget(VLine())
         widget.layout().addWidget(self.lineLabel3)
         self.statusBar.addWidget(widget, 1)
+
+        # Add shortcut to buttons
+        self.browse_PB.setShortcut("Ctrl+b")
 
     def Close(self):
         import matplotlib.pyplot as plt
@@ -3786,6 +4462,12 @@ class VLine(QFrame):
     def __init__(self):
         super(VLine, self).__init__()
         self.setFrameShape(self.VLine | self.Sunken)
+
+#  to be removed if called by gui.py
+"""qapp = QApplication(sys.argv)
+mainwindow = TallyDataProcessing()
+mainwindow.show()
+sys.exit(qapp.exec())"""
 
 
 
