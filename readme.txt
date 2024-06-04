@@ -1,4 +1,7 @@
 readme.txt
+The ERSN-OpenMC-Py is a graphical user interface specifically designed to streamline the use of the OpenMC code.
+Our paper: ERSN-OpenMC-Py: A python-based open-source software for OpenMC Monte Carlo code. https://doi.org/10.1016/j.cpc.2024.109121
+
 How to use the GUI to install openmc and prerequisistes under miniconda3
 This tutorial is tested for ubuntu 23.04, miniconda3 and python 3.7 3.9 and 3.11
 The new version of ERSN-OpenMC-Py 1.3 allows to post-process tallies created by combining up to 6 filters.
