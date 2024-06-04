@@ -1113,35 +1113,35 @@
                 <item row="4" column="0">
                  <widget class="QPushButton" name="pushButton_5">
                   <property name="text">
-                   <string>Plots parameters</string>
+                   <string>P&amp;lots parameters</string>
                   </property>
                  </widget>
                 </item>
                 <item row="2" column="0">
                  <widget class="QPushButton" name="pushButton_3">
                   <property name="text">
-                   <string>Execution Settings</string>
+                   <string>&amp;Execution Settings</string>
                   </property>
                  </widget>
                 </item>
                 <item row="0" column="0">
                  <widget class="QPushButton" name="pushButton">
                   <property name="text">
-                   <string>Material Compositions</string>
+                   <string>&amp;Material Compositions</string>
                   </property>
                  </widget>
                 </item>
                 <item row="1" column="0">
                  <widget class="QPushButton" name="pushButton_2">
                   <property name="text">
-                   <string>Defining Geometry</string>
+                   <string>&amp;Defining Geometry</string>
                   </property>
                  </widget>
                 </item>
                 <item row="3" column="0">
                  <widget class="QPushButton" name="pushButton_4">
                   <property name="text">
-                   <string>Specifying Tallies</string>
+                   <string>Specifying &amp;Tallies</string>
                   </property>
                  </widget>
                 </item>

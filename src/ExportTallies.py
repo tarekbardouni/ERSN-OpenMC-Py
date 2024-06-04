@@ -19,8 +19,8 @@ class EmittingStream(QtCore.QObject):
         pass 
 
 class ExportTallies(QWidget):
-    from .func import resize_ui, showDialog, Exit
-    def __init__(self,v_1, available_xs, Tally, Tally_ID, Filter, Filter_ID, Scores, Scores_ID, Surf_list, Surf_Id_list, Cells_list,
+    from .func import resize_ui, showDialog, Exit, Move_Commands_to_End 
+    def __init__(self,v_1, Tallies, available_xs, Tally, Tally_ID, Filter, Filter_ID, Scores, Scores_ID, Surf_list, Surf_Id_list, Cells_list,
                  Cell_Id_list, univ, mat, elements, nuclides, mesh, mesh_ID, parent=None):
         super(ExportTallies, self).__init__(parent)
         #sys.stdout = EmittingStream(textWritten=self.normalOutputWritten)
@@ -65,6 +65,7 @@ class ExportTallies(QWidget):
         self.cell_id_list = Cell_Id_list
         self.mesh_name_list = mesh
         self.mesh_id_list = mesh_ID
+        self.Tallies = Tallies
         self.Filter_Bins_CB.setEnabled(False)
         self.text_inserted = False
 
@@ -1332,6 +1333,7 @@ class ExportTallies(QWidget):
         scores = self.ScoresList_LE.text()
         if self.tally_name_list:
             document = self.plainTextEdit.toPlainText()
+            document0 = document
             lines = document.split('\n')
             for line in lines:
                 if (".scores" in line):
@@ -1339,6 +1341,11 @@ class ExportTallies(QWidget):
                     document = self.plainTextEdit.toPlainText().replace(line,"")
             self.plainTextEdit.clear()
             self.plainTextEdit.insertPlainText(document)
+            """if ".scores" in document0:
+                for score in scores:
+                    print(self.tally_name_list[-1] + '.scores.append(' + score +')')
+            else:
+                print(self.tally_name_list[-1] + '.scores = ' + scores )"""
             print(self.tally_name_list[-1] + '.scores = ' + scores )
             if self.Estimator_CB.currentIndex()!= 0:
                 print(self.tally_name_list[-1] + '.estimator = ' + "'" + str(self.Estimator_CB.currentText() + "'"))
@@ -1414,47 +1421,57 @@ class ExportTallies(QWidget):
                 print('\n###############################################################################\n'
                         '#                 Exporting to OpenMC tallies.xml file \n'
                         '###############################################################################')
-                print("tallies = openmc.Tallies()\n")
+                print(self.Tallies + " = openmc.Tallies()\n")
             else:
                 pass
 
     def Export_Tallies(self):
-        if self.Tallies_Tab.currentIndex() == 1 and self.tally_name_list[-1] + '.scores' not in self.plainTextEdit.toPlainText():
-            self.showDialog('Warning', 'will not create XML for Tally ID=' + self.tally_id_list[-1] + ' since it does not contain any score')
-        else:
-            if 'import numpy' in self.plainTextEdit.toPlainText():
-                self.Suppress_Line('import numpy', self.plainTextEdit)
-            self.v_1.moveCursor(QTextCursor.End)
+        try:
+            if self.Tallies_Tab.currentIndex() == 1 and self.tally_name_list[-1] + '.scores' not in self.plainTextEdit.toPlainText():
+                self.showDialog('Warning', 'will not create XML for Tally ID=' + self.tally_id_list[-1] + ' since it does not contain any score')
+                return
+        except:
+            self.showDialog('Warning', 'Some thing went wrong in tallies list!')
+            return
+        if 'import numpy' in self.plainTextEdit.toPlainText():
+            self.Suppress_Line('import numpy', self.plainTextEdit)
+        self.v_1.moveCursor(QTextCursor.End)
+        if self.Tallies_Tab.currentIndex() == 1:
+            print('\n' + self.Tallies + '.append(' + self.tally + ')')
+        string_to_find = self.Tallies + ".export_to_xml()"
+        self.Find_string(self.v_1, string_to_find)
+
+        cursor = self.v_1.textCursor()
+        self.plainTextEdit.moveCursor(QTextCursor.End)
+        if self.Insert_Header:
             if self.Tallies_Tab.currentIndex() == 1:
-                print('\ntallies.append(' + self.tally + ')')
-            string_to_find = "tallies.export_to_xml()"
-            self.Find_string(self.v_1, string_to_find)
-
-            cursor = self.v_1.textCursor()
-            self.plainTextEdit.moveCursor(QTextCursor.End)
-            if self.Insert_Header:
-                if self.Tallies_Tab.currentIndex() == 1:
-                    print('\n' + string_to_find)
-                cursor.insertText(self.plainTextEdit.toPlainText())
-            else:
-                #if self.Tallies_Tab.currentIndex() == 1:
                 print('\n' + string_to_find)
-                
-                document = self.v_1.toPlainText().replace(string_to_find, self.plainTextEdit.toPlainText())
-                self.v_1.clear()
-                cursor = self.v_1.textCursor()
-                cursor.insertText(document)
+            cursor.insertText(self.plainTextEdit.toPlainText())
+        else:
+            #if self.Tallies_Tab.currentIndex() == 1:
+            print('\n' + string_to_find)
+            
+            document = self.v_1.toPlainText().replace(string_to_find, self.plainTextEdit.toPlainText())
+            self.v_1.clear()
+            cursor = self.v_1.textCursor()
+            cursor.insertText(document)
 
-                '''if 'DistribcellFilter' in self.v_1.toPlainText():
-                    self.showDialog('', 'Distribcell')
-                    self.Find_string(self.v_1, "import openmc.lib")
-                    if self.Insert_Header:
-                        cursor.setPosition(0)
-                        cursor.insertText('import openmc.lib\n')'''
+            '''if 'DistribcellFilter' in self.v_1.toPlainText():
+                self.showDialog('', 'Distribcell')
+                self.Find_string(self.v_1, "import openmc.lib")
+                if self.Insert_Header:
+                    cursor.setPosition(0)
+                    cursor.insertText('import openmc.lib\n')'''
 
             self.text_inserted = True
             self.plainTextEdit.clear()
             self.Create_New_Tally = False
+        
+        document = self.v_1.toPlainText()
+        document = self.Move_Commands_to_End(document)
+        cursor = self.v_1.textCursor()
+        self.v_1.clear()
+        cursor.insertText(document)
 
     def Suppress_Line(self, item, TextEdit):
         text = TextEdit.toPlainText()

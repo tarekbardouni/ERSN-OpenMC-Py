@@ -4,7 +4,6 @@ This tutorial is tested for ubuntu 23.04, miniconda3 and python 3.7 3.9 and 3.11
 The new version of ERSN-OpenMC-Py 1.3 allows to post-process tallies created by combining up to 6 filters.
 The version of ERSN-OpenMC-Py 1.3 allows to normalize tallies to cell volume, core power, unit lethargy and bin width.
 Up to 5 filters are combined with MeshFilter.
-The next version will process fuel depletion.
 
 Prof. Tarek El Bardouni and Doctor Mohamed Lahdour, University Abdelmalek Essaadi, Radiatios and Nuclear System Team, Tetouan, Morocco
 Emails: telbardouni@uae.ac.ma    and mohamedlahdour@gmail.com

@@ -21,8 +21,8 @@ class EmittingStream(QtCore.QObject):
         pass
 
 class ExportPlots(QWidget):
-    from .func import resize_ui, showDialog, Exit, Find_string
-    def __init__(self, v_1, Plot, Plot_ID, file_name, parent=None):
+    from .func import resize_ui, showDialog, Exit, Find_string, Move_Commands_to_End
+    def __init__(self, v_1, Plots, Plot, Plot_ID, file_name, parent=None):
         super(ExportPlots, self).__init__(parent)
         #sys.stdout = EmittingStream(textWritten=self.normalOutputWritten)
         #sys.stderr = EmittingStream(textWritten=self.normalOutputWritten)
@@ -39,6 +39,7 @@ class ExportPlots(QWidget):
         self.Y_LE.setText("0")
         self.Z_LE.setText("0")
         self.plot_suffix = '_plot'
+        self.Plots = Plots
         self.int_validator = QRegExpValidator(QRegExp(r'[0-9]+'))
         self.PlotId_LE.setValidator(self.int_validator)
         self.validator = QDoubleValidator(self)
@@ -215,27 +216,32 @@ class ExportPlots(QWidget):
         self.sync_plot_id()
 
     def Export_to_Main_Window(self):
-        string_to_find = self.plots_file_name + '.export_to_xml()'
+        string_to_find = self.Plots + '.export_to_xml()'
         self.Find_string(self.v_1, string_to_find)
         cursor = self.v_1.textCursor()
         self.plainTextEdit.moveCursor(QTextCursor.End)
         if self.Insert_Header:
-            print('\n' + self.plots_file_name + ' = openmc.Plots(','['+', '.join(self.plot_name_list)+']',')')
+            print('\n' + self.Plots + ' = openmc.Plots(','['+', '.join(self.plot_name_list)+']',')')
             print (string_to_find)
-            cursor.insertText(self.plainTextEdit.toPlainText())
+            document = self.plainTextEdit.toPlainText()
         else:
             document = self.v_1.toPlainText()
             lines = document.split('\n')
             for line in lines:
                 if ("openmc.Plots" in line):
-                    lines.remove(line)
-                    document = self.v_1.toPlainText().replace(line,"")
-            print('\n' + self.plots_file_name + ' = openmc.Plots(','['+', '.join(self.plot_name_list)+']',')')
+                    document = document.replace(line,"")
+            print('\n' + self.Plots + ' = openmc.Plots(','['+', '.join(self.plot_name_list)+']',')')
             print(string_to_find)
             document = document.replace(string_to_find,self.plainTextEdit.toPlainText())
             self.v_1.clear()
-            cursor = self.v_1.textCursor()
-            cursor.insertText(document)
+        
+        cursor.insertText(document)
+        document = self.v_1.toPlainText()
+        document = self.Move_Commands_to_End(document)
+
+        cursor = self.v_1.textCursor()
+        self.v_1.clear()
+        cursor.insertText(document)
         self.text_inserted = True
         self.plainTextEdit.clear()
 

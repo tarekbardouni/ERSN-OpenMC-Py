@@ -21,9 +21,8 @@ class EmittingStream(QtCore.QObject):
         pass 
 
 class ExportSettings(QWidget):
-    from .func import resize_ui, showDialog, Def_Source_ToolTips, Exit
-
-    def __init__(self, v_1, Directory, Surf_list, Surf_Id_list, Cells_list, Mat_list, Vol_Calcs_list, Source_list, Source_Id, Strength_list, parent=None):
+    from .func import resize_ui, showDialog, Def_Source_ToolTips, Exit, Move_Commands_to_End
+    def __init__(self, v_1, Sett, Directory, Surf_list, Surf_Id_list, Cells_list, Mat_list, Vol_Calcs_list, Source_list, Source_Id, Strength_list, parent=None):
         super(ExportSettings, self).__init__(parent)
         #sys.stdout = EmittingStream(textWritten=self.normalOutputWritten)
         #sys.stderr = EmittingStream(textWritten=self.normalOutputWritten)
@@ -47,6 +46,7 @@ class ExportSettings(QWidget):
         self.Source_name_list = Source_list
         self.Source_id_list = Source_Id
         self.Source_strength_list = Strength_list
+        self.Sett = Sett
         self.vol_calcs = []
         self.Strength_LE.setText('1.')
         self.src_filename = ''
@@ -375,7 +375,7 @@ class ExportSettings(QWidget):
                     print('\n############################################################################### \n'
                              '#                 Exporting to OpenMC settings.xml file \n'
                              '###############################################################################')
-                    print("settings = openmc.Settings()\n")
+                    print(self.Sett + " = openmc.Settings()\n")
                 else:
                     pass
 
@@ -391,7 +391,7 @@ class ExportSettings(QWidget):
         # /////////////////////////////   Run Mode   /////////////////////////////
         msg = 'Select Run Mode first ! '
         self.Def_Settings(self.Run_Mode_CB.currentIndex(), msg)
-        string_to_find = "settings.run_mode"
+        string_to_find = self.Sett + ".run_mode"
         self.Find_string(self.v_1, string_to_find)
         if not self.Insert_Header:
             msg = 'Run Mode already specified in the project !'
@@ -406,31 +406,31 @@ class ExportSettings(QWidget):
             else:
                 # Eigenvalue problem
                 if self.Run_Mode_CB.currentIndex() == 1:
-                    print("settings.run_mode = 'eigenvalue'")
-                    print("settings.particles = " + str(self.Particles_Number.text()))
-                    print("settings.batches = " + str(self.LineEdit_1.text()))
-                    print("settings.inactive = " + self.LineEdit_2.text())
-                    print("settings.generations = " + str(self.LineEdit_5.text()) + "\n")
+                    print(self.Sett + ".run_mode = 'eigenvalue'")
+                    print(self.Sett + ".particles = " + str(self.Particles_Number.text()))
+                    print(self.Sett + ".batches = " + str(self.LineEdit_1.text()))
+                    print(self.Sett + ".inactive = " + self.LineEdit_2.text())
+                    print(self.Sett + ".generations = " + str(self.LineEdit_5.text()) + "\n")
                 # Fixed source problem
                 elif self.Run_Mode_CB.currentIndex() == 2:
-                    print("settings.run_mode = 'fixed source'")
-                    print("settings.particles = " + str(self.Particles_Number.text()))
-                    print("settings.batches = " + str(self.LineEdit_1.text()))
-                    print("settings.generations = " + str(self.LineEdit_5.text()) + "\n")
+                    print(self.Sett + ".run_mode = 'fixed source'")
+                    print(self.Sett + ".particles = " + str(self.Particles_Number.text()))
+                    print(self.Sett + ".batches = " + str(self.LineEdit_1.text()))
+                    print(self.Sett + ".generations = " + str(self.LineEdit_5.text()) + "\n")
                 if self.Run_Mode_CB.currentIndex() in [1, 2]:
                     if self.Photon_CB.isChecked():
-                        print("settings.photon_transport = True")
-                        print("settings.cutoff = {'energy_photon' : " + self.Photon_Cut.text() + " }")
+                        print(self.Sett + ".photon_transport = True")
+                        print(self.Sett + ".cutoff = {'energy_photon' : " + self.Photon_Cut.text() + " }")
                         if self.ttb_RB.isChecked():
-                            print("settings.electron_treatment = 'ttb'")
+                            print(self.Sett + ".electron_treatment = 'ttb'")
                         elif self.led_RB.isChecked():
-                            print("settings.electron_treatment = 'led'")
+                            print(self.Sett + ".electron_treatment = 'led'")
                     if self.Create_Separate_SRC_CB.isChecked():
-                        print("settings.sourcepoint = {‘separate’: True}")
+                        print(self.Sett + ".sourcepoint = {‘separate’: True}")
                     if self.Create_Surface_SRC_CB.isChecked():
                         self.LE_to_List1(self.LineEdit_4)
                         Surfaces_List = str(self.List)
-                        print("settings.surf_source_write = { 'surfaces_ids': " + Surfaces_List + ", 'max_particles': " + str(self.Particles_Max_LE.text()) +" }")
+                        print(self.Sett + ".surf_source_write = { 'surfaces_ids': " + Surfaces_List + ", 'max_particles': " + str(self.Particles_Max_LE.text()) +" }")
         self.Run_Mode_CB.setCurrentIndex(0)
         self.Photon_CB.setChecked(False)
         self.Create_Separate_SRC_CB.setChecked(False)
@@ -469,30 +469,30 @@ class ExportSettings(QWidget):
 
     def Run_Mode_Extra(self, Document):
         if self.Create_Separate_SRC:
-            self.Find_string(Document, "settings.sourcepoint")
+            self.Find_string(Document, self.Sett + ".sourcepoint")
             if self.Insert_Header:
-                print("settings.sourcepoint = {‘separate’: True}")
+                print(self.Sett + ".sourcepoint = {‘separate’: True}")
         if self.Create_Surface_SRC:
-            self.Find_string(Document, "settings.surf_source_write")
+            self.Find_string(Document, self.Sett + ".surf_source_write")
             if self.Insert_Header:
-                print("settings.surf_source_write = { 'surfaces_ids': " + str(
+                print(self.Sett + ".surf_source_write = { 'surfaces_ids': " + str(
                     self.LineEdit_4.text()) + ", 'max_particles': " + str(self.Particles_Max_LE.text()) + " }")
         if self.Photon_CB.isChecked():
-            self.Find_string(Document, "settings.photon_transport")
+            self.Find_string(Document, self.Sett + ".photon_transport")
             if self.Insert_Header:
-                print("settings.photon_transport = True")
-                print("settings.cutoff = {'energy_photon' : " + self.Photon_Cut.text() + " }")
+                print(self.Sett + ".photon_transport = True")
+                print(self.Sett + ".cutoff = {'energy_photon' : " + self.Photon_Cut.text() + " }")
                 if self.ttb_RB.isChecked():
-                    print("settings.electron_treatment = 'ttb'")
+                    print(self.Sett + ".electron_treatment = 'ttb'")
                 elif self.led_RB.isChecked():
-                    print("settings.electron_treatment = 'led'")
+                    print(self.Sett + ".electron_treatment = 'led'")
             else:
-                self.Find_string(Document, "settings.electron_treatment")
+                self.Find_string(Document, self.Sett + ".electron_treatment")
                 if self.Insert_Header:
                     if self.ttb_RB.isChecked():
-                        print("settings.electron_treatment = 'ttb'")
+                        print(self.Sett + ".electron_treatment = 'ttb'")
                     elif self.led_RB.isChecked():
-                        print("settings.electron_treatment = 'led'")
+                        print(self.Sett + ".electron_treatment = 'led'")
 
     def Volume_Calculation(self):
         self.Import_OpenMC()
@@ -521,19 +521,19 @@ class ExportSettings(QWidget):
                             self.showDialog('Warning', 'Only one run mode is allowed in the project !')
                             return
                         else:
-                            string_to_find = "settings.run_mode = 'Volume'"
+                            string_to_find = self.Sett + ".run_mode = 'Volume'"
                             self.Find_string(self.plainTextEdit, string_to_find)
                             if self.Insert_Header:
                                 self.Find_string(self.v_1, string_to_find)
                                 if self.Insert_Header:
                                     print('# Volume calculation mode')
-                                    print("settings.run_mode = 'Volume'")
+                                    print(self.Sett + ".run_mode = 'Volume'")
                                     self.Insert_Header = False
                                 else:
                                     string_to_find = 'openmc.VolumeCalculation'
                                     self.Find_string(self.v_1, string_to_find)
                                     self.Delete_lines(self.v_1, string_to_find, False)
-                                    self.Delete_lines(self.v_1, 'settings.volume_calculations', True)
+                                    self.Delete_lines(self.v_1, self.Sett + '.volume_calculations', True)
                                     for item in self.list_of_items:
                                         self.vol_calcs.append(item)
                             samples = str(self.Particles_Number.text())
@@ -573,7 +573,7 @@ class ExportSettings(QWidget):
                                         print(',')
                                     print(item, end='')
                                 print(" ]")
-                                print("settings.volume_calculations = vol_calcs")
+                                print(self.Sett + ".volume_calculations = vol_calcs")
         self.Volume_Calc_CB.setCurrentIndex(0)
         self.Cells_CB.hide()
         self.LineEdit_3.hide()
@@ -631,13 +631,13 @@ class ExportSettings(QWidget):
             print("entropy_mesh.lower_left = " + LL)
             print("entropy_mesh.upper_right = " + UR)
             print("entropy_mesh.dimension = " + dim)
-            print("settings.entropy_mesh = entropy_mesh\n")
+            print(self.Sett + ".entropy_mesh = entropy_mesh\n")
         elif self.Entropy_type_CB.currentIndex() == 2:
             self.Geometry_Key(self.v_1)
             print("\nentropy_mesh = openmc.RegularMesh()")
             print("entropy_mesh.lower_left, entropy_mesh.upper_right = " + self.Geo + ".bounding_box")
             print("entropy_mesh.dimension = (8, 8, 8)")
-            print("settings.entropy_mesh = entropy_mesh\n")
+            print(self.Sett + ".entropy_mesh = entropy_mesh\n")
 
         self.Entropy_type_CB.setCurrentIndex(0)
 
@@ -1255,7 +1255,7 @@ class ExportSettings(QWidget):
                 print('\n############################################################################### \n'
                       '#                 Exporting to OpenMC settings.xml file \n'
                       '###############################################################################')
-                print("settings = openmc.Settings()\n")
+                print(self.Sett + " = openmc.Settings()\n")
             else:
                 pass
         if self.Source_Geom_CB.currentIndex() in [1, 2, 3, 4, 5]:
@@ -1301,16 +1301,11 @@ class ExportSettings(QWidget):
                 return
             document = self.v_1.toPlainText()
             lines = document.split('\n')
-            strg = 'settings.source = ' + str(self.Source_name_list).replace("'", "")
+            strg = self.Sett + '.source = ' + str(self.Source_name_list).replace("'", "")
             print(strg)
-            '''for line in lines:
-                if "settings.export_to_xml" in line: # or line == '':
-                    lines.remove(line)
-                    document = self.v_1.toPlainText().replace(line, '')'''
             self.v_1.clear()
             cursor = self.v_1.textCursor()
             cursor.insertText(document)
-            #print ('settings.source = ' + str(self.Source_name_list).replace("'", ""))
         elif self.Source_Geom_CB.currentIndex() == 6:
             ############################### File based source (.h5) #################################
             print(str(self.Name_LE.text()) + " = openmc.Source(filename= '" + self.src_filename +"')")
@@ -1354,11 +1349,11 @@ class ExportSettings(QWidget):
                 print('\n############################################################################### \n'
                       '#                 Exporting to OpenMC settings.xml file \n'
                       '###############################################################################')
-                print("settings = openmc.Settings()\n")
+                print(self.Sett + ' = openmc.Settings()\n')
             else:
                 pass
         self.Insert_Header = False
-        string_to_find = "settings.export_to_xml()"
+        string_to_find = self.Sett + ".export_to_xml()"
         self.Find_string(self.v_1, string_to_find)
         cursor = self.v_1.textCursor()
         self.plainTextEdit.moveCursor(QTextCursor.End)
@@ -1373,13 +1368,18 @@ class ExportSettings(QWidget):
             else:
                 lines = document.split('\n')
                 for line in lines:
-                    if "settings.source" in line: # or line == '':
+                    if self.Sett + ".source" in line: # or line == '':
                         lines.remove(line)
                         document = document.replace(line, self.plainTextEdit.toPlainText())
-
+            
             self.v_1.clear()
-            cursor = self.v_1.textCursor()
             cursor.insertText(document)
+        
+        document = self.v_1.toPlainText()
+        document = self.Move_Commands_to_End(document)
+        cursor = self.v_1.textCursor()
+        self.v_1.clear()
+        cursor.insertText(document)
         self.text_inserted = True
         self.plainTextEdit.clear()
 

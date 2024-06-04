@@ -267,6 +267,11 @@
                    <string>ao</string>
                   </property>
                  </item>
+                 <item>
+                  <property name="text">
+                   <string>vo</string>
+                  </property>
+                 </item>
                 </widget>
                </item>
                <item row="2" column="0">
@@ -576,6 +581,11 @@
                  <item>
                   <property name="text">
                    <string>wo</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>vo</string>
                   </property>
                  </item>
                 </widget>

@@ -101,6 +101,9 @@ class Application(QtWidgets.QMainWindow):
         self.clear_Lists()
         self.Enrichment = False
         self.plots_file_name = ''
+        # Initiate principal model variables
+        self.Plots = 'Plots'; self.Mats = 'materials'; self.Geom = 'geometry'
+        self.Sett = 'settings'; self.Tallies = 'tallies'
         # detects available nuclides in cross_section.xml
         self.Neutron_XS_List = []
         self.TSL_XS_List = []
@@ -113,10 +116,6 @@ class Application(QtWidgets.QMainWindow):
         for line in lines:
             if 'neutron' in line:
                 item = line.split()
-                """if 'materials' in item and '=' in item:
-                    nuclide = item.strip('materials').strip('=').strip().replace('"','')
-                elif 'materials' in item and '=' not in item:
-                    nuclide = items[items.index(item) + 1].strip().replace('"','')"""
                 nuclide = line[line.find('materials') + 1: line.find('path')].split('=')[1].rstrip().replace('"', '')
                 self.Neutron_XS_List.append(nuclide)
             elif 'thermal' in line:
@@ -174,6 +173,12 @@ class Application(QtWidgets.QMainWindow):
             self.toolBar_4.setEnabled(False)
 
         self.checkbox.setChecked(True)
+        # add shortcuts
+        self.pushButton.setShortcut("Ctrl+M")
+        self.pushButton_2.setShortcut("Ctrl+D")
+        self.pushButton_3.setShortcut("Ctrl+E")
+        self.pushButton_4.setShortcut("Ctrl+T")
+        self.pushButton_5.setShortcut("Ctrl+L")
         # addapt GUI size to screen dimensions
         self.resize_ui()
 
@@ -1091,7 +1096,36 @@ class Application(QtWidgets.QMainWindow):
         filters_list = []
         bins_list = []
         Elements_In_Material = []
-        lines = self.plainTextEdit_7.toPlainText().split('\n')
+        """self.Plots = 'Plots'; self.Mats = 'materials'; self.Geom = 'geometry'
+        self.Sett = 'settings'; self.Tallies = 'tallies'"""
+        document = self.plainTextEdit_7.toPlainText()
+        lines = document.split('\n')
+        if "openmc.Materials" in document:
+            for line in lines:
+                if "openmc.Materials" in line:
+                    self.Mats = line.split('=')[0].replace(' ', '')
+                    break  
+        if "openmc.Plots" in document:
+            for line in lines:
+                if "openmc.Plots" in line:
+                    self.Plots = line.split('=')[0].replace(' ', '')
+                    break  
+        if "openmc.Tallies" in document:
+            for line in lines:
+                if "openmc.Tallies" in line:
+                    self.Tallies = line.split('=')[0].replace(' ', '')
+                    break  
+        if "openmc.Settings" in document:
+            for line in lines:
+                if "openmc.Settings" in line:
+                    self.Sett = line.split('=')[0].replace(' ', '')
+                    break  
+        if "openmc.Geometry" in document:
+            for line in lines:
+                if "openmc.Geometry" in line:
+                    self.Geom = line.split('=')[0].replace(' ', '')
+                    break  
+                                            
         for line in lines:
             if 'openmc.Material' in line and 'openmc.Materials' not in line and 'Filter' not in line:
                 item = line.split('=')[0].replace(' ', '')
@@ -1219,7 +1253,7 @@ class Application(QtWidgets.QMainWindow):
                 line =[item.rstrip().lstrip() for item in list(filter(None, line.replace("'","").replace('"','').split(',')))]
                 try:
                     for item in line:
-                        if item.isalnum() and 'wo' not in item and 'ao' not in item : Nuclide_In_Material = item   
+                        if item.isalnum() and 'wo' not in item and 'ao' not in item and 'vo' not in item : Nuclide_In_Material = item   
                     if Nuclide_In_Material not in self.Model_Nuclides_List:
                         self.Model_Nuclides_List.append(Nuclide_In_Material)
                 except:
@@ -1228,7 +1262,7 @@ class Application(QtWidgets.QMainWindow):
                 line = line[line.find("(") + 1: line.find(")")]
                 line = ''.join([i for i in line.replace('.', '').replace("'", "").replace('"','') if not i.isdigit()]).replace(' ', '')
                 line = list(filter(None, line.split(',')))
-                Elements_In_Material += [item for item in line if 'ao' not in item and 'wo' not in item and 'enrichment' not in item]
+                Elements_In_Material += [item for item in line if 'ao' not in item and 'wo' not in item and 'vo' not in item and 'enrichment' not in item]
                 for elem in Elements_In_Material:   
                     if elem not in self.Model_Elements_List:
                         self.Model_Elements_List.append(elem) 
@@ -1251,7 +1285,7 @@ class Application(QtWidgets.QMainWindow):
         v_1 = self.plainTextEdit_7
         #self.detect_components()
         if self.available_xs:
-            self.wind3 = ExportMaterials(v_1, self.available_xs, self.materials_name_list, self.materials_id_list)
+            self.wind3 = ExportMaterials(v_1, self.Mats, self.available_xs, self.materials_name_list, self.materials_id_list)
             self.wind3.show()
         else:
             self.showDialog('Warning', 'Cross secions files not defined !')
@@ -1275,7 +1309,7 @@ class Application(QtWidgets.QMainWindow):
         lat = self.lattice_name_list
         lat_id = self.lattice_id_list
         C_in_U = self.cells_in_universes
-        self.wind4 = ExportGeometry(v_1, regions, surf, surf_id, cell, cell_id, mat, mat_id, univ, univ_id, C_in_U, lat, lat_id)
+        self.wind4 = ExportGeometry(v_1, self.Geom, regions, surf, surf_id, cell, cell_id, mat, mat_id, univ, univ_id, C_in_U, lat, lat_id)
         self.wind4.show()
         self.SaveFiles()
 
@@ -1285,7 +1319,7 @@ class Application(QtWidgets.QMainWindow):
         """     
         v_1 = self.plainTextEdit_7
         #self.detect_components()
-        self.wind5 = ExportSettings(v_1, self.directory, self.surface_name_list, self.surface_id_list, self.cell_name_list,
+        self.wind5 = ExportSettings(v_1, self.Sett, self.directory, self.surface_name_list, self.surface_id_list, self.cell_name_list,
                                     self.materials_name_list, self.Vol_Calcs_list, self.Source_name_list,
                                     self.Source_id_list, self.Source_strength_list)
         self.wind5.show()
@@ -1299,7 +1333,7 @@ class Application(QtWidgets.QMainWindow):
         v_1 = self.plainTextEdit_7
         #self.detect_components()
         if self.available_xs:
-            self.wind6 = ExportTallies(v_1, self.available_xs, self.tally_name_list, self.tally_id_list,
+            self.wind6 = ExportTallies(v_1, self.Tallies, self.available_xs, self.tally_name_list, self.tally_id_list,
                                        self.filter_name_list, self.filter_id_list,
                                        self.score_name_list, self.score_id_list, self.surface_name_list,
                                        self.surface_id_list,
@@ -1319,7 +1353,7 @@ class Application(QtWidgets.QMainWindow):
         """     
         v_1 = self.plainTextEdit_7
         #self.detect_components()
-        self.wind7 = ExportPlots(v_1, self.plot_name_list, self.plot_id_list, self.plots_file_name)
+        self.wind7 = ExportPlots(v_1, self.Plots, self.plot_name_list, self.plot_id_list, self.plots_file_name)
         self.wind7.show()
         self.SaveFiles()
 
@@ -2839,7 +2873,7 @@ class Application(QtWidgets.QMainWindow):
     #######################################################################################
     #######################################################################################
 
-version = '1.3'
+version = '1.3.1'
 qapp = QApplication(sys.argv)  
 app  = Application(u'ERSN-OpenMC-Py')
 qapp.setStyleSheet("QPushButton { background-color: palegoldenrod; border-width: 2px; border-color: darkkhaki}"

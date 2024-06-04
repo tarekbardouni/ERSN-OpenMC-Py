@@ -16,8 +16,8 @@ from src.syntax_py import Highlighter
 from src.XMLHighlighter import XMLHighlighter
 
 class ExportGeometry(QWidget):
-    from .func import resize_ui, showDialog, Exit
-    def __init__(self, v_1, regions, surf, surf_id, cell, cell_id, mat, mat_id, univ, univ_id, C_in_U, lat, lat_id, parent=None):
+    from .func import resize_ui, showDialog, Exit, Move_Commands_to_End
+    def __init__(self, v_1, Geom, regions, surf, surf_id, cell, cell_id, mat, mat_id, univ, univ_id, C_in_U, lat, lat_id, parent=None):
         super(ExportGeometry, self).__init__(parent)
         uic.loadUi("src/ui/ExportGeometry.ui", self)
         try:
@@ -53,6 +53,7 @@ class ExportGeometry(QWidget):
         self.universe_id_list = univ_id
         self.lattice_name_list = lat
         self.lattice_id_list = lat_id
+        self.Geom = Geom
         #
         self.Instanciate_Lists()
         self.Surfaces_List = ['openmc.Plane', 'openmc.XPlane', 'openmc.YPlane', 'openmc.ZPlane', 'openmc.Sphere', 'openmc.XCylinder', 
@@ -280,30 +281,38 @@ class ExportGeometry(QWidget):
 
     def Export_to_Main_Window(self):
         cells = []
-        string_to_find = "geometry.export_to_xml()"
+        Run_command = ''
+        document = self.v_1.toPlainText()
+        lines = document.split('\n')
+        string_to_find = self.Geom + ".export_to_xml()"
         self.Find_string(self.v_1, string_to_find)
         cursor = self.v_1.textCursor()
         self.plainTextEdit.moveCursor(QTextCursor.End)
         cells = [item for item in self.cell_name_list if item not in self.cells_in_universes]
         if self.Insert_Header:
-            print ('\ngeometry = openmc.Geometry(' + '[' + ', '.join(cells)+']' + ')')
+            print ('\n' + self.Geom + ' = openmc.Geometry(' + '[' + ', '.join(cells)+']' + ')')
             print (string_to_find, '\n')
             cursor.insertText(self.plainTextEdit.toPlainText())
         else:
-            document = self.v_1.toPlainText()
-            lines = document.split('\n')
             for line in lines:
-                if ("openmc.Geometry" in line):
+                if "openmc.Geometry" in line:
                     lines.remove(line)
-                    document = self.v_1.toPlainText().replace(line,"")
-            print ('\ngeometry = openmc.Geometry(' + '[' + ', '.join(cells)+']' + ')')
+                    #document = self.v_1.toPlainText().replace(line,"")  
+                    document = document.replace(line,"")  
+                    break
+            print ('\n' + self.Geom + ' = openmc.Geometry(' + '[' + ', '.join(cells)+']' + ')')
             print(string_to_find, '\n')
             document = document.replace(string_to_find,self.plainTextEdit.toPlainText())
             self.v_1.clear()
-            #cursor = self.v_1.textCursor()
             cursor.insertText(document)
         self.text_inserted = True
         self.plainTextEdit.clear()
+
+        document = self.v_1.toPlainText()
+        document = self.Move_Commands_to_End(document)
+        cursor = self.v_1.textCursor()
+        self.v_1.clear()
+        cursor.insertText(document)
 
     def Find_string(self, text_window, string_to_find):
         self.current_line = ""

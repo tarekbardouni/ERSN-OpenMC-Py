@@ -3,6 +3,44 @@
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QDesktopWidget, QMessageBox
 
+def Move_Commands_to_End(self, document):
+    command = ""
+    if "openmc.run()" in document:
+        document = document.replace("openmc.run()", "")
+        command += "openmc.run()"
+    if "openmc.plot_geometry()" in document:
+        document = document.replace("openmc.plot_geometry()", "")
+        command += "\nopenmc.plot_geometry()"
+    if "openmc.calculate_volumes()" in document:
+        document = document.replace("openmc.calculate_volumes()", "")
+        command += "\nopenmc.calculate_volumes()"
+    if "openmc.plot_inline()" in document:
+        document = document.replace("openmc.plot_inline()", "")
+        command += "\nopenmc.plot_inline()"
+    if "openmc.search_for_keff()" in document:
+        document = document.replace("openmc.search_for_keff()", "")
+        command += "\nopenmc.search_for_keff()"
+
+    document += '\n' + command
+
+    lines = document.split('\n')
+    #lines.append('')
+    NumLines = []
+    lines = [line.rstrip() for line in lines]
+    lines = list(filter(None, lines))
+    try:
+        for line in lines:
+            if '.export_to_xml()' in line:
+                NumLine = lines.index(line) + 1
+                if '#' not in lines[NumLine]:
+                    NumLines.append(NumLine)
+        for num in NumLines[-1:]:
+            lines.insert(num, '#')
+    except:
+        pass
+    document = '\n'.join(line for line in lines)
+    return document
+
 def resize_ui(self):
     # to show window at the middle of the screen and resize it to the screen size
     qtRectangle = self.frameGeometry()
