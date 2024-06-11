@@ -140,7 +140,10 @@ fi
 if [[ $INSTALL_PREREQUISITES == yes ]]; then
     # Make sure conda is activated 
     . $HOME/miniconda3/etc/profile.d/conda.sh
-    rm ~/.condarc
+    if [ -e ~/.condarc ]; then
+        rm -f ~/.condarc
+    fi
+    #rm ~/.condarc
     conda config --set channel_priority flexible
     conda activate
     # Create new Python environment to install everything into
