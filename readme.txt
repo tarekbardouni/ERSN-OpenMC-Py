@@ -54,6 +54,7 @@ insteade of : python3 gui.py
 	- If the update frozes in "Solving environment" step an issue is:
 		- delete the file : ~/.condarc
 		- then set channel priority : conda config --set channel_priority flexible
+	- if the gui craches in removing the .condarc because it dosen't exist, comment the line 143 (rm ~/.condarc) in the file bash_scripts/openmc-conda-install.sh
 
 
 	It's better to close the gui after prequisites installing is finished, then in a terminal activate the created openmc environment, 
