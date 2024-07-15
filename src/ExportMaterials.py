@@ -27,10 +27,8 @@ class ExportMaterials(QWidget):
  
         #sys.stdout = EmittingStream(textWritten=self.normalOutputWritten)
         #sys.stderr = EmittingStream(textWritten=self.normalOutputWritten)
-        #self.Liste1 = [self.Nucl_Modif_RB, self.Nucl_Add_RB, self.Nuclide_CB, self.Percent_Nuclide_LE,
         self.Liste1 = [ self.Nuclide_CB, self.Percent_Nuclide_LE,
                                       self.Percent_Nuc_Type_CB, self.label_4, self.label_5, self.label_6]
-        #self.Liste2 = [self.Elm_Modif_RB, self.Elm_Add_RB, self.Element_CB, self.Percent_Element_LE,
         self.Liste2 = [ self.Element_CB, self.Percent_Element_LE,
                                       self.Percent_Ele_Type_CB, self.Enricht_LE, self.Enrichment_Target_CB, self.Enrichment_Type_CB,
                        self.label_51, self.label_52, self.label_53, self.label_54, self.label_55, self.label_56]
@@ -57,7 +55,6 @@ class ExportMaterials(QWidget):
         layoutH.addWidget(self.numbers)
         layoutH.addWidget(self.plainTextEdit)
         self.EditorLayout.addLayout(layoutH, 0, 0)
-        #self.cursor = self.plainTextEdit.textCursor()
 
         sys.stdout = EmittingStream(textWritten=self.normalOutputWritten)
 
@@ -105,23 +102,6 @@ class ExportMaterials(QWidget):
         self.Materials_In_Model = {}
         self.Elements_In_Material = {}
         self.Nuclides_In_Material = {}
-        # self.Materials_In_Model[self.Mat_Name][self.Elements_In_Material]
-        # self.Materials_In_Model[self.Mat_Name][self.Elements_In_Material][self.Element_Percent]
-        # self.Materials_In_Model[self.Mat_Name][self.Elements_In_Material][self.Element_Percent_Type]
-        # self.Materials_In_Model[self.Mat_Name][self.Elements_In_Material][self.Element_Enrichment]
-        # self.Materials_In_Model[self.Mat_Name][self.Elements_In_Material][self.Element_Enrichment_Type]
-        # self.Materials_In_Model[self.Mat_Name][self.Elements_In_Material][self.Element_Enrichment_Target]
-
-        #self.Materials_In_Model = {'Mat1': {'id': 1, 'name': 'Mat1', 'density': 1.1, 'temperature': 300,
-        #                                    'Elements': {'Elm1': {'symbol': 'He', 'fraction': 0.1, 'fraction_type': 'wo',
-        #                                                          'enrichment': 30, 'enrichment_target': 'He4', 'enrichment_type': 'wo' },
-        #                                                 'Elm2': {'symbol': 'C', 'fraction': 0.2, 'fraction_type': 'ao',
-        #                                                          'enrichment': 40, 'enrichment_target': 'C14', 'enrichment_type': 'ao' } }   },
-        #                           'Mat2': {'id': 2, 'name': 'Mat2', 'density': 1.2, 'temperature': 400,
-        #                                    'Elements': {'Elm1': {'symbol': 'Be', 'fraction': 0.3, 'fraction_type': 'wo',
-        #                                                          'enrichment': 30, 'enrichment_target': 'Be8', 'enrichment_type': 'wo' },
-        #                                                 'Elm2': {'symbol': 'Co', 'fraction': 0.4, 'fraction_type': 'wo',
-        #                                                          'enrichment': 50, 'enrichment_target': 'Co60', 'enrichment_type': 'wo' } } } }
 
         for i in range(len(src.materials.THERMAL_SCATTERING)):
             self.comboBox_2.addItem(src.materials.THERMAL_SCATTERING[i])
@@ -426,8 +406,6 @@ class ExportMaterials(QWidget):
                     self.density_card = ''
                     for line in lines:
                         if self.Mat_Name in line:
-                            '''if 'set_density' in line:
-                                self.density_card = line'''
                             if 'openmc.Materials' not in line and 'set_density' not in line and 'add_s_alpha_beta' not in line:
                                 document += line + '\n'
                     self.plainTextEdit.insertPlainText(document)
@@ -1078,11 +1056,8 @@ class ExportMaterials(QWidget):
 
     def Add_Material(self):
         Mat_Exists = False
-        self.Find_string(self.plainTextEdit, "import openmc")
-        if self.Insert_Header:
-            self.Find_string(self.v_1, "import openmc")
-            if self.Insert_Header:
-                print('import openmc')
+        self.Insert_Header_Text()
+
         if self.lineEdit.text() == '':
             self.showDialog('Warning', 'Cannot create material, select name first !')
             return
@@ -1116,14 +1091,14 @@ class ExportMaterials(QWidget):
                 self.showDialog('Warning', 'Cannot create material, specify density first !')
                 return
             self.Find_string(self.plainTextEdit, "materials.xml")
-            if self.Insert_Header:
+            '''if self.Insert_Header:
                 self.Find_string(self.v_1, "materials.xml")
                 if self.Insert_Header:
                     print('\n############################################################################### \n'
                    '#                 Exporting to OpenMC materials.xml file \n'
                    '###############################################################################')
                 else:
-                    self.Find_string(self.v_1, "openmc.Materials")
+                    self.Find_string(self.v_1, "openmc.Materials")'''
             if self.Check_Mixture_CB.isChecked():
                 Density_Unit = "g/cc"
                 Density = self.Mixture_Density
@@ -1323,6 +1298,25 @@ class ExportMaterials(QWidget):
         if self.lineEdit.text():
             self.liste.append(self.lineEdit.text())
 
+    def Insert_Header_Text(self):
+        self.Find_string(self.plainTextEdit, "import openmc")
+        self.v_1.moveCursor(QTextCursor.End)
+        if self.Insert_Header:
+            self.Find_string(self.v_1, "import openmc")
+            if self.Insert_Header:
+                cursor = self.v_1.textCursor()
+                cursor.setPosition(0)
+                self.v_1.setTextCursor(cursor)
+                self.v_1.insertPlainText('import openmc\n')
+        self.Find_string(self.plainTextEdit, "materials.xml")
+        if self.Insert_Header:
+            self.Find_string(self.v_1, "materials.xml")
+            if self.Insert_Header:
+                self.plainTextEdit.insertPlainText('\n############################################################################### \n')
+                self.plainTextEdit.insertPlainText('#                 Exporting to OpenMC materials.xml file                        \n')
+                self.plainTextEdit.insertPlainText('###############################################################################\n')
+        self.Insert_Header = False
+
     def Export_to_Main_Window(self):                          
         export_to_main_window = False
         self.v_1.moveCursor(QTextCursor.End)
@@ -1333,17 +1327,21 @@ class ExportMaterials(QWidget):
                     export_to_main_window = True
         if export_to_main_window:
             string_to_find = self.Mats + ".export_to_xml()"
-            self.lines = self.v_1.toPlainText().split('\n')
+            document = self.v_1.toPlainText()
+            self.lines = document.split('\n')
             self.Find_string(self.v_1, string_to_find)
             cursor = self.v_1.textCursor()
             self.Update_Mat_List()     #  to be verified
-            if self.Insert_Header:
+            if self.Insert_Header:   # First time : create material
                 self.plainTextEdit.moveCursor(QTextCursor.End) #######
                 print('\n' + self.Mats + ' = openmc.Materials(','['+', '.join(self.materials_name_list)+']',')')
-                cursor.insertText(self.plainTextEdit.toPlainText())
-                cursor.insertText(string_to_find + '\n')
-                #self.Insert_Header = True
-            else:
+                Code_to_Insert = '\nimport openmc\n' + self.plainTextEdit.toPlainText() + string_to_find + '\n'
+                if 'import openmc' in document:
+                    document = document.replace('import openmc', Code_to_Insert)
+                    self.v_1.setPlainText(document)
+                else:
+                    cursor.insertText(str(Code_to_Insert))                 
+            else:                   # Materials already exist
                 if self.Materials_Construct.currentIndex() == 1:
                     for mat in self.Mat_List_to_Modify:
                         self.lines[:] = [item for item in self.lines if mat not in item]

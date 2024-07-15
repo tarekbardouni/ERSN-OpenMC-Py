@@ -76,7 +76,7 @@ class Application(QtWidgets.QMainWindow):
             from openmc import __version__
             self.openmc_version = int(__version__.split('-')[0].replace('.', ''))
         except:
-            self.showDialog('Warning', 'OpenMC not yet installed !')
+            self.showDialog('Warning', 'OpenMC not yet installed or wrong conda environment chosen!')
             self.openmc_version = 0
         self.title = title
         self.ui = uic.loadUi("src/ui/Interface.ui", self)
@@ -89,7 +89,8 @@ class Application(QtWidgets.QMainWindow):
         self.filename = ''
         self.app_dir = os.getcwd()
         self.Surfaces_key_list = ['Plane', 'XPlane', 'YPlane', 'ZPlane', 'Sphere', 'XCylinder', 'YCylinder', 'ZCylinder',
-                              'Cone', 'XCone', 'YCone', 'Zcone', 'Quadric', 'XTorus', 'YTorus', 'ZTorus', 'model.hexagonal_prism', 'model.rectangular_prism']
+                              'Cone', 'XCone', 'YCone', 'Zcone', 'Quadric', 'XTorus', 'YTorus', 'ZTorus', 
+                              'model.rectangular_prism', 'model.hexagonal_prism']
         self.Filters_key_list = ['UniverseFilter', 'MaterialFilter', 'CellFilter', 'CellFromFilter', 'CellbornFilter',
                                  'CellInstanceFilter', 'SurfaceFilter', 'MeshFilter', 'MeshSurfaceFilter',
                                  'DistribcellFilter', 'CollisionFilter', 'EnergyFilter', 'EnergyoutFilter',
@@ -97,6 +98,10 @@ class Application(QtWidgets.QMainWindow):
                                  'LegendreFilter', 'SpatialLegendreFilter', 'SphericalHarmonicsFilter', 'ZernikeFilter',
                                  'ZernikeRadialFilter', 'ParticleFilter', 'TimeFilter']
         self.Filters_key_sub_list = ['CellFilter', 'CellFromFilter', 'CellbornFilter', 'CellInstanceFilter']
+
+        if self.openmc_version >= 141:
+            self.Surfaces_key_list[16] = 'model.RectangularPrism'
+            self.Surfaces_key_list[17] = 'model.HexagonalPrism'
 
         self.clear_Lists()
         self.Enrichment = False
@@ -206,6 +211,7 @@ class Application(QtWidgets.QMainWindow):
         self.actionHelp.triggered.connect(self.Help)
         self.actionAbout.triggered.connect(self.About)
         self.actionClose_Project.triggered.connect(self.Close_Project)
+        self.actionClose_Img.triggered.connect(self.Close_Img)
         self.pB_Clear_OW_2.clicked.connect(self.clear_text)
         self.actionGet_OpenMC.triggered.connect(self.Get_OpenMC)
         self.pushButton.clicked.connect(self.Python_Materials)
@@ -231,8 +237,7 @@ class Application(QtWidgets.QMainWindow):
         self.RunMode_CB.currentIndexChanged.connect(self.SetRunMode)
         self.radioButton.toggled.connect(self.RunPB_State)
         self.tabWidget.currentChanged.connect(self.Update_StatusBar)
-        # self.plainTextEdit_7.blockCountChanged.connect(self.detect_components)
-        self.plainTextEdit_7.textChanged.connect(self.detect_components)
+        #self.plainTextEdit_7.textChanged.connect(self.detect_components)
 
     def initUI(self):
         # defining widgets in statusBar
@@ -502,6 +507,9 @@ class Application(QtWidgets.QMainWindow):
         self.exitAct = QAction(QIcon("src/icons/quit.png"), "exit", self, shortcut=QKeySequence.Quit,
                                statusTip="Exit", triggered=self.Exit)
         tbf.addAction(self.exitAct)
+
+        self.actionClose_Img = QAction(QIcon("src/icons/close.png"), "Close Images", self, shortcut=QKeySequence.Quit,
+                              statusTip="close images", triggered=self.Close_Img)
         ##############################################################################################""""""
 
     def editor_menu(self):
@@ -514,6 +522,7 @@ class Application(QtWidgets.QMainWindow):
         self.projectmenu.addAction(self.actionSave_as)
         self.projectmenu.addSeparator()
         self.projectmenu.addAction(self.actionClose_Project)
+        self.projectmenu.addAction(self.actionClose_Img)
         self.projectmenu.addSeparator()
         self.projectmenu.addAction(self.actionExit)
         self.projectmenu.addSeparator()
@@ -562,7 +571,7 @@ class Application(QtWidgets.QMainWindow):
         self.separatorAct = self.submenu2.addSeparator()
         self.submenu2.addAction(self.action3D_Voxels_3)
         self.separatorAct = self.toolsmenu.addSeparator()
-        self.submenu3 = self.toolsmenu.addMenu("Convert H to VTI file")
+        self.submenu3 = self.toolsmenu.addMenu("Convert H5 to VTI file")
         self.separatorAct = self.toolsmenu.addSeparator()
         self.submenu3.addAction(self.actionVoxels_to_VTI)
         self.separatorAct = self.submenu3.addSeparator()
@@ -799,6 +808,7 @@ class Application(QtWidgets.QMainWindow):
         self.lattice_name_list = []
         self.universe_id_list = []
         self.universe_name_list = []
+        self.cells_in_universes = []
         self.Source_name_list = []
         self.Source_id_list = []
         self.Source_strength_list = []
@@ -942,6 +952,7 @@ class Application(QtWidgets.QMainWindow):
     def ViewXML(self, Editor):
         Header_text_lines = []
         self.xml_files_list = []
+        Header_text = ""
         if self.filename:
             if self.new_File:
                 Header_text = self.wind8.Header_text
@@ -1074,7 +1085,7 @@ class Application(QtWidgets.QMainWindow):
             return
         Lists = [self.Model_Elements_List, self.Model_Nuclides_List, self.materials_name_list,
                 self.surface_name_list, self.cell_name_list, self.universe_name_list,
-                self.lattice_name_list, self.Source_name_list, self.Source_id_list,
+                self.lattice_name_list, self.Source_name_list, 
                 self.tally_name_list, self.filter_name_list, self.mesh_name_list,
                 self.plot_name_list, self.plot_id_list]
         for item in Lists:
@@ -1089,6 +1100,7 @@ class Application(QtWidgets.QMainWindow):
         self.filter_id_list = []
         self.tally_id_list = []
         self.plot_id_list = []
+        self.Source_id_list = []
         tally_filters_lines = []
         tally_elements_lines = []
         tally_nuclides_lines = []
@@ -1096,10 +1108,15 @@ class Application(QtWidgets.QMainWindow):
         filters_list = []
         bins_list = []
         Elements_In_Material = []
-        """self.Plots = 'Plots'; self.Mats = 'materials'; self.Geom = 'geometry'
-        self.Sett = 'settings'; self.Tallies = 'tallies'"""
         document = self.plainTextEdit_7.toPlainText()
-        lines = document.split('\n')
+        if ';' in document:
+            #document = document.replace(';', '\n').lstrip()
+            document = re.sub(r';\s{0,}', '\n', document)
+        self.plainTextEdit_7.clear()
+        cursor = self.plainTextEdit_7.textCursor()
+        cursor.insertText(document)
+        lines = [line for line in document.split('\n') if line != '' and line[0] != '#']
+
         if "openmc.Materials" in document:
             for line in lines:
                 if "openmc.Materials" in line:
@@ -1164,9 +1181,22 @@ class Application(QtWidgets.QMainWindow):
                 ID = len(self.lattice_name_list)
                 self.detect_component_id(line, 'lattice_id', ID)
                 self.lattice_id_list.append(self.id)            
-            elif 'openmc.Source' in line:
+            elif 'openmc.Source' in line or 'openmc.source.Source' in line:
                 item = line.split('=')[0].replace(' ', '')
-                self.Source_name_list.append(item)
+                #self.showDialog('here', str(list(item)))
+                if "#" not in list(item)[0]:
+                    self.Source_name_list.append(item)
+                    id = re.sub('.*?([0-9]*)$', r'\1', item)
+                    if id.isdigit():    
+                        self.Source_id_list.append(id)
+                    else:
+                        if self.Source_id_list:
+                            id = int(self.Source_id_list[-1]) + 1
+                        else:
+                            id = 1
+                        self.Source_id_list.append(id)
+
+                #self.showDialog('huna', str(self.Source_name_list))
             elif 'openmc.RectilinearMesh' in line:
                 item = line.split('=')[0].replace(' ', '')
                 self.mesh_name_list.append(item)
@@ -1253,7 +1283,7 @@ class Application(QtWidgets.QMainWindow):
                 line =[item.rstrip().lstrip() for item in list(filter(None, line.replace("'","").replace('"','').split(',')))]
                 try:
                     for item in line:
-                        if item.isalnum() and 'wo' not in item and 'ao' not in item and 'vo' not in item : Nuclide_In_Material = item   
+                        if item.isalnum() and not item.isnumeric() and 'wo' not in item and 'ao' not in item and 'vo' not in item : Nuclide_In_Material = item   
                     if Nuclide_In_Material not in self.Model_Nuclides_List:
                         self.Model_Nuclides_List.append(Nuclide_In_Material)
                 except:
@@ -1283,7 +1313,7 @@ class Application(QtWidgets.QMainWindow):
         function for exporting to material.xml file
         """    
         v_1 = self.plainTextEdit_7
-        #self.detect_components()
+        self.detect_components()
         if self.available_xs:
             self.wind3 = ExportMaterials(v_1, self.Mats, self.available_xs, self.materials_name_list, self.materials_id_list)
             self.wind3.show()
@@ -1296,7 +1326,7 @@ class Application(QtWidgets.QMainWindow):
         function for exporting to geometry.xml file
         """
         v_1 = self.plainTextEdit_7
-        #self.detect_components()
+        self.detect_components()
         mat = self.materials_name_list
         mat_id = self.materials_id_list
         regions = self.regions
@@ -1309,7 +1339,7 @@ class Application(QtWidgets.QMainWindow):
         lat = self.lattice_name_list
         lat_id = self.lattice_id_list
         C_in_U = self.cells_in_universes
-        self.wind4 = ExportGeometry(v_1, self.Geom, regions, surf, surf_id, cell, cell_id, mat, mat_id, univ, univ_id, C_in_U, lat, lat_id)
+        self.wind4 = ExportGeometry(v_1, self.Mats, self.Geom, regions, surf, surf_id, cell, cell_id, mat, mat_id, univ, univ_id, C_in_U, lat, lat_id)
         self.wind4.show()
         self.SaveFiles()
 
@@ -1318,7 +1348,7 @@ class Application(QtWidgets.QMainWindow):
         function for exporting to settings.xml file
         """     
         v_1 = self.plainTextEdit_7
-        #self.detect_components()
+        self.detect_components()
         self.wind5 = ExportSettings(v_1, self.Sett, self.directory, self.surface_name_list, self.surface_id_list, self.cell_name_list,
                                     self.materials_name_list, self.Vol_Calcs_list, self.Source_name_list,
                                     self.Source_id_list, self.Source_strength_list)
@@ -1331,7 +1361,7 @@ class Application(QtWidgets.QMainWindow):
         function for exporting to tallies.xml file
         """     
         v_1 = self.plainTextEdit_7
-        #self.detect_components()
+        self.detect_components()
         if self.available_xs:
             self.wind6 = ExportTallies(v_1, self.Tallies, self.available_xs, self.tally_name_list, self.tally_id_list,
                                        self.filter_name_list, self.filter_id_list,
@@ -1352,7 +1382,7 @@ class Application(QtWidgets.QMainWindow):
         function for exporting to plots.xml file
         """     
         v_1 = self.plainTextEdit_7
-        #self.detect_components()
+        self.detect_components()
         self.wind7 = ExportPlots(v_1, self.Plots, self.plot_name_list, self.plot_id_list, self.plots_file_name)
         self.wind7.show()
         self.SaveFiles()
@@ -1414,7 +1444,7 @@ class Application(QtWidgets.QMainWindow):
                 else:'''
                 for i in range(image_number):
                     self.ImView[i] = QImageViewer(image_list[i]) 
-                    self.ImView[i].show()            
+                    self.ImView[i].show() 
             else:
                 self.showDialog('Warning', 'No images found !')
         else:
@@ -2022,6 +2052,10 @@ class Application(QtWidgets.QMainWindow):
         self.plainTextEdit_7.clear()
         self.plainTextEdit_8.clear()
         self.comboSize.setCurrentIndex(4)
+
+    def Close_Img(self):
+        for i in range(len(self.ImView)):
+            self.ImView[i].close()
 
     def question(self, alert, msg) : 
         qm = QMessageBox
@@ -2873,7 +2907,7 @@ class Application(QtWidgets.QMainWindow):
     #######################################################################################
     #######################################################################################
 
-version = '1.3.1'
+version = '1.3.2'
 qapp = QApplication(sys.argv)  
 app  = Application(u'ERSN-OpenMC-Py')
 qapp.setStyleSheet("QPushButton { background-color: palegoldenrod; border-width: 2px; border-color: darkkhaki}"

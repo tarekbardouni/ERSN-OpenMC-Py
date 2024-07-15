@@ -975,16 +975,22 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                     filter_name = self.Filter_names[idx]
                     if filter_name == 'MeshFilter':
                         if self.Mesh_xy_RB.isChecked():
-                            if len(tally.filters[idx].mesh._grids) == 3:
+                            if len(tally.filters[idx].mesh._grids) == 2:
                                 z = self.z[self.Bins_comboBox[idx].currentIndex()-2]
                             else:
                                 z = self.z[0]
                             self.xyz = [(x, y) + (z,) for y in self.y[:self.mesh_dimension[1]] for x in self.x[:self.mesh_dimension[0]]]
                         if self.Mesh_xz_RB.isChecked():
-                            y = self.y[self.Bins_comboBox[idx].currentIndex()-2]
+                            if len(tally.filters[idx].mesh._grids) == 2:
+                                y = self.y[self.Bins_comboBox[idx].currentIndex()-2]
+                            else:
+                                y = self.y[0]
                             self.xyz = [(x,) + (y,) + (z,) for z in self.z[:self.mesh_dimension[1]] for x in self.x[:self.mesh_dimension[0]]]
                         if self.Mesh_yz_RB.isChecked():
-                            x = self.x[self.Bins_comboBox[idx].currentIndex()-2]
+                            if len(tally.filters[idx].mesh._grids) == 2:
+                                x = self.x[self.Bins_comboBox[idx].currentIndex()-2]
+                            else:
+                                x = self.x[0]
                             self.xyz = [(x,) + (y, z) for z in self.z[:self.mesh_dimension[1]] for y in self.y[:self.mesh_dimension[0]]]
                     self.Filter_Bins_Select(tally_id, filter_id)
                     self.Bins_comboBox[idx].setCurrentIndex(0)

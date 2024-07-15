@@ -17,7 +17,7 @@ from src.XMLHighlighter import XMLHighlighter
 
 class ExportGeometry(QWidget):
     from .func import resize_ui, showDialog, Exit, Move_Commands_to_End
-    def __init__(self, v_1, Geom, regions, surf, surf_id, cell, cell_id, mat, mat_id, univ, univ_id, C_in_U, lat, lat_id, parent=None):
+    def __init__(self, v_1, Mats, Geom, regions, surf, surf_id, cell, cell_id, mat, mat_id, univ, univ_id, C_in_U, lat, lat_id, parent=None):
         super(ExportGeometry, self).__init__(parent)
         uic.loadUi("src/ui/ExportGeometry.ui", self)
         try:
@@ -40,7 +40,9 @@ class ExportGeometry(QWidget):
         sys.stdout = EmittingStream(textWritten=self.normalOutputWritten)
         #sys.stderr = EmittingStream(textWritten=self.normalOutputWritten)
         self._initButtons() 
-        self.v_1 = v_1        
+        self.v_1 = v_1     
+        self.Mats = Mats   
+        self.Geom = Geom
         self.materials_name_list = mat
         self.materials_id_list = mat_id
         self.surface_name_list = surf
@@ -53,15 +55,14 @@ class ExportGeometry(QWidget):
         self.universe_id_list = univ_id
         self.lattice_name_list = lat
         self.lattice_id_list = lat_id
-        self.Geom = Geom
         #
         self.Instanciate_Lists()
         self.Surfaces_List = ['openmc.Plane', 'openmc.XPlane', 'openmc.YPlane', 'openmc.ZPlane', 'openmc.Sphere', 'openmc.XCylinder', 
                                 'openmc.YCylinder', 'openmc.ZCylinder', 'openmc.Cone', 'openmc.XCone', 'openmc.YCone', 'openmc.ZCone',
                                 'openmc.Quadric', 'openmc.XTorus', 'openmc.YTorus', 'openmc.ZTorus', 'rectangular_prism', 'hexagonal_prism']
         if self.openmc_version >= 141:
-            self.Surfaces_List[-2] = 'model.RectangularPrism'
-            self.Surfaces_List[-1] = 'model.HexagonalPrism'
+            self.Surfaces_List[16] = 'model.RectangularPrism'
+            self.Surfaces_List[17] = 'model.HexagonalPrism'
 
         self.comboBox.addItem('Select Surface Type')
         self.comboBox.addItems(self.Surfaces_List)
@@ -260,24 +261,49 @@ class ExportGeometry(QWidget):
                 item.setEnabled(True)
 
     def Insert_Header_Text(self):
+        document = self.v_1.toPlainText()
         self.Find_string(self.plainTextEdit, "import openmc")
-        self.v_1.moveCursor(QTextCursor.End)
         if self.Insert_Header:
             self.Find_string(self.v_1, "import openmc")
             if self.Insert_Header:
                 cursor = self.v_1.textCursor()
-                cursor.setPosition(0)
-                self.v_1.setTextCursor(cursor)
-                self.v_1.insertPlainText('import openmc\n')
-                #self.v_1.moveCursor(QTextCursor.End)
+                cursor.movePosition(QTextCursor.Start)
+                cursor.insertText('import openmc\n')   
+
         self.Find_string(self.plainTextEdit, "geometry.xml")
-        if self.Insert_Header:
+        if self.Insert_Header and self.Geom + '.export_to_xml' not in document:
             self.Find_string(self.v_1, "geometry.xml")
             if self.Insert_Header:
-                self.v_1.insertPlainText('\n############################################################################### \n')
-                self.v_1.insertPlainText('#                 Exporting to OpenMC geometry.xml file                        \n')
-                self.v_1.insertPlainText('###############################################################################\n')
+                search_string = self.Mats + ".export_to_xml()"
+                if search_string not in document:
+                    search_string = 'import openmc'
+                insert_text =   '\n############################################################################### \n' +\
+                                '#                 Exporting to OpenMC geometry.xml file                        \n' +\
+                                '###############################################################################\n'
+                self.find_position(self.v_1, search_string, insert_text, 1)
+            
         self.Insert_Header = False
+
+    def find_position(self, text_edit, search_string, insert_text, n_added_lines):
+        document = text_edit.document()
+        cursor = text_edit.textCursor()
+        cursor.movePosition(QTextCursor.Start)
+        found_cursor = document.find(search_string, cursor)
+        
+        if not found_cursor.isNull():                       # materials.export_xml found
+            line_number = found_cursor.blockNumber() + 1    # Line numbers start from 0, so add 1 for 1-based index
+            found_cursor.movePosition(QTextCursor.StartOfBlock)
+            for _ in range(n_added_lines):                              # move cursor "n_added_lines" lines down
+                if not found_cursor.movePosition(QTextCursor.Down):
+                    found_cursor.movePosition(QTextCursor.EndOfBlock)
+                    found_cursor.insertBlock()
+            found_cursor.movePosition(QTextCursor.StartOfBlock)
+            found_cursor.insertText(insert_text)
+            self.Found_Cursor = found_cursor
+        else:                                               # no material found 
+            self.Found_Cursor = cursor
+            cursor.movePosition(QTextCursor.Start)
+            cursor.insertText(insert_text)          
 
     def Export_to_Main_Window(self):
         cells = []
@@ -292,12 +318,11 @@ class ExportGeometry(QWidget):
         if self.Insert_Header:
             print ('\n' + self.Geom + ' = openmc.Geometry(' + '[' + ', '.join(cells)+']' + ')')
             print (string_to_find, '\n')
-            cursor.insertText(self.plainTextEdit.toPlainText())
+            self.Found_Cursor.insertText(self.plainTextEdit.toPlainText())
         else:
             for line in lines:
                 if "openmc.Geometry" in line:
                     lines.remove(line)
-                    #document = self.v_1.toPlainText().replace(line,"")  
                     document = document.replace(line,"")  
                     break
             print ('\n' + self.Geom + ' = openmc.Geometry(' + '[' + ', '.join(cells)+']' + ')')
@@ -316,11 +341,9 @@ class ExportGeometry(QWidget):
 
     def Find_string(self, text_window, string_to_find):
         self.current_line = ""
-        self.line_number = 0
         self.Insert_Header = True
         document = text_window.toPlainText()
         for line in document.split('\n'):
-            self.line_number += 1
             if string_to_find in line:
                 self.current_line = line
                 self.Insert_Header = False
@@ -1238,13 +1261,13 @@ class ExportGeometry(QWidget):
                                 "'" + Boundary_Def + ')')
                 elif self.comboBox.currentIndex() == 17:  # Rectangular prism
                     origin = (float(self.lineEdit.text()), float(self.lineEdit_2.text()),)
-                    print(self.lineEdit_11.text() + '= openmc.model.' + self.comboBox.currentText() + '(',
+                    print(self.lineEdit_11.text() + '= openmc.' + self.comboBox.currentText() + '(',
                               self.lineEdit_7.text() + ",", self.lineEdit_8.text() + ",", "axis='" + self.Orientation_CB.currentText() + "',",
                               "origin=" + str(origin) + ",",
                               "corner_radius=" + self.lineEdit_4.text(), Boundary_Def + ')')
                 elif self.comboBox.currentIndex() == 18:  # Hexagonal prism
                     origin = (float(self.lineEdit.text()), float(self.lineEdit_2.text()),)
-                    print(self.lineEdit_11.text() + '= openmc.model.' + self.comboBox.currentText() + '(',
+                    print(self.lineEdit_11.text() + '= openmc.' + self.comboBox.currentText() + '(',
                               "edge_length=" + self.lineEdit_7.text() + ",", "orientation='" + self.Orientation_CB.currentText() + "',",
                               "origin=" + str(origin) + ",",
                               "corner_radius=" + self.lineEdit_4.text(), Boundary_Def + ')')
@@ -1421,14 +1444,7 @@ class ExportGeometry(QWidget):
             self.label.setText('Origin in the plane');
             self.label_2.hide()
             self.label_4.setText('Corner_radius')
-            if self.comboBox.currentIndex() == 17:      # Hexagonal prism
-                self.label_3.setText('Orientation')
-                self.Orientation_CB.addItems(['x', 'y'])
-                self.Orientation_CB.setCurrentIndex(0)
-                self.label_7.setText('Edge_length')
-                self.label_8.setEnabled(False)
-                self.lineEdit_8.setEnabled(False)
-            else:                                       # Rectangular prism
+            if self.comboBox.currentIndex() == 17:      # Rectangular prism
                 self.label_3.setText('Axis')
                 self.Orientation_CB.addItems(['x', 'y', 'z'])
                 self.Orientation_CB.setCurrentIndex(2)
@@ -1436,6 +1452,13 @@ class ExportGeometry(QWidget):
                 self.label_8.setText('Height')
                 self.label_8.setEnabled(True)
                 self.lineEdit_8.setEnabled(True)
+            elif self.comboBox.currentIndex() == 18:     # Hexagonal prism
+                self.label_3.setText('Orientation')
+                self.Orientation_CB.addItems(['x', 'y'])
+                self.Orientation_CB.setCurrentIndex(0)
+                self.label_7.setText('Edge_length')
+                self.label_8.setEnabled(False)
+                self.lineEdit_8.setEnabled(False)
             self.Orientation_CB.show()
             self.lineEdit_3.hide()
             for i in range(4):

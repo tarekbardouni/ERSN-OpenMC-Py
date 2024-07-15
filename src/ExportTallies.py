@@ -177,7 +177,7 @@ class ExportTallies(QWidget):
         self.AddNuclides_PB.clicked.connect(self.Add_Nuclides)
         self.AddScore_PB.clicked.connect(self.Add_Scores)
 
-        self.ExportData_PB.clicked.connect(self.Export_Tallies)
+        self.ExportData_PB.clicked.connect(self.Export_to_Main_Window)
         self.ClearData_PB.clicked.connect(self.clear_text)
         self.Exit_PB.clicked.connect(self.Exit)
         
@@ -1412,7 +1412,9 @@ class ExportTallies(QWidget):
         if self.Insert_Header:
             self.Find_string(self.v_1, "import openmc")
             if self.Insert_Header:
-                print('import openmc')
+                cursor = self.v_1.textCursor()
+                cursor.movePosition(QTextCursor.Start)
+                cursor.insertText('import openmc\n')
 
         self.Find_string(self.v_1, "openmc.Tallies")
         if self.Insert_Header:
@@ -1425,7 +1427,7 @@ class ExportTallies(QWidget):
             else:
                 pass
 
-    def Export_Tallies(self):
+    def Export_to_Main_Window(self):
         try:
             if self.Tallies_Tab.currentIndex() == 1 and self.tally_name_list[-1] + '.scores' not in self.plainTextEdit.toPlainText():
                 self.showDialog('Warning', 'will not create XML for Tally ID=' + self.tally_id_list[-1] + ' since it does not contain any score')
@@ -1464,7 +1466,7 @@ class ExportTallies(QWidget):
                     cursor.insertText('import openmc.lib\n')'''
 
             self.text_inserted = True
-            self.plainTextEdit.clear()
+            #self.plainTextEdit.clear()
             self.Create_New_Tally = False
         
         document = self.v_1.toPlainText()
@@ -1472,6 +1474,7 @@ class ExportTallies(QWidget):
         cursor = self.v_1.textCursor()
         self.v_1.clear()
         cursor.insertText(document)
+        self.plainTextEdit.clear()
 
     def Suppress_Line(self, item, TextEdit):
         text = TextEdit.toPlainText()

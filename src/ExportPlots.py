@@ -159,6 +159,7 @@ class ExportPlots(QWidget):
         if self.Insert_Header:
             self.Find_string(self.v_1, "plots.xml")
             if self.Insert_Header:
+                self.v_1.moveCursor(QTextCursor.End)
                 self.v_1.insertPlainText('\n############################################################################### \n')
                 self.v_1.insertPlainText('#                 Exporting to OpenMC plots.xml file                        \n')
                 self.v_1.insertPlainText('###############################################################################\n')

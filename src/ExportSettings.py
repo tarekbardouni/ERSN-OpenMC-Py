@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import sys
 import os
+import PyQt5
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -22,11 +23,11 @@ class EmittingStream(QtCore.QObject):
 
 class ExportSettings(QWidget):
     from .func import resize_ui, showDialog, Def_Source_ToolTips, Exit, Move_Commands_to_End
-    def __init__(self, v_1, Sett, Directory, Surf_list, Surf_Id_list, Cells_list, Mat_list, Vol_Calcs_list, Source_list, Source_Id, Strength_list, parent=None):
+    def __init__(self, v_1, Sett, Directory, Surf_list, Surf_Id_list, Cells_list, Mat_list, Vol_Calcs_list, 
+                            Source_list, Source_Id, Strength_list, parent=None):
         super(ExportSettings, self).__init__(parent)
-        #sys.stdout = EmittingStream(textWritten=self.normalOutputWritten)
-        #sys.stderr = EmittingStream(textWritten=self.normalOutputWritten)
         uic.loadUi("src/ui/ExportSettings.ui", self)
+        import re
         self.v_1 = v_1
         self.text_inserted = False
         self._initButtons()
@@ -69,36 +70,41 @@ class ExportSettings(QWidget):
             item.setValidator(dim_validator)
             item.clear()
             item.setEnabled(False)
+        self.Add_Tracks_PB.setEnabled(False)
         for Label in [self.label_X_R, self.label_Y_Theta, self.label_Z_phi]:
             Label.setAlignment(Qt.AlignCenter)
         self.Import_Lists_PB.hide()
+        self.Inactive_Found = False
+        self.Generations_Found = False
         self.Widget_Status()
-        import re
-        for s in self.Source_name_list:
-            id = re.sub('.*?([0-9]*)$', r'\1', s)
-            self.Source_id_list.append(id)
+        
         if self.Source_id_list:
-            self.Source_id = int(self.Source_id_list[-1]) + 1
+            ID = int(self.Source_id_list[-1]) + 1
         else:
-            self.Source_id = 1
-        self.Name_LE.setText(''.join([i for i in self.Name_LE.text() if not i.isdigit()]) + str(self.Source_id))
-
+            ID = 1
+        self.Source_ID_LE.setText(str(ID))
+        self.Name_LE.setText('source' + str(ID))
+        self.Source_id = ID
         # add new editor
         self.plainTextEdit = TextEdit()
         self.plainTextEdit.setWordWrapMode(QTextOption.NoWrap)
         self.numbers = NumberBar(self.plainTextEdit)
         layoutH = QHBoxLayout()
-        #layoutH.setSpacing(1.5)
         layoutH.addWidget(self.numbers)
         layoutH.addWidget(self.plainTextEdit)
         self.EditorLayout.addLayout(layoutH, 0, 0)
+        self.Find_Run_Mode()
+        #self.Run_Mode_CB.setCurrentIndex(1)
         
         sys.stdout = EmittingStream(textWritten=self.normalOutputWritten)
+        #sys.stderr = EmittingStream(textWritten=self.normalOutputWritten)
         # to show window at the middle of the screen and resize it to the screen size
         self.resize_ui()
 
+
     def _initButtons(self):
         self.Run_Mode_CB.currentIndexChanged.connect(self.Widget_Status)
+        #self.Run_Mode_CB.currentIndexChanged.connect(self.Find_Run_Mode)
         self.Photon_CB.stateChanged.connect(self.Widget_Status_1)
         self.Create_Surface_SRC_CB.stateChanged.connect(self.Widget_Status_2)
         self.Volume_Calc_CB.currentIndexChanged.connect(self.Widget_Status_3)
@@ -126,6 +132,7 @@ class ExportSettings(QWidget):
         self.Import_Lists_PB.clicked.connect(lambda: self.Import_x_y_Lists(self.Energy_LE, self.Proba_LE))
         self.Add_Run_Mode_PB.clicked.connect(self.Run_Mode)
         self.Add_Vol_Calc_PB.clicked.connect(self.Volume_Calculation)
+        self.Add_Tracks_PB.clicked.connect(self.Tracks_Settings)
         self.Add_Entropy_PB.clicked.connect(self.Entropy_Settings)
         self.Add_Source_PB.clicked.connect(self.Add_Sources)
         self.Cells_CB.currentIndexChanged.connect(self.Add_Cells)
@@ -170,15 +177,17 @@ class ExportSettings(QWidget):
     def Find_string(self, text_window, string_to_find):
         self.list_of_items = []
         self.current_line = ''
-        self.line_number = 0
         self.Insert_Header = True
         document = text_window.toPlainText()
-        for line in document.split('\n'):
-            self.line_number += 1
+        lines = [item for item in document.split('\n') if item and item != '#']
+        #self.showDialog('', str(lines))
+        for line in lines:
             if string_to_find in line:
+                #self.showDialog('', line[0] + str(line))
                 self.current_line = line
                 self.list_of_items.append(line[0:len(line) -1])
                 self.Insert_Header = False
+                break
 
     def Add_Cells(self):
         if self.Run_Mode_CB.currentIndex() == 3:
@@ -194,6 +203,10 @@ class ExportSettings(QWidget):
         self.Mat_CB.setCurrentIndex(0)
 
     def Widget_Status(self):                            # If Run Mode changed
+        if not self.Inactive_Found:
+            self.inactives = 10
+        if not self.Generations_Found:
+            self.generations = 1
         self.LineEdit_4.setText('')
         self.list_of_surfaces_ids.clear()
         if self.Run_Mode_CB.currentIndex() in [0, 1, 2]:
@@ -212,11 +225,12 @@ class ExportSettings(QWidget):
                 self.Label_2.setText('Inactive Batches')
                 self.Label_5.setText('Generations')
                 self.Label_37.setText('Particles')
-                self.LineEdit_1.setText('110')
-                self.LineEdit_2.setText('10')
-                self.LineEdit_5.setText('10')
+                #self.Find_Run_Mode()
+                #self.LineEdit_1.setText('110')
+                self.LineEdit_2.setText(str(self.inactives))
+                self.LineEdit_5.setText(str(self.generations))
                 self.Photon_Cut.setText('1000.0')
-                self.Particles_Number.setText('10000')
+                #self.Particles_Number.setText('10000')
         if self.Run_Mode_CB.currentIndex() in [1, 2]:
             self.Add_Run_Mode_PB.setEnabled(True)
             self.Volume_Calc_CB.hide()
@@ -251,7 +265,7 @@ class ExportSettings(QWidget):
             self.Label_5.show()
             self.Volume_Calc_CB.hide()
             self.Label_1.setText('Batches')
-            self.LineEdit_1.setText('110')
+            #self.LineEdit_1.setText('110')
             self.LineEdit_2.hide()
             self.Label_2.hide()
         if self.Run_Mode_CB.currentIndex() == 3:
@@ -363,40 +377,49 @@ class ExportSettings(QWidget):
                         self.Mu_Dist_CB, self.Phi_Dist_CB, self.label_20, self.label_21]:
                 item.setEnabled(True)
 
-    def Def_Settings(self, comboBox_Index, msg ):
-        if comboBox_Index == 0:
-            self.showDialog('Warning', msg)
-            return
-        else:
-            self.Find_string(self.v_1, "openmc.Settings")
+    def Def_Settings(self):
+        self.Find_string(self.v_1, "openmc.Settings")
+        if self.Insert_Header:
+            self.Find_string(self.plainTextEdit, "openmc.Settings")
             if self.Insert_Header:
-                self.Find_string(self.plainTextEdit, "openmc.Settings")
-                if self.Insert_Header:
-                    print('\n############################################################################### \n'
-                             '#                 Exporting to OpenMC settings.xml file \n'
-                             '###############################################################################')
-                    print(self.Sett + " = openmc.Settings()\n")
-                else:
-                    pass
+                print('\n############################################################################### \n'
+                            '#                 Exporting to OpenMC settings.xml file \n'
+                            '###############################################################################')
+                print(self.Sett + " = openmc.Settings()\n")
+            else:
+                pass
 
     def Import_OpenMC(self):
-        self.Find_string(self.plainTextEdit, "import openmc")
+        """self.Find_string(self.plainTextEdit, "import openmc")
         if self.Insert_Header:
             self.Find_string(self.v_1, "import openmc")
             if self.Insert_Header:
-                print('import openmc')
+                print('import openmc')"""
+        self.Find_string(self.v_1, "import openmc")
+        if self.Insert_Header:
+            cursor = self.v_1.textCursor()
+            cursor.setPosition(0)
+            self.v_1.setTextCursor(cursor)
+            self.v_1.insertPlainText('import openmc\n')
 
     def Run_Mode(self):
         self.Import_OpenMC()
         # /////////////////////////////   Run Mode   /////////////////////////////
-        msg = 'Select Run Mode first ! '
-        self.Def_Settings(self.Run_Mode_CB.currentIndex(), msg)
+        if self.Run_Mode_CB.currentIndex() == 0:
+            self.showDialog('Warning', 'Select Run Mode first !')
+            return
+        
+        self.Def_Settings()
         string_to_find = self.Sett + ".run_mode"
         self.Find_string(self.v_1, string_to_find)
+
         if not self.Insert_Header:
-            msg = 'Run Mode already specified in the project !'
-            self.showDialog('Warning', msg)
-            self.Run_Mode_Extra(self.v_1)
+            qm = QMessageBox
+            ret = qm.question(self, 'Warning', 'Run Mode already specified in the project !\nDo you really want to edit settings?', qm.Yes | qm.No)
+            if ret == qm.No:
+                self.Run_Mode_Extra(self.v_1)
+            elif ret == qm.Yes:
+                self.Insert_Settings()
         else:
             self.Find_string(self.plainTextEdit, string_to_find)
             if not self.Insert_Header:
@@ -404,37 +427,129 @@ class ExportSettings(QWidget):
                 self.showDialog('Warning', msg)
                 self.Run_Mode_Extra(self.plainTextEdit)
             else:
-                # Eigenvalue problem
-                if self.Run_Mode_CB.currentIndex() == 1:
-                    print(self.Sett + ".run_mode = 'eigenvalue'")
-                    print(self.Sett + ".particles = " + str(self.Particles_Number.text()))
-                    print(self.Sett + ".batches = " + str(self.LineEdit_1.text()))
-                    print(self.Sett + ".inactive = " + self.LineEdit_2.text())
-                    print(self.Sett + ".generations = " + str(self.LineEdit_5.text()) + "\n")
-                # Fixed source problem
-                elif self.Run_Mode_CB.currentIndex() == 2:
-                    print(self.Sett + ".run_mode = 'fixed source'")
-                    print(self.Sett + ".particles = " + str(self.Particles_Number.text()))
-                    print(self.Sett + ".batches = " + str(self.LineEdit_1.text()))
-                    print(self.Sett + ".generations = " + str(self.LineEdit_5.text()) + "\n")
-                if self.Run_Mode_CB.currentIndex() in [1, 2]:
-                    if self.Photon_CB.isChecked():
-                        print(self.Sett + ".photon_transport = True")
-                        print(self.Sett + ".cutoff = {'energy_photon' : " + self.Photon_Cut.text() + " }")
-                        if self.ttb_RB.isChecked():
-                            print(self.Sett + ".electron_treatment = 'ttb'")
-                        elif self.led_RB.isChecked():
-                            print(self.Sett + ".electron_treatment = 'led'")
-                    if self.Create_Separate_SRC_CB.isChecked():
-                        print(self.Sett + ".sourcepoint = {‘separate’: True}")
-                    if self.Create_Surface_SRC_CB.isChecked():
-                        self.LE_to_List1(self.LineEdit_4)
-                        Surfaces_List = str(self.List)
-                        print(self.Sett + ".surf_source_write = { 'surfaces_ids': " + Surfaces_List + ", 'max_particles': " + str(self.Particles_Max_LE.text()) +" }")
+                self.Insert_Settings()
+
         self.Run_Mode_CB.setCurrentIndex(0)
         self.Photon_CB.setChecked(False)
         self.Create_Separate_SRC_CB.setChecked(False)
         self.Create_Surface_SRC_CB.setChecked(False)
+        self.Set_Tracks_ComboBoxes()
+
+    def Set_Tracks_ComboBoxes(self):
+        # Set ComboBoxes for tracks recording
+        self.Batch_List = []; self.Generation_List = []; self.Particle_List = []
+        for i in reversed(range(self.Tracks_Grid_Lay.count())): 
+            self.Tracks_Grid_Lay.itemAt(i).widget().setParent(None)
+        batches = int(self.LineEdit_1.text())
+        generations = int(self.LineEdit_5.text())
+        particles = int(self.Particles_Number.text())
+        for batch in range(1, batches + 1):
+            self.Batch_List.append(str(batch))
+        for generation in range(1, generations + 1):
+            self.Generation_List.append(str(generation))
+        for particle in range(1, particles + 1):
+            self.Particle_List.append(str(particle))
+        self.Batch_Bins_comboBox = CheckableComboBox()
+        self.Batch_Bins_comboBox.addItem('Check Batches')
+        self.Batch_Bins_comboBox.addItems(self.Batch_List)
+        self.Gen_Bins_comboBox = CheckableComboBox()
+        self.Gen_Bins_comboBox.addItem('Check Generations')
+        self.Gen_Bins_comboBox.addItems(self.Generation_List)
+        self.Particle_Bins_comboBox = CheckableComboBox()
+        self.Particle_Bins_comboBox.addItem('Check Particles')
+        self.Particle_Bins_comboBox.addItems(self.Particle_List)
+        self.Tracks_Grid_Lay.addWidget(self.Batch_Bins_comboBox)
+        self.Tracks_Grid_Lay.addWidget(self.Gen_Bins_comboBox)
+        self.Tracks_Grid_Lay.addWidget(self.Particle_Bins_comboBox)
+        self.Batch_Bins_comboBox.model().item(0).setEnabled(False)
+        self.Gen_Bins_comboBox.model().item(0).setEnabled(False)
+        self.Particle_Bins_comboBox.model().item(0).setEnabled(False)        
+
+    def Insert_Settings(self):
+        # Eigenvalue problem
+        if self.Run_Mode_CB.currentIndex() == 1:
+            print(self.Sett + ".run_mode = 'eigenvalue'")
+            print(self.Sett + ".particles = " + str(self.Particles_Number.text()))
+            print(self.Sett + ".batches = " + str(self.LineEdit_1.text()))
+            print(self.Sett + ".inactive = " + self.LineEdit_2.text())
+            print(self.Sett + ".generations_per_batch = " + str(self.LineEdit_5.text()) + "\n")
+        # Fixed source problem
+        elif self.Run_Mode_CB.currentIndex() == 2:
+            print(self.Sett + ".run_mode = 'fixed source'")
+            print(self.Sett + ".particles = " + str(self.Particles_Number.text()))
+            print(self.Sett + ".batches = " + str(self.LineEdit_1.text()) + '\n')
+            print(self.Sett + ".generations_per_batch = " + str(self.LineEdit_5.text()) + "\n")
+        if self.Run_Mode_CB.currentIndex() in [1, 2]:
+            if self.Photon_CB.isChecked():
+                print(self.Sett + ".photon_transport = True")
+                print(self.Sett + ".cutoff = {'energy_photon' : " + self.Photon_Cut.text() + " }")
+                if self.ttb_RB.isChecked():
+                    print(self.Sett + ".electron_treatment = 'ttb'")
+                elif self.led_RB.isChecked():
+                    print(self.Sett + ".electron_treatment = 'led'")
+            if self.Create_Separate_SRC_CB.isChecked():
+                print(self.Sett + ".sourcepoint = {‘separate’: True}")
+            if self.Create_Surface_SRC_CB.isChecked():
+                self.LE_to_List1(self.LineEdit_4)
+                Surfaces_List = str(self.List)
+                print(self.Sett + ".surf_source_write = { 'surfaces_ids': " + Surfaces_List + ", 'max_particles': " + str(self.Particles_Max_LE.text()) +" }")
+        self.Add_Tracks_PB.setEnabled(True)
+
+    def Find_Run_Mode(self):
+        cursor = self.plainTextEdit.textCursor()
+        document = self.v_1.toPlainText()
+        if 'openmc.Settings' not in document:
+            return
+        lines = [line for line in document.split('\n') if line != '' and line[0] != '#']
+        if '.run_mode' not in document:
+            self.Run_Mode_CB.setCurrentIndex(1)   # by default 'eigenvalue'
+        
+        for line in lines :
+            if self.Sett + '.run_mode' in line.split('=')[0].rstrip():
+                run_mode = line.split('=')[1].strip()
+                if run_mode == 'eigenvalue':
+                    self.Run_Mode_CB.setCurrentIndex(1)
+                elif run_mode == 'fixed source':
+                    self.Run_Mode_CB.setCurrentIndex(2)
+                elif run_mode == 'Volume':
+                    self.Run_Mode_CB.setCurrentIndex(3)                
+            elif self.Sett + '.particles' in line.replace(" ", "").split('=')[0]:
+                self.particles = line.split('=')[1].strip()
+                self.Particles_Number.setText(str(self.particles))
+            elif self.Sett + '.inactive' in line.replace(" ", "").split('=')[0]: 
+                self.Inactive_Found = True
+                self.inactives = line.split('=')[1].strip()
+                self.LineEdit_2.setText(str(self.inactives))
+            elif self.Sett + '.batches' in line.replace(" ", "").split('=')[0]:                
+                self.batches = line.split('=')[1].strip()
+                self.LineEdit_1.setText(str(self.batches))
+            elif self.Sett + '.generations_per_batch' in line.replace(" ", "").split('=')[0]: 
+                self.Generations_Found = True
+                self.generations = line.split('=')[1].strip()
+                self.LineEdit_5.setText(str(self.generations))
+            elif self.Sett + '.photon_transport' in line.replace(" ", "").split('=')[0]:
+                photon_transport = line.split('=')[1].strip()
+                if 'True' in line: 
+                    self.Photon_CB.setChecked(True)
+                else:
+                    self.Photon_CB.setChecked(False)
+                    self.ttb_RB.setEnabled(False)
+                    self.led_RB.setEnabled(False)
+            elif self.Sett + '.cutoff' in line.replace(" ", "").split('=')[0]:
+                photon_cutoff = line.split(':')[1].replace('}', '').strip()
+                self.Photon_Cut.setText(str(photon_cutoff))
+            elif self.Sett + '.electron_treatment' in line.replace(" ", "").split('=')[0]:
+                electron_treatment = line.split('=')[1].strip()
+            else:
+                electron_treatment = 'ttb'
+            if 'ttb' in electron_treatment: 
+                self.ttb_RB.setChecked(True)
+            else:
+                self.led_RB.setChecked(True)
+
+        
+        self.Set_Tracks_ComboBoxes()
+        self.Add_Tracks_PB.setEnabled(True)
 
     def LE_to_List(self, LineEdit1, LineEdit2):
         text1 = LineEdit1.text()
@@ -493,13 +608,29 @@ class ExportSettings(QWidget):
                         print(self.Sett + ".electron_treatment = 'ttb'")
                     elif self.led_RB.isChecked():
                         print(self.Sett + ".electron_treatment = 'led'")
+        else:
+            Doc = Document.toPlainText()
+            lines = [line for line in Doc.split('\n') if line != '' and line[0] != '#']
+            for line in lines:
+                if ".photon_transport" in line:
+                    Doc = Doc.replace(line, '')
+                elif ".cutoff" in line:
+                    Doc = Doc.replace(line, '')
+                elif ".electron_treatment" in line:
+                    Doc = Doc.replace(line, '')
+            Document.clear()
+            cursor = Document.textCursor()
+            cursor.insertText(Doc)
 
     def Volume_Calculation(self):
         self.Import_OpenMC()
         # Volume calculation
+        if self.Volume_Calc_CB.currentIndex() == 0:
+            self.showDialog('Warning', 'Select Volume Calculation option first !')
+            return
+        
         self.Insert_Header = True
-        msg = ' Select Volume Calculation option first !'
-        self.Def_Settings(self.Volume_Calc_CB.currentIndex(), msg)
+        self.Def_Settings(self.Volume_Calc_CB.currentIndex())
         if self.Volume_Calc_CB.currentIndex() != 0:
             self.Find_string(self.v_1, 'eigenvalue')
             if not self.Insert_Header:
@@ -607,6 +738,34 @@ class ExportSettings(QWidget):
         elif ret == qm.No:
             pass
 
+    def Tracks_Settings(self):
+        # /////////////////////////   Tracks Setting   /////////////////////////
+        self.Tracks_List = []
+        try:
+            if self.Batch_Bins_comboBox.checkedItems():
+                self.Checked_Batches = self.Batch_Bins_comboBox.checkedItems()
+                if self.Gen_Bins_comboBox.checkedItems():
+                    self.Checked_Generations = self.Gen_Bins_comboBox.checkedItems()
+                    if self.Particle_Bins_comboBox.checkedItems():
+                        self.Checked_Particles = self.Particle_Bins_comboBox.checkedItems()
+                    else:
+                        self.showDialog('Warning', 'Check one particle at least!')
+                        return  
+                else:
+                    self.showDialog('Warning', 'Check one generation at least!')
+                    return        
+            else:
+                self.showDialog('Warning', 'Check one batch at least!')
+                return
+            
+            for Batch in self.Checked_Batches:
+                for Generation in self.Checked_Generations:
+                    for Particle in self.Checked_Particles:
+                        self.Tracks_List.append((Batch, Generation, Particle,))
+            print("\n" + self.Sett + ".track = " + str(self.Tracks_List))
+        except:
+            self.showDialog('Warning', 'No batch is defined for track recording!')
+
     def Entropy_Settings(self):
         # /////////////////////////   Entropy Setting   /////////////////////////
         if self.Entropy_type_CB.currentIndex() == 1:
@@ -663,10 +822,10 @@ class ExportSettings(QWidget):
             self.Num_of_Srcs_Label.setEnabled(True)
             self.Number_of_Sources.setEnabled(True)
 
-        self.Name_LE.setText(''.join([i for i in self.Name_LE.text() if not i.isdigit()]) + str(self.Source_id))
-        self.spatial = 'spatial' + str(self.Source_id)
-        self.angle = 'angle' + str(self.Source_id)
-        self.energy = 'energy' + str(self.Source_id)
+        #self.Name_LE.setText(''.join([i for i in self.Name_LE.text() if not i.isdigit()]) + str(self.Source_id + 1))
+        self.spatial = 'spatial' + self.Source_ID_LE.text()
+        self.angle = 'angle' + self.Source_ID_LE.text()
+        self.energy = 'energy' + self.Source_ID_LE.text()
         if self.Source_Geom_CB.currentIndex() == 0:
             self.Particle_CB.setCurrentIndex(0)
             self.Add_Source_PB.setEnabled(False)
@@ -1295,12 +1454,11 @@ class ExportSettings(QWidget):
                 print(str(self.Name_LE.text()) + ' = openmc.Source(' + self.spatial + ', ' + angle_str + energy_str + 'strength=' + str(
                         self.Strength_LE.text()) + ', particle=' + self.Particle + ')\n')
                 self.Source_name_list.append(self.Name_LE.text())
-                self.Source_id_list.append(self.Source_id)
+                self.Source_id_list.append(int(self.Source_ID_LE.text()))
             else:
                 self.showDialog('Warning', 'Source name must not be repeated!')
                 return
             document = self.v_1.toPlainText()
-            lines = document.split('\n')
             strg = self.Sett + '.source = ' + str(self.Source_name_list).replace("'", "")
             print(strg)
             self.v_1.clear()
@@ -1315,6 +1473,8 @@ class ExportSettings(QWidget):
         else:
             pass
         self.Source_id += 1
+        self.Source_ID_LE.setText(str(self.Source_id))
+        self.Name_LE.setText(''.join([i for i in self.Source_name_list[-1] if not i.isdigit()]) + self.Source_ID_LE.text())
         self.Energy_LE.clear()
         self.Proba_LE.clear()
         self.Mu_Min_LE.clear()
@@ -1363,17 +1523,19 @@ class ExportSettings(QWidget):
         else:
             document = self.v_1.toPlainText()
             if self.tabWidget.currentIndex() == 0:
-                print ('\n' + string_to_find)
-                document = document.replace(string_to_find, self.plainTextEdit.toPlainText())
-            else:
-                lines = document.split('\n')
+                print ('\n' + string_to_find)     
+                document = self.Replace_Doc(self.plainTextEdit.toPlainText(), document)
+                document1 = document.replace(string_to_find, self.plainTextEdit.toPlainText())
+            elif self.tabWidget.currentIndex() == 1:
+                lines = [line for line in document.split('\n') if line != '' and line[0] != '#']
                 for line in lines:
-                    if self.Sett + ".source" in line: # or line == '':
-                        lines.remove(line)
-                        document = document.replace(line, self.plainTextEdit.toPlainText())
-            
+                    if self.Sett + ".source" in line and self.Sett + ".source.Source" not in line: 
+                        document1 = document.replace(str(line), self.plainTextEdit.toPlainText())
+                        break
+                    else:
+                        document1 = document.replace(string_to_find, self.plainTextEdit.toPlainText() + '\n' + string_to_find + '\n')
             self.v_1.clear()
-            cursor.insertText(document)
+            cursor.insertText(document1)
         
         document = self.v_1.toPlainText()
         document = self.Move_Commands_to_End(document)
@@ -1383,6 +1545,21 @@ class ExportSettings(QWidget):
         self.text_inserted = True
         self.plainTextEdit.clear()
 
+    def Replace_Doc(self, doc1, doc2):
+        for line in doc1.split('\n'):
+            if '=' in line: 
+                key = line.split('=')[0]
+                #Value = line.split('=')[1]
+                if key in doc2:
+                    import re
+                    text_to_replace = key + re.search('%s(.*)%s' % (key, '\n'), doc2).group(1)
+                    
+                    #if ';' in text_to_replace:
+                        #text_to_replace = key + re.search('%s(.*)%s' % (key, ';'), doc2).group(1)
+                        
+                    doc2 = doc2.replace(text_to_replace, '')
+        return doc2
+            
     def clear_text(self):
         self.plainTextEdit.clear()
 
@@ -1390,3 +1567,67 @@ class ExportSettings(QWidget):
         self.highlighter = Highlighter(self.plainTextEdit.document())
         cursor = self.plainTextEdit.textCursor()
         cursor.insertText(text)
+
+
+class CheckableComboBox(QtWidgets.QComboBox):
+    def __init__(self, parent = None):
+        super(CheckableComboBox, self).__init__(parent)
+        self._changed = False
+        self.setView(QtWidgets.QListView(self))
+        self.view().pressed.connect(self.handleItemPressed)
+        self.setModel(PyQt5.QtGui.QStandardItemModel(self))
+
+    def handleItemPressed(self, index):
+        item = self.model().itemFromIndex(index)
+        if item.checkState() == QtCore.Qt.Checked:
+            item.setCheckState(QtCore.Qt.Unchecked)
+            self.undo_action(index.row())
+        else:
+            item.setCheckState(QtCore.Qt.Checked)
+            self.do_action(index.row())
+        self._changed = True
+
+    def do_action(self, index):
+        if self.model().item(index).text() == 'All bins' and self.model().item(1, 0).checkState() == QtCore.Qt.Checked:
+            for i in range(2, self.count()):
+                self.model().item(i, 0).setCheckState(QtCore.Qt.Checked)
+
+    def undo_action(self, index):
+        if self.model().item(index).text() == 'All bins' and self.model().item(1, 0).checkState() != QtCore.Qt.Checked:
+            for i in range(1, self.count()):    #  2
+                self.model().item(i, 0).setCheckState(QtCore.Qt.Unchecked)
+        else:
+            try:    
+                self.model().item(1, 0).setCheckState(QtCore.Qt.Unchecked)
+            except:
+                pass
+
+    def checkedItems(self):
+        checkedItems = []
+        for index in range(self.count()):
+            item = self.model().item(index)
+            if item.checkState() == QtCore.Qt.Checked:
+                checkedItems.append(index)
+        return checkedItems
+
+    def hidePopup(self):
+        if not self._changed:
+            super().hidePopup()
+        self._changed = False
+
+    def itemChecked(self, index):
+        item = self.model().item(index, self.modelColumn())
+        return item.checkState() == Qt.Checked
+
+    def setItemChecked(self, index, checked=False):
+        item = self.model().item(index, self.modelColumn())  # QStandardItem object
+        if checked:
+            item.setCheckState(Qt.Checked)
+        else:
+            item.setCheckState(Qt.Unchecked)
+
+    def setItemDisabled(self, index):
+        item = self.model().item(index, self.modelColumn())  # QStandardItem object
+        if item:
+            item.setCheckState(Qt.Unchecked)
+            item.setEnabled(False)
