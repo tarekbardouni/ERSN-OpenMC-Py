@@ -8,7 +8,7 @@ The new version of ERSN-OpenMC-Py 1.3 allows to post-process tallies created by 
 The version of ERSN-OpenMC-Py 1.3 allows to normalize tallies to cell volume, core power, unit lethargy and bin width.
 Up to 5 filters are combined with MeshFilter.
 
-Prof. Tarek El Bardouni and Doctor Mohamed Lahdour, University Abdelmalek Essaadi, Radiatios and Nuclear System Team, Tetouan, Morocco
+Prof. Tarek El Bardouni and Doctor Mohamed Lahdour, University Abdelmalek Essaadi, Radiations and Nuclear Systems Team, Tetouan, Morocco
 Emails: telbardouni@uae.ac.ma    and mohamedlahdour@gmail.com
 
 A/ First make an update of your system and install the following packages if they don't exist:
