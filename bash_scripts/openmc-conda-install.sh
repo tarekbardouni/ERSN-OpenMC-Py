@@ -278,17 +278,18 @@ if [[ $INSTALL_OPENMC == yes ]]; then
             unzip -o $ARCHIVE
             # cd "${OPENMC_RELEASE/v/openmc-}"
             cd $OPENMC_DIR
-            if [[ $OPENMC_RELEASE == *"v0.12"* ]]; then
-                # git submodules are needed
-                cd vendor
-                rm -rf fmt gsl-lite pugixml xtensor xtl
-                git clone https://github.com/fmtlib/fmt.git
-                git clone https://github.com/martinmoene/gsl-lite.git
-                git clone https://github.com/zeux/pugixml.git
-                git clone https://github.com/xtensor-stack/xtensor.git
-                git clone https://github.com/xtensor-stack/xtl.git
-                cd ..
-            fi
+            #if [[ $OPENMC_RELEASE == *"v0.14"* ]]; then
+            # git submodules are needed
+            cd vendor
+            rm -rf fmt gsl-lite pugixml xtensor xtl
+            git clone https://github.com/fmtlib/fmt.git
+            git clone https://github.com/martinmoene/gsl-lite.git
+            git clone https://github.com/zeux/pugixml.git
+            git clone https://github.com/xtensor-stack/xtensor.git
+            git clone https://github.com/xtensor-stack/xtl.git
+            git clone https://github.com/catchorg/Catch2.git
+            cd ..
+            #fi
         fi
     else
         cd $OPENMC_DIR

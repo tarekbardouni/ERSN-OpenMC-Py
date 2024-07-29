@@ -57,6 +57,8 @@ class InstallOpenMC(QtWidgets.QMainWindow):
         self.tab_install.currentChanged.connect(self.set_Options_to_default)
         self.tab_install.setCurrentIndex(0)
         self.set_Options_to_default()
+        self.RB_Python_Ver = [self.rB_py37, self.rB_py39, self.rB_py311, self.rB_py312]
+        self.RB_Python_Ver_PR = [self.rB_py37_prerequis, self.rB_py39_prerequis, self.rB_py311_prerequis, self.rB_py312_prerequis]
         self.set_prerequis_Options_to_default()
 
     def dataReady(self):
@@ -132,6 +134,7 @@ class InstallOpenMC(QtWidgets.QMainWindow):
         self.rB_py37.setChecked(False)
         self.rB_py39.setChecked(False)
         self.rB_py311.setChecked(False)
+        self.rB_py312.setChecked(False)
         self.buttonGroup.setExclusive(True)
 
     def define_pB(self):
@@ -357,12 +360,15 @@ class InstallOpenMC(QtWidgets.QMainWindow):
             # set radioButtons to default
             self.rB_yes_update_env_prerequis.setChecked(True)
             ENV_NAME_PREFIX = 'openmc-py'
-            self.lineEdit_Env_Name_prerequis.setText(ENV_NAME_PREFIX)
+
             self.rB_py37_prerequis.toggled.connect(lambda: self.PyVer_btnstate(self.rB_py37_prerequis, ENV_NAME_PREFIX, self.lineEdit_Env_Name_prerequis))
             self.rB_py39_prerequis.toggled.connect(lambda: self.PyVer_btnstate(self.rB_py39_prerequis, ENV_NAME_PREFIX, self.lineEdit_Env_Name_prerequis))
             self.rB_py311_prerequis.toggled.connect(lambda: self.PyVer_btnstate(self.rB_py311_prerequis, ENV_NAME_PREFIX, self.lineEdit_Env_Name_prerequis))
+            self.rB_py312_prerequis.toggled.connect(lambda: self.PyVer_btnstate(self.rB_py312_prerequis, ENV_NAME_PREFIX, self.lineEdit_Env_Name_prerequis))
+            # get python version and suggest environment name
+            self.detect_python_version(self.RB_Python_Ver_PR)
+            self.lineEdit_Env_Name_prerequis.setText(ENV_NAME_PREFIX  + PYTHON_VERSION)            
             self.rB_yes_all_prerequis.setChecked(True)
-            self.rB_py37_prerequis.setChecked(True)
             self.rB_no_MPI_prerequis.setChecked(True)
             self.rB_no_compiler.setChecked(True)
             self.rB_no_cmake.setChecked(True)
@@ -392,11 +398,13 @@ class InstallOpenMC(QtWidgets.QMainWindow):
             self.uncheck_rB()
             # Env. Name
             ENV_NAME_PREFIX = 'openmc-py'
-            self.rB_py37.setChecked(True)
-            self.lineEdit_Env_Name.setText(ENV_NAME_PREFIX + PYTHON_VERSION)
             self.rB_py37.toggled.connect(lambda: self.PyVer_btnstate(self.rB_py37, ENV_NAME_PREFIX, self.lineEdit_Env_Name))
             self.rB_py39.toggled.connect(lambda: self.PyVer_btnstate(self.rB_py39, ENV_NAME_PREFIX, self.lineEdit_Env_Name))
             self.rB_py311.toggled.connect(lambda: self.PyVer_btnstate(self.rB_py311, ENV_NAME_PREFIX, self.lineEdit_Env_Name))
+            self.rB_py312.toggled.connect(lambda: self.PyVer_btnstate(self.rB_py312, ENV_NAME_PREFIX, self.lineEdit_Env_Name))
+            # get python version and suggest environment name
+            self.detect_python_version(self.RB_Python_Ver)
+            self.lineEdit_Env_Name.setText(ENV_NAME_PREFIX + PYTHON_VERSION)            
             # Working Directory and Install Prefix
             self.WORK_DIR.setText(QDir.homePath() + "/Py-OpenMC-" + str(datetime.date.today().year))
             self.INSTALL_PREFIX_QLnE.setText(self.WORK_DIR.text() + "/opt/openmc/"+datetime.date.today().strftime("%m-%Y"))  # Where to install (if INSTALL_IN_CONDA and INSTALL_EDITABLE are disabled)
@@ -405,6 +413,13 @@ class InstallOpenMC(QtWidgets.QMainWindow):
         elif tab_index == 3:
             self.WORKDIR_XS.setText(QDir.homePath() + "/Py-OpenMC-" + str(datetime.date.today().year))
             self.Env_Name_XS.setText("openmc-py3.7")
+
+    def detect_python_version(self, RBs):
+        self.python_version = str(sys.version_info[0]) + '.' + str(sys.version_info[1]) 
+        for RB in RBs:
+            if RB.text() == self.python_version:
+                RB.setChecked(True)
+                break
 
     def enable_pB(self):
         self.pB_Refresh.setEnabled(True)
@@ -520,7 +535,7 @@ class InstallOpenMC(QtWidgets.QMainWindow):
         INSTALL_MINICONDA = 'no'
         UPDATE_CONDA = 'no'
         INSTALL_OPENMC = 'no'
-        self.Test_If_rB_Checked(self.Python_Version_gB_prerequis, self.rB_py37_prerequis, self.rB_py39_prerequis, self.rB_py311_prerequis)
+        self.Test_If_rB_Checked(self.Python_Version_gB_prerequis, self.rB_py37_prerequis, self.rB_py39_prerequis, self.rB_py311_prerequis, self.rB_py312_prerequis)
         ENV_NAME = self.lineEdit_Env_Name_prerequis.text()
         if self.rB_yes_update_env_prerequis.isChecked():
             UPDATE_ENV = 'yes'
@@ -673,7 +688,7 @@ class InstallOpenMC(QtWidgets.QMainWindow):
         global ENV_NAME, UPDATE_ENV, INSTALL_IN_CONDA, INSTALL_PREREQUISITES, INSTALL_OPENMC,\
                INSTALL_EDITABLE, WITH_MPI, DELETE_SOURCES, WORK_DIR, INSTALL_PREFIX, OPENMC_RELEASE
         INSTALL_OPENMC = 'yes'
-        self.Test_If_rB_Checked(self.Python_Version_gB, self.rB_py37, self.rB_py39, self.rB_py311)
+        self.Test_If_rB_Checked(self.Python_Version_gB, self.rB_py37, self.rB_py39, self.rB_py311, self.rB_py312)
         ENV_NAME = self.lineEdit_Env_Name.text()
         if self.rB_yes_update_env.isChecked():
             UPDATE_ENV = 'yes'
@@ -712,9 +727,9 @@ class InstallOpenMC(QtWidgets.QMainWindow):
         print("\n".join(line.ljust(rA_width) for line in lines))
         print('#' * int(rA_width / 2.09))
 
-    def Test_If_rB_Checked(self, gB, rB1, rB2, rB3):
+    def Test_If_rB_Checked(self, gB, rB1, rB2, rB3, rB4):
         global rc
-        if not rB1.isChecked() and not rB2.isChecked() and not rB3.isChecked():
+        if not rB1.isChecked() and not rB2.isChecked() and not rB3.isChecked() and not rB4.isChecked():
             msg = 'Choose   ' + str(gB.title()) + '  !'
             self.showDialog('Warning', msg)
             rc = 1

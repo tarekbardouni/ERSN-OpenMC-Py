@@ -708,174 +708,9 @@
                 </layout>
                </item>
                <item row="1" column="0">
-                <layout class="QGridLayout" name="gridLayout">
-                 <item row="0" column="2" colspan="2">
-                  <layout class="QGridLayout" name="gridLayout_29">
-                   <item row="0" column="0">
-                    <widget class="QLabel" name="label">
-                     <property name="text">
-                      <string>A</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="0" column="1">
-                    <widget class="QLabel" name="label_2">
-                     <property name="text">
-                      <string>B</string>
-                     </property>
-                    </widget>
-                   </item>
-                  </layout>
-                 </item>
-                 <item row="0" column="4">
-                  <widget class="QLabel" name="label_3">
-                   <property name="text">
-                    <string>C</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="0" column="5">
-                  <widget class="QLabel" name="label_4">
-                   <property name="text">
-                    <string>D</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="1" column="0" colspan="2">
-                  <widget class="QComboBox" name="comboBox">
-                   <property name="maximumSize">
-                    <size>
-                     <width>16777215</width>
-                     <height>23</height>
-                    </size>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="1" column="2">
-                  <widget class="QLineEdit" name="lineEdit">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="maximumSize">
-                    <size>
-                     <width>16777215</width>
-                     <height>23</height>
-                    </size>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="1" column="3">
-                  <widget class="QLineEdit" name="lineEdit_2">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="maximumSize">
-                    <size>
-                     <width>16777215</width>
-                     <height>23</height>
-                    </size>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="1" column="4">
-                  <layout class="QVBoxLayout" name="verticalLayout_4">
-                   <item>
-                    <widget class="QComboBox" name="Orientation_CB"/>
-                   </item>
-                   <item>
-                    <widget class="QLineEdit" name="lineEdit_3">
-                     <property name="sizePolicy">
-                      <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
-                       <horstretch>0</horstretch>
-                       <verstretch>0</verstretch>
-                      </sizepolicy>
-                     </property>
-                    </widget>
-                   </item>
-                  </layout>
-                 </item>
-                 <item row="1" column="5">
-                  <widget class="QLineEdit" name="lineEdit_4">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="maximumSize">
-                    <size>
-                     <width>16777215</width>
-                     <height>23</height>
-                    </size>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="2" column="0">
-                  <widget class="QLabel" name="label_5">
-                   <property name="text">
-                    <string>E</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="2" column="1">
-                  <widget class="QLabel" name="label_6">
-                   <property name="text">
-                    <string>F</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="2" column="2">
-                  <widget class="QLabel" name="label_7">
-                   <property name="text">
-                    <string>G</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="2" column="3">
-                  <widget class="QLabel" name="label_8">
-                   <property name="text">
-                    <string>H</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="2" column="4">
-                  <widget class="QLabel" name="label_9">
-                   <property name="text">
-                    <string>J</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="2" column="5">
-                  <widget class="QLabel" name="label_10">
-                   <property name="text">
-                    <string>K</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="3" column="0">
-                  <widget class="QLineEdit" name="lineEdit_5">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="maximumSize">
-                    <size>
-                     <width>16777215</width>
-                     <height>23</height>
-                    </size>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="3" column="1">
-                  <widget class="QLineEdit" name="lineEdit_6">
+                <layout class="QGridLayout" name="gridLayout_11">
+                 <item row="3" column="5">
+                  <widget class="QLineEdit" name="lineEdit_10">
                    <property name="sizePolicy">
                     <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
                      <horstretch>0</horstretch>
@@ -906,8 +741,15 @@
                    </property>
                   </widget>
                  </item>
-                 <item row="3" column="3">
-                  <widget class="QLineEdit" name="lineEdit_8">
+                 <item row="2" column="1">
+                  <widget class="QLabel" name="label_6">
+                   <property name="text">
+                    <string>F</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="3" column="0">
+                  <widget class="QLineEdit" name="lineEdit_5">
                    <property name="sizePolicy">
                     <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
                      <horstretch>0</horstretch>
@@ -919,6 +761,13 @@
                      <width>16777215</width>
                      <height>23</height>
                     </size>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="5">
+                  <widget class="QLabel" name="label_10">
+                   <property name="text">
+                    <string>K</string>
                    </property>
                   </widget>
                  </item>
@@ -938,8 +787,163 @@
                    </property>
                   </widget>
                  </item>
-                 <item row="3" column="5">
-                  <widget class="QLineEdit" name="lineEdit_10">
+                 <item row="0" column="5">
+                  <widget class="QLabel" name="label_4">
+                   <property name="text">
+                    <string>D</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="2">
+                  <widget class="QLineEdit" name="lineEdit">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>16777215</width>
+                     <height>23</height>
+                    </size>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="4">
+                  <widget class="QLabel" name="label_3">
+                   <property name="text">
+                    <string>C</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="3">
+                  <widget class="QLineEdit" name="lineEdit_2">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>16777215</width>
+                     <height>23</height>
+                    </size>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="3" column="3">
+                  <widget class="QLineEdit" name="lineEdit_8">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>16777215</width>
+                     <height>23</height>
+                    </size>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="0" colspan="2">
+                  <widget class="QComboBox" name="comboBox">
+                   <property name="maximumSize">
+                    <size>
+                     <width>16777215</width>
+                     <height>23</height>
+                    </size>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="2" colspan="3">
+                  <layout class="QGridLayout" name="gridLayout">
+                   <item row="0" column="0">
+                    <widget class="QLabel" name="label_7">
+                     <property name="text">
+                      <string>G</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="2">
+                    <widget class="QLabel" name="label_9">
+                     <property name="text">
+                      <string>J</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="1">
+                    <widget class="QLabel" name="label_8">
+                     <property name="text">
+                      <string>H</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                 <item row="0" column="2" colspan="2">
+                  <layout class="QGridLayout" name="gridLayout_29">
+                   <item row="0" column="0">
+                    <widget class="QLabel" name="label">
+                     <property name="text">
+                      <string>A</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="1">
+                    <widget class="QLabel" name="label_2">
+                     <property name="text">
+                      <string>B</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                 <item row="3" column="1">
+                  <widget class="QLineEdit" name="lineEdit_6">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>16777215</width>
+                     <height>23</height>
+                    </size>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="0">
+                  <widget class="QLabel" name="label_5">
+                   <property name="text">
+                    <string>E</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="4">
+                  <layout class="QVBoxLayout" name="verticalLayout_4">
+                   <item>
+                    <widget class="QComboBox" name="Orientation_CB"/>
+                   </item>
+                   <item>
+                    <widget class="QLineEdit" name="lineEdit_3">
+                     <property name="sizePolicy">
+                      <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
+                       <horstretch>0</horstretch>
+                       <verstretch>0</verstretch>
+                      </sizepolicy>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                 <item row="1" column="5">
+                  <widget class="QLineEdit" name="lineEdit_4">
                    <property name="sizePolicy">
                     <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
                      <horstretch>0</horstretch>

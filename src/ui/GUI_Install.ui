@@ -7,11 +7,11 @@
     <x>0</x>
     <y>0</y>
     <width>1226</width>
-    <height>691</height>
+    <height>693</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>ERSN-OpenMC-Py verssion 1.2</string>
+   <string>ERSN-OpenMC-Py verssion 1.3.3</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_2">
@@ -506,7 +506,7 @@
                 <x>13</x>
                 <y>31</y>
                 <width>531</width>
-                <height>25</height>
+                <height>27</height>
                </rect>
               </property>
               <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -770,6 +770,13 @@
                    <widget class="QRadioButton" name="rB_py311_prerequis">
                     <property name="text">
                      <string>3.11</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="1">
+                   <widget class="QRadioButton" name="rB_py312_prerequis">
+                    <property name="text">
+                     <string>3.12</string>
                     </property>
                    </widget>
                   </item>
@@ -1211,17 +1218,17 @@
                   </item>
                   <item>
                    <property name="text">
+                    <string>v0.14.0</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
                     <string>v0.13.3</string>
                    </property>
                   </item>
                   <item>
                    <property name="text">
                     <string>v0.12.2</string>
-                   </property>
-                  </item>
-                  <item>
-                   <property name="text">
-                    <string>v0.11.0</string>
                    </property>
                   </item>
                  </widget>
@@ -1273,6 +1280,16 @@
                    <widget class="QRadioButton" name="rB_py311">
                     <property name="text">
                      <string>3.11</string>
+                    </property>
+                    <attribute name="buttonGroup">
+                     <string notr="true">buttonGroup</string>
+                    </attribute>
+                   </widget>
+                  </item>
+                  <item row="2" column="2">
+                   <widget class="QRadioButton" name="rB_py312">
+                    <property name="text">
+                     <string>3.12</string>
                     </property>
                     <attribute name="buttonGroup">
                      <string notr="true">buttonGroup</string>
@@ -2085,7 +2102,7 @@
      <x>0</x>
      <y>0</y>
      <width>1226</width>
-     <height>20</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -2280,9 +2297,9 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="buttonGroup"/>
-  <buttongroup name="buttonGroup_2"/>
   <buttongroup name="buttonGroup_3"/>
+  <buttongroup name="buttonGroup"/>
   <buttongroup name="buttonGroup_4"/>
+  <buttongroup name="buttonGroup_2"/>
  </buttongroups>
 </ui>

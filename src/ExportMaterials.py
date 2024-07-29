@@ -15,15 +15,13 @@ from src.syntax_py import Highlighter
 
 class ExportMaterials(QWidget):
     from .func import resize_ui, showDialog, Exit, Move_Commands_to_End
-    def __init__(self, v_1, Mats, available_xs, mat, mat_id, parent=None):
+    def __init__(self, OpenMC_Ver, v_1, Mats, available_xs, mat, mat_id, parent=None):
         super(ExportMaterials, self).__init__(parent)
-        uic.loadUi("src/ui/ExportMaterials.ui", self)  
-        try:
-            from openmc import __version__
-            self.openmc_version = int(__version__.split('-')[0].replace('.', ''))
-        except:
+        uic.loadUi("src/ui/ExportMaterials.ui", self) 
+
+        self.openmc_version = OpenMC_Ver
+        if self.openmc_version == 0:
             self.showDialog('Warning', 'OpenMC not yet installed !')
-            self.openmc_version = 0
  
         #sys.stdout = EmittingStream(textWritten=self.normalOutputWritten)
         #sys.stderr = EmittingStream(textWritten=self.normalOutputWritten)
@@ -51,7 +49,6 @@ class ExportMaterials(QWidget):
         self.plainTextEdit.setWordWrapMode(QTextOption.NoWrap)
         self.numbers = NumberBar(self.plainTextEdit)
         layoutH = QHBoxLayout()
-        #layoutH.setSpacing(1.5)
         layoutH.addWidget(self.numbers)
         layoutH.addWidget(self.plainTextEdit)
         self.EditorLayout.addLayout(layoutH, 0, 0)

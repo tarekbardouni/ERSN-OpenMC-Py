@@ -72,14 +72,21 @@ class Application(QtWidgets.QMainWindow):
         #sys.stdout = EmittingStream(textWritten=self.normalOutputWritten)
         #sys.stderr = EmittingStream(textWritten=self.normalOutputWritten)
         #self.settings = QSettings("PyEdit", "Py_ERSN_OpenMC")
+        self.title = title
+        self.ui = uic.loadUi("src/ui/Interface.ui", self)  
+
         try:
+            import openmc
             from openmc import __version__
-            self.openmc_version = int(__version__.split('-')[0].replace('.', ''))
+            if 'dev' in __version__:
+                self.openmc_version = int(__version__.split('-')[0].replace('.', '').split('dev')[0])
+            else:
+                self.openmc_version = int(__version__.split('-')[0].replace('.', ''))
+            self.OpenMC_Ver = __version__
         except:
             self.showDialog('Warning', 'OpenMC not yet installed or wrong conda environment chosen!')
             self.openmc_version = 0
-        self.title = title
-        self.ui = uic.loadUi("src/ui/Interface.ui", self)
+
         self.new_File = False
         self.openedFiles = False
         self.ploting = False
@@ -102,6 +109,7 @@ class Application(QtWidgets.QMainWindow):
         if self.openmc_version >= 141:
             self.Surfaces_key_list[16] = 'model.RectangularPrism'
             self.Surfaces_key_list[17] = 'model.HexagonalPrism'
+            self.Surfaces_key_list.append('model.RightCircularCylinder')
 
         self.clear_Lists()
         self.Enrichment = False
@@ -156,7 +164,6 @@ class Application(QtWidgets.QMainWindow):
         self.createActions()
         self.line = 0
         self.pos = 0
-        #myEditor()
         self.editor_tool_bar()
         self.editor_menu()
         self.editor_core()
@@ -510,7 +517,7 @@ class Application(QtWidgets.QMainWindow):
 
         self.actionClose_Img = QAction(QIcon("src/icons/close.png"), "Close Images", self, shortcut=QKeySequence.Quit,
                               statusTip="close images", triggered=self.Close_Img)
-        ##############################################################################################""""""
+        ##############################################################################################
 
     def editor_menu(self):
         # project menu
@@ -1052,27 +1059,29 @@ class Application(QtWidgets.QMainWindow):
 
     def detect_component_id(self, line, key, ID):
         import re
+        msg = 'Element id must be integer. \nCheck the id syntax in the model script!'
         item_id = line[line.find("(") + 1: line.find(")")].replace(' ', '').split(',')
+        self.id = ID
         for w in item_id:
             if key in w and '=' in w:
                 try:
                     self.id = int(w.split('=')[1])
                 except:
-                    self.showDialog('Warning', 'Element id must be integer')
+                    self.showDialog('Warning', msg)
                     return
                 break
             elif key in w and '=' not in w:
                 try:
                     self.id = int(re.search(r"(\d+)$", w).group())
                 except:
-                    self.showDialog('Warning', 'Element id must be integer')
+                    self.showDialog('Warning', msg)
                     return
                 break    
             elif key not in w and '=' not in w and w.isdigit():
                 try:
                     self.id = int(w)
                 except:
-                    self.showDialog('Warning', 'Element id must be integer')
+                    self.showDialog('Warning', msg)
                     return
                 break
             else:
@@ -1183,7 +1192,6 @@ class Application(QtWidgets.QMainWindow):
                 self.lattice_id_list.append(self.id)            
             elif 'openmc.Source' in line or 'openmc.source.Source' in line:
                 item = line.split('=')[0].replace(' ', '')
-                #self.showDialog('here', str(list(item)))
                 if "#" not in list(item)[0]:
                     self.Source_name_list.append(item)
                     id = re.sub('.*?([0-9]*)$', r'\1', item)
@@ -1196,7 +1204,6 @@ class Application(QtWidgets.QMainWindow):
                             id = 1
                         self.Source_id_list.append(id)
 
-                #self.showDialog('huna', str(self.Source_name_list))
             elif 'openmc.RectilinearMesh' in line:
                 item = line.split('=')[0].replace(' ', '')
                 self.mesh_name_list.append(item)
@@ -1315,7 +1322,7 @@ class Application(QtWidgets.QMainWindow):
         v_1 = self.plainTextEdit_7
         self.detect_components()
         if self.available_xs:
-            self.wind3 = ExportMaterials(v_1, self.Mats, self.available_xs, self.materials_name_list, self.materials_id_list)
+            self.wind3 = ExportMaterials(self.openmc_version, v_1, self.Mats, self.available_xs, self.materials_name_list, self.materials_id_list)
             self.wind3.show()
         else:
             self.showDialog('Warning', 'Cross secions files not defined !')
@@ -1339,7 +1346,7 @@ class Application(QtWidgets.QMainWindow):
         lat = self.lattice_name_list
         lat_id = self.lattice_id_list
         C_in_U = self.cells_in_universes
-        self.wind4 = ExportGeometry(v_1, self.Mats, self.Geom, regions, surf, surf_id, cell, cell_id, mat, mat_id, univ, univ_id, C_in_U, lat, lat_id)
+        self.wind4 = ExportGeometry(self.openmc_version, v_1, self.Mats, self.Geom, regions, surf, surf_id, cell, cell_id, mat, mat_id, univ, univ_id, C_in_U, lat, lat_id)
         self.wind4.show()
         self.SaveFiles()
 
@@ -2907,7 +2914,7 @@ class Application(QtWidgets.QMainWindow):
     #######################################################################################
     #######################################################################################
 
-version = '1.3.2'
+version = '1.3.3'
 qapp = QApplication(sys.argv)  
 app  = Application(u'ERSN-OpenMC-Py')
 qapp.setStyleSheet("QPushButton { background-color: palegoldenrod; border-width: 2px; border-color: darkkhaki}"
@@ -2923,5 +2930,6 @@ qapp.setStyleSheet("QPushButton { background-color: palegoldenrod; border-width:
 app.setWindowTitle('ERSN-OpenMC-Py version ' + version)
 app.show()
 qapp.exec_()
+
 
 
