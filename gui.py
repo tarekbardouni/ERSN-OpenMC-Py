@@ -95,9 +95,9 @@ class Application(QtWidgets.QMainWindow):
         self.directory = ''
         self.filename = ''
         self.app_dir = os.getcwd()
-        self.Surfaces_key_list = ['Plane', 'XPlane', 'YPlane', 'ZPlane', 'Sphere', 'XCylinder', 'YCylinder', 'ZCylinder',
-                              'Cone', 'XCone', 'YCone', 'Zcone', 'Quadric', 'XTorus', 'YTorus', 'ZTorus', 
-                              'model.rectangular_prism', 'model.hexagonal_prism']
+        self.Surfaces_key_list = ['Plane', 'XPlane', 'YPlane', 'ZPlane', 'Sphere', 'XCylinder', 'YCylinder', 
+                              'ZCylinder', 'Cone', 'XCone', 'YCone', 'Zcone', 'Quadric', 'XTorus', 'YTorus', 
+                              'ZTorus', 'model.rectangular_prism', 'model.hexagonal_prism']
         self.Filters_key_list = ['UniverseFilter', 'MaterialFilter', 'CellFilter', 'CellFromFilter', 'CellbornFilter',
                                  'CellInstanceFilter', 'SurfaceFilter', 'MeshFilter', 'MeshSurfaceFilter',
                                  'DistribcellFilter', 'CollisionFilter', 'EnergyFilter', 'EnergyoutFilter',
@@ -110,6 +110,7 @@ class Application(QtWidgets.QMainWindow):
             self.Surfaces_key_list[16] = 'model.RectangularPrism'
             self.Surfaces_key_list[17] = 'model.HexagonalPrism'
             self.Surfaces_key_list.append('model.RightCircularCylinder')
+            self.Surfaces_key_list.append('model.RectangularParallelepiped')
 
         self.clear_Lists()
         self.Enrichment = False
@@ -244,6 +245,7 @@ class Application(QtWidgets.QMainWindow):
         self.RunMode_CB.currentIndexChanged.connect(self.SetRunMode)
         self.radioButton.toggled.connect(self.RunPB_State)
         self.tabWidget.currentChanged.connect(self.Update_StatusBar)
+        self.plainTextEdit_7.textChanged.connect(self.clear_Lists)
         #self.plainTextEdit_7.textChanged.connect(self.detect_components)
 
     def initUI(self):
@@ -803,37 +805,38 @@ class Application(QtWidgets.QMainWindow):
         self.lineLabel3.setText("Cursor position:    line " + str(self.line) + " | column " + str(self.pos))
 
     def clear_Lists(self):
+        self.materials_id_list = []
         self.surface_id_list = ['0']
+        self.cell_id_list = ['0']
+        self.universe_id_list = []
+        self.lattice_id_list = []
+        self.Source_id_list = []
+        self.filter_id_list = ['0']
+        self.tally_id_list = []
+        self.score_id_list = ['0']
+        self.mesh_id_list = []
+        self.plot_id_list = ['0']
+        #
         self.surface_name_list = []
         self.regions = []
         self.cell_name_list = []
         self.Vol_Calcs_list = []
-        self.cell_id_list = ['0']
         self.materials_name_list = []
-        self.materials_id_list = []
-        self.lattice_id_list = []
         self.lattice_name_list = []
-        self.universe_id_list = []
         self.universe_name_list = []
         self.cells_in_universes = []
         self.Source_name_list = []
-        self.Source_id_list = []
         self.Source_strength_list = []
         self.tally_name_list = []
-        self.tally_id_list = []
         self.filter_name_list = []
-        self.filter_id_list = ['0']
         self.plot_name_list = []
-        self.plot_id_list = ['0']
         self.score_name_list = []
-        self.score_id_list = ['0']
         self.mesh_name_list = []
-        self.mesh_id_list = []
         self.Model_Nuclides_List = []
         self.Model_Elements_List = []
         self.filters = {}
         self.Bins = {}
-
+        
     def Python_TallyDataProcessing(self):
         #self.inst = TallyDataProcessing(self.shellWin)
         self.interface = TallyDataProcessing()
@@ -1059,6 +1062,7 @@ class Application(QtWidgets.QMainWindow):
 
     def detect_component_id(self, line, key, ID):
         import re
+        #self.clear_Lists()
         msg = 'Element id must be integer. \nCheck the id syntax in the model script!'
         item_id = line[line.find("(") + 1: line.find(")")].replace(' ', '').split(',')
         self.id = ID
@@ -1092,11 +1096,12 @@ class Application(QtWidgets.QMainWindow):
         import re
         if not self.plainTextEdit_7.toPlainText().strip():
             return
+        #self.clear_Lists()
         Lists = [self.Model_Elements_List, self.Model_Nuclides_List, self.materials_name_list,
                 self.surface_name_list, self.cell_name_list, self.universe_name_list,
                 self.lattice_name_list, self.Source_name_list, 
                 self.tally_name_list, self.filter_name_list, self.mesh_name_list,
-                self.plot_name_list, self.plot_id_list]
+                self.plot_name_list]
         for item in Lists:
             item.clear()
         self.materials_id_list = []
@@ -2064,7 +2069,7 @@ class Application(QtWidgets.QMainWindow):
         for i in range(len(self.ImView)):
             self.ImView[i].close()
 
-    def question(self, alert, msg) : 
+    def question1(self, alert, msg) : 
         qm = QMessageBox
         ret = qm.question(self, alert, msg, qm.Yes | qm.No)
         if ret == qm.Yes:
