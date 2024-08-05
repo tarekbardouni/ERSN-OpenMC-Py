@@ -23,7 +23,7 @@ class EmittingStream(QtCore.QObject):
 
 class ExportSettings(QWidget):
     from .func import resize_ui, showDialog, Def_Source_ToolTips, Exit, Move_Commands_to_End
-    def __init__(self, v_1, Sett, Directory, Surf_list, Surf_Id_list, Cells_list, Mat_list, Vol_Calcs_list, 
+    def __init__(self, OpenMC_Ver, v_1, Sett, Directory, Surf_list, Surf_Id_list, Cells_list, Mat_list, Vol_Calcs_list, 
                             Source_list, Source_Id, Strength_list, parent=None):
         super(ExportSettings, self).__init__(parent)
         uic.loadUi("src/ui/ExportSettings.ui", self)
@@ -33,6 +33,7 @@ class ExportSettings(QWidget):
         self._initButtons()
         self.Insert_Header = True
         self.Imported_X_Y_List = False
+        self.openmc_version = OpenMC_Ver
         self.directory = Directory
         self.surface_name_list = Surf_list
         self.surface_id_list = Surf_Id_list
@@ -1417,6 +1418,9 @@ class ExportSettings(QWidget):
                 print(self.Sett + " = openmc.Settings()\n")
             else:
                 pass
+        if self.Name_LE.text() in self.Source_name_list:
+            self.showDialog('Warning', 'Source name must not be repeated!')
+            return
         if self.Source_Geom_CB.currentIndex() in [1, 2, 3, 4, 5]:
             if self.Particle_CB.currentIndex() == 0:
                 self.Particle = "'neutron'"
@@ -1426,7 +1430,7 @@ class ExportSettings(QWidget):
                 self.Particle = "'electron'"
             else:
                 self.Particle = "'positron'"
-            if self.Only_Fissionable:
+            if self.Only_Fissionable and self.openmc_version < 150:
                 self.Only_Fissionable_String = ', only_fissionable=True'
             else:
                 self.Only_Fissionable_String = ''
@@ -1435,7 +1439,7 @@ class ExportSettings(QWidget):
                 self.Number_of_Sources.show()
                 if float(self.Strength_LE.text()) >= 1.:
                     self.showDialog('Warning', 'Strength must be smaller than 1. !.')
-            if self.Name_LE.text() not in self.Source_name_list:
+            else:
                 self.Source_Spatial_Distribution()
                 if self.ErrorSP != 0:
                     return
@@ -1453,25 +1457,33 @@ class ExportSettings(QWidget):
                     angle_str = self.angle + ', '
                 print(str(self.Name_LE.text()) + ' = openmc.Source(' + self.spatial + ', ' + angle_str + energy_str + 'strength=' + str(
                         self.Strength_LE.text()) + ', particle=' + self.Particle + ')\n')
-                self.Source_name_list.append(self.Name_LE.text())
-                self.Source_id_list.append(int(self.Source_ID_LE.text()))
-            else:
-                self.showDialog('Warning', 'Source name must not be repeated!')
-                return
-            document = self.v_1.toPlainText()
-            strg = self.Sett + '.source = ' + str(self.Source_name_list).replace("'", "")
-            print(strg)
-            self.v_1.clear()
-            cursor = self.v_1.textCursor()
-            cursor.insertText(document)
         elif self.Source_Geom_CB.currentIndex() == 6:
             ############################### File based source (.h5) #################################
             print(str(self.Name_LE.text()) + " = openmc.Source(filename= '" + self.src_filename +"')")
         elif self.Source_Geom_CB.currentIndex() == 7:
             ############################### Read Surface source (.h5) #################################
             print(str(self.Name_LE.text()) + " = openmc.surf_source_read(filename= '" + self.src_filename + "')")
-        else:
-            pass
+        elif self.Source_Geom_CB.currentIndex() == 8:
+            ############################### Read source 'build/libsource.so' #################################
+            print(str(self.Name_LE.text()) + " = openmc.CompiledSource()")
+            print(str(self.Name_LE.text()) + '.library = ' + "'build/libsource.so'")
+        
+        self.Source_name_list.append(self.Name_LE.text())
+        self.Source_id_list.append(int(self.Source_ID_LE.text()))
+        document = self.v_1.toPlainText()
+        if self.Sett + '.source' in self.plainTextEdit.toPlainText():
+            doc = self.plainTextEdit.toPlainText()
+            for line in doc.split('\n'):
+                if self.Sett + '.source' in line:
+                    doc = doc.replace(line, '')
+            self.plainTextEdit.clear()
+            print(doc)
+
+        strg = self.Sett + '.source = ' + str(self.Source_name_list).replace("'", "")
+        print(strg)
+        self.v_1.clear()
+        cursor = self.v_1.textCursor()
+        cursor.insertText(document)
         self.Source_id += 1
         self.Source_ID_LE.setText(str(self.Source_id))
         self.Name_LE.setText(''.join([i for i in self.Source_name_list[-1] if not i.isdigit()]) + self.Source_ID_LE.text())

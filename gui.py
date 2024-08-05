@@ -1361,7 +1361,7 @@ class Application(QtWidgets.QMainWindow):
         """     
         v_1 = self.plainTextEdit_7
         self.detect_components()
-        self.wind5 = ExportSettings(v_1, self.Sett, self.directory, self.surface_name_list, self.surface_id_list, self.cell_name_list,
+        self.wind5 = ExportSettings(self.openmc_version, v_1, self.Sett, self.directory, self.surface_name_list, self.surface_id_list, self.cell_name_list,
                                     self.materials_name_list, self.Vol_Calcs_list, self.Source_name_list,
                                     self.Source_id_list, self.Source_strength_list)
         self.wind5.show()
@@ -1536,9 +1536,14 @@ class Application(QtWidgets.QMainWindow):
                                 return
                         if 'openmc.run()' in line and '#openmc.run()' not in line.strip():
                             run_openmc = True
+                            cmd = 'python3'
                         if 'openmc.plot_geometry()' in line and '#openmc.plot_geometry()' not in line.strip():
                             plot_openmc = True
-                    cmd = 'python3'
+                            cmd = 'python3'
+                        if 'model.run()' in line and '#model.run()' not in line.strip():
+                            cmd = 'model.run()'
+                            run_openmc = True    
+                        
                     self.readData(cmd, self.process)
                     os.chdir(self.app_dir)
                     if 'export_to_xml()' in self.plainTextEdit_7.toPlainText():
@@ -1575,7 +1580,11 @@ class Application(QtWidgets.QMainWindow):
         else:
             if self.filename:
                 self.fileSave()
-                cmd = 'python3'
+                if 'model.run()' in self.plainTextEdit_7.toPlainText() and '#model.run()' not in self.plainTextEdit_7.toPlainText():
+                    cmd = 'model.run()'
+                    run_openmc = True
+                else:
+                    cmd = 'python3'
                 self.readData(cmd, self.process)
                 time.sleep(1)
                 if 'export_to_xml()' in self.plainTextEdit_7.toPlainText():
@@ -1647,6 +1656,8 @@ class Application(QtWidgets.QMainWindow):
                 os.chdir(dname)
                 if cmd == 'python3':
                     Process.start(cmd, ['-u', dname + self.strippedName(self.filename)])
+                elif cmd == 'model.run()':
+                    Process.start('python3', [dname + self.strippedName(self.filename)] + ['--run'])
                 elif cmd == 'openmc':
                     Process.start(cmd)
         except:

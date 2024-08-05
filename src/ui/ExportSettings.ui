@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1316</width>
-    <height>528</height>
+    <height>529</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -2150,6 +2150,11 @@
                   <item>
                    <property name="text">
                     <string>Read Surface_Source(.h5)</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>Compiled Source</string>
                    </property>
                   </item>
                  </widget>
