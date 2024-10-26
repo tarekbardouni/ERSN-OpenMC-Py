@@ -262,21 +262,28 @@ class InstallOpenMC(QtWidgets.QMainWindow):
         # ==========================   DEPLETION  FILES   =======================
         elif library == 'Depletion_Chain':
             DEPLETION_CHAIN_DATA = self.depletion_chain_cB.currentText()
-            if DEPLETION_CHAIN_DATA == 'ENDF-B/VII.1 PWR spectrum v0.11':
+
+            if DEPLETION_CHAIN_DATA == 'ENDF/B-VIII.0 PWR spectrum v0.12+':
+                DEPLETION_CHAIN_DATA = 'ENDF-BVIII.0_PWR_spectrum'
+            elif DEPLETION_CHAIN_DATA == 'ENDF/B-VIII.0 fast spectrum v0.12+':
+                DEPLETION_CHAIN_DATA = 'ENDF-BVIII.0_fast_spectrum'
+
+
+            elif DEPLETION_CHAIN_DATA == 'ENDF-B/VII.1 PWR spectrum v0.11':
                 DEPLETION_CHAIN_DATA = 'ENDF-BVII.1_PWR_spectrum_v0.11'
-            elif DEPLETION_CHAIN_DATA == 'ENDF-B/VII.1 PWR spectrum v0.12':
+            elif DEPLETION_CHAIN_DATA == 'ENDF-B/VII.1 PWR spectrum v0.12+':
                 DEPLETION_CHAIN_DATA = 'ENDF-BVII.1_PWR_spectrum_v0.12'
             elif DEPLETION_CHAIN_DATA == 'ENDF-B/VII.1 fast spectrum v0.11':
                 DEPLETION_CHAIN_DATA = 'ENDF-BVII.1_fast_spectrum_v0.11'
-            elif DEPLETION_CHAIN_DATA == 'ENDF-B/VII.1 fast spectrum v0.12':
+            elif DEPLETION_CHAIN_DATA == 'ENDF-B/VII.1 fast spectrum v0.12+':
                 DEPLETION_CHAIN_DATA = 'ENDF-BVII.1_fast_spectrum_v0.12'
             elif DEPLETION_CHAIN_DATA == 'Simplified chain PWR spectrum v0.11':
                 DEPLETION_CHAIN_DATA = 'Simplified_chain_PWR_spectrum_v0.11'
-            elif DEPLETION_CHAIN_DATA == 'Simplified chain PWR spectrum v0.12':
+            elif DEPLETION_CHAIN_DATA == 'Simplified chain PWR spectrum v0.12+':
                 DEPLETION_CHAIN_DATA = 'Simplified_chain_PWR_spectrum_v0.12'
             elif DEPLETION_CHAIN_DATA == 'Simplified chain fast spectrum v0.11':
                 DEPLETION_CHAIN_DATA = 'Simplified_chain_fast_spectrum_v0.11'
-            elif DEPLETION_CHAIN_DATA == 'Simplified chain fast spectrum v0.12':
+            elif DEPLETION_CHAIN_DATA == 'Simplified chain fast spectrum v0.12+':
                 DEPLETION_CHAIN_DATA = 'Simplified_chain_fast_spectrum_v0.12'
             XS_H5_Library = 'none'
             XS_ACE_Library = 'none'

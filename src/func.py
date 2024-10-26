@@ -283,7 +283,7 @@ def Def_Source_ToolTips(self):
                                        '\nunderprediction of the variance. That is, the variance reported is actually less than the true variance. ' +
                                        '\nTo mitigate this effect, OpenMC allows you to group together multiple fission generations into a single batch' +
                                        '\nfor statistical purposes, rather than having each fission generation be a separate batch, which is the default behavior.')
-    self.Particles_Number.setToolTip('The total number of active particles will determine the level of stochastic uncertainty in simulation results,' +
+    self.Particles_Number_LE.setToolTip('The total number of active particles will determine the level of stochastic uncertainty in simulation results,' +
                                      '\nso using a higher number of particles will result in less uncertainty.')
     self.Create_Separate_SRC_CB.setToolTip('Check to write the source distribution separate from the normal statepoint file (that contains tally ' +
                                            '\nresults and other metadata). Then, for a second simulation, you would tell OpenMC to use the ' +

@@ -325,6 +325,46 @@
                </item>
                <item row="1" column="0">
                 <layout class="QGridLayout" name="gridLayout_12">
+                 <item row="1" column="3">
+                  <spacer name="horizontalSpacer_3">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>37</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                 <item row="1" column="0">
+                  <widget class="QComboBox" name="comboBox_5">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="minimumSize">
+                    <size>
+                     <width>163</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>140</width>
+                     <height>23</height>
+                    </size>
+                   </property>
+                   <item>
+                    <property name="text">
+                     <string>Select Region</string>
+                    </property>
+                   </item>
+                  </widget>
+                 </item>
                  <item row="1" column="2">
                   <widget class="QRadioButton" name="plus_RB">
                    <property name="sizePolicy">
@@ -340,62 +380,6 @@
                     <bool>true</bool>
                    </property>
                   </widget>
-                 </item>
-                 <item row="1" column="1">
-                  <spacer name="horizontalSpacer_2">
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>37</width>
-                     <height>20</height>
-                    </size>
-                   </property>
-                  </spacer>
-                 </item>
-                 <item row="1" column="3">
-                  <spacer name="horizontalSpacer_3">
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>37</width>
-                     <height>20</height>
-                    </size>
-                   </property>
-                  </spacer>
-                 </item>
-                 <item row="0" column="0">
-                  <widget class="QCheckBox" name="add_id_CB">
-                   <property name="text">
-                    <string>add id to item name</string>
-                   </property>
-                   <property name="checked">
-                    <bool>true</bool>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="0" column="6">
-                  <widget class="QLabel" name="label_27">
-                   <property name="text">
-                    <string>Operator</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="1" column="5">
-                  <spacer name="horizontalSpacer">
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>70</width>
-                     <height>20</height>
-                    </size>
-                   </property>
-                  </spacer>
                  </item>
                  <item row="1" column="6">
                   <widget class="QComboBox" name="Operator_CB">
@@ -439,33 +423,6 @@
                    </item>
                   </widget>
                  </item>
-                 <item row="1" column="0">
-                  <widget class="QComboBox" name="comboBox_5">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="minimumSize">
-                    <size>
-                     <width>163</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="maximumSize">
-                    <size>
-                     <width>140</width>
-                     <height>23</height>
-                    </size>
-                   </property>
-                   <item>
-                    <property name="text">
-                     <string>Select Region</string>
-                    </property>
-                   </item>
-                  </widget>
-                 </item>
                  <item row="1" column="4">
                   <widget class="QRadioButton" name="minus_RB">
                    <property name="sizePolicy">
@@ -476,6 +433,42 @@
                    </property>
                    <property name="text">
                     <string>Minus </string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="1">
+                  <spacer name="horizontalSpacer_2">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>37</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                 <item row="1" column="5">
+                  <spacer name="horizontalSpacer">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>70</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                 <item row="0" column="0">
+                  <widget class="QCheckBox" name="add_id_CB">
+                   <property name="text">
+                    <string>add id to item name</string>
+                   </property>
+                   <property name="checked">
+                    <bool>true</bool>
                    </property>
                   </widget>
                  </item>
@@ -501,6 +494,20 @@
                    </property>
                    <property name="sizeAdjustPolicy">
                     <enum>QAbstractScrollArea::AdjustToContents</enum>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="6">
+                  <widget class="QLabel" name="label_27">
+                   <property name="text">
+                    <string>Operator</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="1" colspan="5">
+                  <widget class="QCheckBox" name="Add_id_to_cell_CB">
+                   <property name="text">
+                    <string>Add id to item definition</string>
                    </property>
                   </widget>
                  </item>
@@ -695,13 +702,20 @@
                    </item>
                   </widget>
                  </item>
-                 <item row="2" column="0" colspan="2">
+                 <item row="2" column="0">
                   <widget class="QCheckBox" name="add_surf_id_CB">
                    <property name="text">
-                    <string>add id to surface name</string>
+                    <string>Add id to surface name</string>
                    </property>
                    <property name="checked">
                     <bool>true</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="1">
+                  <widget class="QCheckBox" name="Add_id_to_surf_CB">
+                   <property name="text">
+                    <string>Add id to surface definition</string>
                    </property>
                   </widget>
                  </item>

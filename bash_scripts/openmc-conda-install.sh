@@ -325,6 +325,17 @@ if [[ $INSTALL_OPENMC == yes ]]; then
         popd
     fi
 fi
+FILE=$CONDA_PREFIX
+FILE+="/lib/libopenmc.so"
+DESTINATION=$CONDA_PREFIX
+DESTINATION+="/lib/python3.11/site-packages/openmc/lib"
+# Check if the file exists
+if [ -f "$FILE" ]; then
+    cp $FILE $DESTINATION
+    echo "File $FILE has been copied to $DESTINATION."
+else
+    echo "File $FILE does not exist."
+fi
 echo
 if [ $? -eq 0 ]
 then

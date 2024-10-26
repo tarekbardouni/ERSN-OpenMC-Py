@@ -52,6 +52,7 @@ class ExportSettings(QWidget):
         self.vol_calcs = []
         self.Strength_LE.setText('1.')
         self.src_filename = ''
+        self.Threshold_CB.setCurrentIndex(3)
         self.Entropy_LE_List = [self.X_dim, self.Y_dim, self.Z_dim, 
                                 self.X_LL_Entropy, self.Y_LL_Entropy, self.Z_LL_Entropy,
                                 self.X_UR_Entropy, self.Y_UR_Entropy, self.Z_UR_Entropy]
@@ -60,7 +61,7 @@ class ExportSettings(QWidget):
         dim_validator = QRegExpValidator(QRegExp(r'[0-9 ,;:]+'))
         int_validator = QRegExpValidator(QRegExp(r'[0-9]+'))
 
-        for item in [self.LineEdit_1, self.LineEdit_2, self.LineEdit_5, self.Particles_Number]:
+        for item in [self.LineEdit_1, self.LineEdit_2, self.LineEdit_5, self.Particles_Number_LE]:
             item.setValidator(int_validator)
         for item in [self.Photon_Cut, self.Strength_LE, self.X_LL, self.Y_LL, self.Z_LL, self.X_UR, self.Y_UR, self.Z_UR,
                      self.Energy_LE, self.Proba_LE, self.Mu_Min_LE, self.Phi_Min_LE, self.Mu_Max_LE, self.Phi_Max_LE]:
@@ -134,6 +135,7 @@ class ExportSettings(QWidget):
         self.Add_Run_Mode_PB.clicked.connect(self.Run_Mode)
         self.Add_Vol_Calc_PB.clicked.connect(self.Volume_Calculation)
         self.Add_Tracks_PB.clicked.connect(self.Tracks_Settings)
+        self.Add_Trigger_PB.clicked.connect(self.Trigger_Settings)
         self.Add_Entropy_PB.clicked.connect(self.Entropy_Settings)
         self.Add_Source_PB.clicked.connect(self.Add_Sources)
         self.Cells_CB.currentIndexChanged.connect(self.Add_Cells)
@@ -215,7 +217,7 @@ class ExportSettings(QWidget):
                             self.LineEdit_4, self.LineEdit_3, self.LineEdit_6, self.Particles_Max_LE]:
                 item.hide()
             for item in [self.Label_1, self.Label_2, self.Label_5, self.Label_37, self.LineEdit_1, self.LineEdit_2,
-                        self.LineEdit_5, self.Particles_Number, self.Create_Separate_SRC_CB, self.Create_Surface_SRC_CB]:
+                        self.LineEdit_5, self.Particles_Number_LE, self.Create_Separate_SRC_CB, self.Create_Surface_SRC_CB]:
                 item.show()
                 if self.Run_Mode_CB.currentIndex() == 0:
                     item.setEnabled(False)
@@ -231,7 +233,7 @@ class ExportSettings(QWidget):
                 self.LineEdit_2.setText(str(self.inactives))
                 self.LineEdit_5.setText(str(self.generations))
                 self.Photon_Cut.setText('1000.0')
-                #self.Particles_Number.setText('10000')
+                #self.Particles_Number_LE.setText('10000')
         if self.Run_Mode_CB.currentIndex() in [1, 2]:
             self.Add_Run_Mode_PB.setEnabled(True)
             self.Volume_Calc_CB.hide()
@@ -320,7 +322,7 @@ class ExportSettings(QWidget):
                 pass
 
     def Widget_Status_3(self):                              # if volume calculation option changed
-        items = [self.Label_5, self.LineEdit_5, self.Label_37, self.Particles_Number, self.Label_2, self.LineEdit_2]
+        items = [self.Label_5, self.LineEdit_5, self.Label_37, self.Particles_Number_LE, self.Label_2, self.LineEdit_2]
         if self.Volume_Calc_CB.currentIndex() == 0:
             self.Add_Vol_Calc_PB.setEnabled(False)
             for item in items:
@@ -434,7 +436,10 @@ class ExportSettings(QWidget):
         self.Photon_CB.setChecked(False)
         self.Create_Separate_SRC_CB.setChecked(False)
         self.Create_Surface_SRC_CB.setChecked(False)
-        self.Set_Tracks_ComboBoxes()
+        try:
+            self.Set_Tracks_ComboBoxes()
+        except:
+            return
 
     def Set_Tracks_ComboBoxes(self):
         # Set ComboBoxes for tracks recording
@@ -443,7 +448,7 @@ class ExportSettings(QWidget):
             self.Tracks_Grid_Lay.itemAt(i).widget().setParent(None)
         batches = int(self.LineEdit_1.text())
         generations = int(self.LineEdit_5.text())
-        particles = int(self.Particles_Number.text())
+        particles = int(self.Particles_Number_LE.text())
         for batch in range(1, batches + 1):
             self.Batch_List.append(str(batch))
         for generation in range(1, generations + 1):
@@ -470,14 +475,14 @@ class ExportSettings(QWidget):
         # Eigenvalue problem
         if self.Run_Mode_CB.currentIndex() == 1:
             print(self.Sett + ".run_mode = 'eigenvalue'")
-            print(self.Sett + ".particles = " + str(self.Particles_Number.text()))
+            print(self.Sett + ".particles = " + str(self.Particles_Number_LE.text()))
             print(self.Sett + ".batches = " + str(self.LineEdit_1.text()))
             print(self.Sett + ".inactive = " + self.LineEdit_2.text())
             print(self.Sett + ".generations_per_batch = " + str(self.LineEdit_5.text()) + "\n")
         # Fixed source problem
         elif self.Run_Mode_CB.currentIndex() == 2:
             print(self.Sett + ".run_mode = 'fixed source'")
-            print(self.Sett + ".particles = " + str(self.Particles_Number.text()))
+            print(self.Sett + ".particles = " + str(self.Particles_Number_LE.text()))
             print(self.Sett + ".batches = " + str(self.LineEdit_1.text()) + '\n')
             print(self.Sett + ".generations_per_batch = " + str(self.LineEdit_5.text()) + "\n")
         if self.Run_Mode_CB.currentIndex() in [1, 2]:
@@ -516,18 +521,22 @@ class ExportSettings(QWidget):
                     self.Run_Mode_CB.setCurrentIndex(3)                
             elif self.Sett + '.particles' in line.replace(" ", "").split('=')[0]:
                 self.particles = line.split('=')[1].strip()
-                self.Particles_Number.setText(str(self.particles))
+                #self.Particles_Number_LE.setText(str(self.particles))
+                self.Find_Settings_Parameters(lines, self.Particles_Number_LE, self.particles)
             elif self.Sett + '.inactive' in line.replace(" ", "").split('=')[0]: 
                 self.Inactive_Found = True
                 self.inactives = line.split('=')[1].strip()
-                self.LineEdit_2.setText(str(self.inactives))
+                #self.LineEdit_2.setText(str(self.inactives))
+                self.Find_Settings_Parameters(lines, self.LineEdit_2, self.inactives)
             elif self.Sett + '.batches' in line.replace(" ", "").split('=')[0]:                
                 self.batches = line.split('=')[1].strip()
-                self.LineEdit_1.setText(str(self.batches))
+                #self.LineEdit_1.setText(str(self.batches))
+                self.Find_Settings_Parameters(lines, self.LineEdit_1, self.batches)
             elif self.Sett + '.generations_per_batch' in line.replace(" ", "").split('=')[0]: 
                 self.Generations_Found = True
                 self.generations = line.split('=')[1].strip()
-                self.LineEdit_5.setText(str(self.generations))
+                #self.LineEdit_5.setText(str(self.generations))
+                self.Find_Settings_Parameters(lines, self.LineEdit_5, self.generations)
             elif self.Sett + '.photon_transport' in line.replace(" ", "").split('=')[0]:
                 photon_transport = line.split('=')[1].strip()
                 if 'True' in line: 
@@ -538,7 +547,8 @@ class ExportSettings(QWidget):
                     self.led_RB.setEnabled(False)
             elif self.Sett + '.cutoff' in line.replace(" ", "").split('=')[0]:
                 photon_cutoff = line.split(':')[1].replace('}', '').strip()
-                self.Photon_Cut.setText(str(photon_cutoff))
+                #self.Photon_Cut.setText(str(photon_cutoff))
+                self.Find_Settings_Parameters(lines, self.Photon_Cut, photon_cutoff)
             elif self.Sett + '.electron_treatment' in line.replace(" ", "").split('=')[0]:
                 electron_treatment = line.split('=')[1].strip()
             else:
@@ -548,9 +558,22 @@ class ExportSettings(QWidget):
             else:
                 self.led_RB.setChecked(True)
 
-        
-        self.Set_Tracks_ComboBoxes()
+        try:
+            self.Set_Tracks_ComboBoxes()
+        except:
+            return
+
         self.Add_Tracks_PB.setEnabled(True)
+
+    def Find_Settings_Parameters(self, lines, LE, parameter):
+        if parameter.isdigit():
+            LE.setText(str(parameter))
+        else:
+            for line in lines:
+                if parameter == line.split('=')[0].strip():
+                    parameter = line.split('=')[1].strip()
+                    break
+            LE.setText(str(parameter))
 
     def LE_to_List(self, LineEdit1, LineEdit2):
         text1 = LineEdit1.text()
@@ -668,7 +691,7 @@ class ExportSettings(QWidget):
                                     self.Delete_lines(self.v_1, self.Sett + '.volume_calculations', True)
                                     for item in self.list_of_items:
                                         self.vol_calcs.append(item)
-                            samples = str(self.Particles_Number.text())
+                            samples = str(self.Particles_Number_LE.text())
                             if self.Volume_Calc_CB.currentIndex() == 1:     # Vol_Calc: General
                                 Lower_Left = str(self.LineEdit_5.text())
                                 Upper_Right = str(self.LineEdit_2.text())
@@ -766,6 +789,30 @@ class ExportSettings(QWidget):
             print("\n" + self.Sett + ".track = " + str(self.Tracks_List))
         except:
             self.showDialog('Warning', 'No batch is defined for track recording!')
+
+    def Trigger_Settings(self):
+        # /////////////////////////   Trigger Setting   /////////////////////////
+        self.Import_OpenMC()
+        self.Find_string(self.v_1, "openmc.Settings")
+        if self.Insert_Header:
+            self.Find_string(self.plainTextEdit, "openmc.Settings")
+            if self.Insert_Header:
+                print('\n############################################################################### \n'
+                      '#                 Exporting to OpenMC settings.xml file \n'
+                      '###############################################################################')
+                print(self.Sett + " = openmc.Settings()\n")
+            else:
+                pass
+        
+        if self.Zeroes_CB.currentText() == 'True':
+            print(self.Sett + ".keff_trigger = {'type' : '" + self.Type_CB.currentText() + \
+                                                       "', 'threshold' : " + self.Threshold_LE.text() + self.Threshold_CB.currentText()  + \
+                                                       ", 'ignore_zeros' : " + self.Zeroes_CB.currentText() + '}')
+        else:    
+            print(self.Sett + ".keff_trigger = {'type' : '" + self.Type_CB.currentText() + \
+                                                       "', 'threshold' : " + self.Threshold_LE.text() + self.Threshold_CB.currentText() +'}')
+        print(self.Sett + '.trigger_active = ' + self.Trigger_Active_CB.currentText())
+        print(self.Sett + '.trigger_max_batches = ' + self.Trigger_max_batches_LE.text() + '\n')
 
     def Entropy_Settings(self):
         # /////////////////////////   Entropy Setting   /////////////////////////
@@ -958,7 +1005,7 @@ class ExportSettings(QWidget):
         for combobox in [self.X_Dist_CB, self.Y_Dist_CB, self.Z_Dist_CB]:
             combobox.setCurrentIndex(0)
         if self.Source_Geom_CB.currentIndex() in [6, 7]:
-            self.src_filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', "~", "source*.h5;; surface*.h5;; *.h5")[0]
+            self.src_filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', "~", "*.h5;; source*.h5;; surface*.h5")[0]
             if self.src_filename:
                 self.Origin_Label.show()
                 self.Origin_Label.setText('File name')
@@ -968,6 +1015,17 @@ class ExportSettings(QWidget):
                 self.Origin_LE.setText(self.src_filename)
             else:
                 self.Source_Geom_CB.setCurrentIndex(0)
+        elif self.Source_Geom_CB.currentIndex() == 8:
+            self.src_filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open File', "~", "*.so;; libsource.so")[0]
+            self.Origin_Label.show()
+            self.Origin_LE.show()
+            if self.src_filename:
+                self.Origin_Label.setText('File name')
+                if self.directory and self.directory in self.src_filename:
+                    self.src_filename = self.src_filename.split('/')[-1]
+            else:
+                self.src_filename = 'build/libsource.so'
+        self.Origin_LE.setText(self.src_filename)
 
     def Def_Source_Energy(self):
         if self.Energy_Dist_CB.currentIndex() == 1:  # Discrete
@@ -1466,7 +1524,7 @@ class ExportSettings(QWidget):
         elif self.Source_Geom_CB.currentIndex() == 8:
             ############################### Read source 'build/libsource.so' #################################
             print(str(self.Name_LE.text()) + " = openmc.CompiledSource()")
-            print(str(self.Name_LE.text()) + '.library = ' + "'build/libsource.so'")
+            print(str(self.Name_LE.text()) + '.library = ' + "'" + str(self.Origin_LE.text()) + "'")
         
         self.Source_name_list.append(self.Name_LE.text())
         self.Source_id_list.append(int(self.Source_ID_LE.text()))
@@ -1546,6 +1604,8 @@ class ExportSettings(QWidget):
                         break
                     else:
                         document1 = document.replace(string_to_find, self.plainTextEdit.toPlainText() + '\n' + string_to_find + '\n')
+            elif self.tabWidget.currentIndex() == 2:
+                document1 = document.replace(string_to_find, self.plainTextEdit.toPlainText() + '\n' + string_to_find + '\n')
             self.v_1.clear()
             cursor.insertText(document1)
         

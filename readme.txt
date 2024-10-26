@@ -4,12 +4,17 @@ Our paper: ERSN-OpenMC-Py: A python-based open-source software for OpenMC Monte 
 
 How to use the GUI to install openmc and prerequisistes under miniconda3
 This tutorial is tested for ubuntu 23.04, miniconda3 and python 3.7 3.9 and 3.11
-The new version of ERSN-OpenMC-Py 1.3 allows to post-process tallies created by combining up to 6 filters.
-The version of ERSN-OpenMC-Py 1.3 allows to normalize tallies to cell volume, core power, unit lethargy and bin width.
+The new version 1.3 of ERSN-OpenMC-Py allows to post-process tallies created by combining up to 6 filters.
+The version 1.3 of ERSN-OpenMC-Py allows to normalize tallies to cell volume, core power, unit lethargy and bin width.
 Up to 5 filters are combined with MeshFilter.
 
 Prof. Tarek El Bardouni and Doctor Mohamed Lahdour, University Abdelmalek Essaadi, Radiations and Nuclear Systems Team, Tetouan, Morocco
+
 Emails: telbardouni@uae.ac.ma    and mohamedlahdour@gmail.com
+URLs: 	https://github.com/tarekbardouni/ERSN-OpenMC-Py
+		https://github.com/mohamedlahdour/ERSN-OpenMC-Py
+
+		https://github.com/tarekbardouni/ERSN-OpenMC-Tutorials/blob/main/Install_OpenMC_Tutorial.mp4
 
 A/ First make an update of your system and install the following packages if they don't exist:
 

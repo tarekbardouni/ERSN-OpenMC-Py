@@ -53,6 +53,16 @@ class ExportGeometry(QWidget):
         self.lattice_name_list = lat
         self.lattice_id_list = lat_id
         #
+        self.surface_suffix = 'Surf'
+        self.cell_suffix = 'Cell'
+        self.universe_suffix = 'Univ'
+        self.lattice_suffix = 'Lat'
+        self.text_inserted = False
+        self.modify_universes = False
+        self.ADD_SURF_ID_NEW = False
+        self.ADD_CELL_ID_NEW = False
+        self.ADD_UNIV_ID_NEW = True
+
         self.Instanciate_Lists()
         self.Surfaces_List = ['openmc.Plane', 'openmc.XPlane', 'openmc.YPlane', 'openmc.ZPlane', 'openmc.Sphere', 'openmc.XCylinder', 
                                 'openmc.YCylinder', 'openmc.ZCylinder', 'openmc.Cone', 'openmc.XCone', 'openmc.YCone', 'openmc.ZCone',
@@ -97,9 +107,6 @@ class ExportGeometry(QWidget):
         self.spinBox.setValue(1)
         self.spinBox_2.setValue(1)
         self.spinBox_3.setValue(1)
-        self.text_inserted = False
-        self.modify_universes = False
-
         self.surface_name_sub_list = []
         self.surface_id_sub_list = []
         self.cells = []
@@ -109,10 +116,6 @@ class ExportGeometry(QWidget):
         self.universe_name_sub_list = []
         self.universe_id_sub_list = []
 
-        self.surface_suffix = 'Surf'
-        self.cell_suffix = 'Cell'
-        self.universe_suffix = 'Univ'
-        self.lattice_suffix = 'Lat'
         # Surface id
         if self.surface_id_list:
             n = self.surface_id_list[-1]
@@ -220,6 +223,24 @@ class ExportGeometry(QWidget):
         self.RB_2D.toggled.connect(lambda: self.spinBox_3.setValue(1))
         self.Modify_TextEdit_PB.clicked.connect(self.modify_textedit)
         self.XY_CB.currentIndexChanged.connect(self.Orientation_Lat)
+        self.Add_id_to_surf_CB.stateChanged.connect(self.Add_SURF_ID)
+        self.Add_id_to_cell_CB.stateChanged.connect(self.Add_CELL_ID)
+
+    def Add_SURF_ID(self):
+        if self.Add_id_to_surf_CB.isChecked():
+            self.ADD_SURF_ID_NEW = True
+        else:
+            self.ADD_SURF_ID_NEW = False
+
+    def Add_CELL_ID(self):
+        if self.comboBox_3.currentIndex() == 1:
+            if self.Add_id_to_cell_CB.isChecked():
+                self.ADD_CELL_ID_NEW = True
+            else:
+                self.ADD_CELL_ID_NEW = False
+        elif self.comboBox_3.currentIndex() == 2:
+            self.Add_id_to_cell_CB.setChecked(True)
+            self.ADD_UNIV_ID_NEW = True
 
     def Univ_Lat_LE_Update(self):
         if self.geomWidget.currentIndex() == 0:
@@ -962,23 +983,28 @@ class ExportGeometry(QWidget):
             self.Rotation_CB.setEnabled(True)
             self.cells.append(self.lineEdit_13.text())
             item = 'cell'
+            if self.ADD_CELL_ID_NEW:
+                CELL_ID_NEW = "cell_id=" + self.lineEdit_14.text() + ", " 
+            else:
+                CELL_ID_NEW = ""
+            
             if self.lineEdit_13.text() == '':
                 self.showDialog('Warning', 'Cannot create ' + item + ', select name first!')
                 return
-            elif self.lineEdit_14.text() == '':
+            elif self.lineEdit_14.text() == '' and self.ADD_CELL_ID_NEW:
                 self.showDialog('Warning', 'Cannot create  ' + item + ', select cell id first!')
                 return
             else:
                 if self.lineEdit_13.text() in self.cell_name_list:
                     self.showDialog('Warning', 'Cell name already used, select new name !')
                     return
-                elif int(self.lineEdit_14.text()) in self.cell_id_list:
+                elif int(self.lineEdit_14.text()) in self.cell_id_list and self.ADD_CELL_ID_NEW:
                     self.showDialog('Warning', 'Cell id already used, select new id !')
                     return
                 else:
                     if self.lineEdit_13.text() not in self.regions:
                         self.regions.append(self.lineEdit_13.text())
-                    print(self.lineEdit_13.text() + "= openmc.Cell(" + "cell_id=" + self.lineEdit_14.text() + ",", "name='" + self.lineEdit_13.text() + "')")
+                    print(self.lineEdit_13.text() + "= openmc.Cell(" + CELL_ID_NEW + "name='" + self.lineEdit_13.text() + "')")
                     if self.Region_TextEdit.toPlainText():
                         if '|' in self.Region_TextEdit.toPlainText() or '~' in self.Region_TextEdit.toPlainText():
                             print(self.lineEdit_13.text() + ".region = " + self.Region_TextEdit.toPlainText())
@@ -1022,16 +1048,19 @@ class ExportGeometry(QWidget):
                 self.Phi_LE.setText('')
                 self.Psi_LE.setText('')
         elif self.comboBox_3.currentIndex() == 2:
-            '''self.Translation_CB.setEnabled(False)
-            self.Rotation_CB.setEnabled(False)'''
             item = 'universe'
+            if self.ADD_UNIV_ID_NEW:
+                UNIV_ID_NEW = "universe_id=" + self.lineEdit_15.text() + ", "
+            else:
+                UNIV_ID_NEW = ""
             if self.lineEdit_13.text() == '':
                 self.showDialog('Warning', 'Cannot create ' + item + ', select name first!')
                 return
-            elif self.lineEdit_15.text() == '':
-                self.showDialog('Warning', 'Cannot create  ' + item + ', select cell id first!')
+            elif self.lineEdit_15.text() == '' and self.ADD_UNIV_ID_NEW:
+                self.showDialog('Warning', 'Cannot create  ' + item + ', select universe id first!')
                 return
             else:
+
                 if self.lineEdit_13.text() in self.universe_name_list or self.lineEdit_13.text() in self.lattice_name_list:
                     self.showDialog('Warning', 'Universe name already used, select new name !')
                     return
@@ -1039,7 +1068,7 @@ class ExportGeometry(QWidget):
                     self.showDialog('Warning', 'Universe id already used, select new id !')
                     return
                 else:
-                    print(self.lineEdit_13.text() + " = openmc.Universe(universe_id=" + self.lineEdit_15.text() + "," + " name='" + self.lineEdit_13.text() + "')")
+                    print(self.lineEdit_13.text() + " = openmc.Universe(" + UNIV_ID_NEW + " name='" + self.lineEdit_13.text() + "')")
                     if self.Region_TextEdit:
                         textList = self.Region_TextEdit.toPlainText().replace(' ','').split(",")
                         self.cells_in_universes += textList
@@ -1111,6 +1140,7 @@ class ExportGeometry(QWidget):
             item.setEnabled(False)
 
         if self.comboBox_3.currentIndex() == 1:
+            self.Add_CELL_ID()
             self.plus_RB.show()
             self.minus_RB.show()
             self.label_15.show()
@@ -1135,6 +1165,7 @@ class ExportGeometry(QWidget):
             self.add_id_CB.setText('add id to cell name')
             self.lineEdit_14.setText(str(self.cell_id))
         elif self.comboBox_3.currentIndex() == 2:
+            self.Add_CELL_ID()
             self.plus_RB.hide()
             self.minus_RB.hide()
             self.Operator_CB.hide()
@@ -1163,10 +1194,14 @@ class ExportGeometry(QWidget):
 
     def Add_Surface(self):
         self.Insert_Header_Text()
+        if self.ADD_SURF_ID_NEW:
+            SURF_ID_NEW = "surface_id=" + str(self.lineEdit_12.text()) +", "
+        else:
+            SURF_ID_NEW = ""
         if self.lineEdit_11.text() == '':
             self.showDialog('Warning', 'Cannot create surface, select name first !')
             return
-        elif self.lineEdit_12.text() == '':
+        elif self.lineEdit_12.text() == '' and self.ADD_SURF_ID_NEW:
             self.showDialog('Warning', 'Cannot create surface, select surface id first !')
             return
         else:
@@ -1178,7 +1213,7 @@ class ExportGeometry(QWidget):
             if self.lineEdit_11.text() in self.surface_name_list:
                 self.showDialog('Warning', 'Surface name already used, select new name !')
                 return
-            elif int(self.lineEdit_12.text()) in self.surface_id_list:
+            elif int(self.lineEdit_12.text()) in self.surface_id_list and self.ADD_SURF_ID_NEW:
                 self.showDialog('Warning', 'Surface id already used, select new id !')
                 return
             else:
@@ -1187,7 +1222,7 @@ class ExportGeometry(QWidget):
                 if self.comboBox.currentIndex() == 0:
                     return
                 if self.comboBox.currentIndex() == 1:  # Plane
-                    print(self.lineEdit_11.text() + "= openmc.Plane(" + "surface_id=" + self.lineEdit_12.text() + ",",
+                    print(self.lineEdit_11.text() + "= openmc.Plane(" + SURF_ID_NEW + 
                                 "a=" + self.lineEdit.text() + ",", "b=" + self.lineEdit_2.text() + ",",
                                 "c=" + self.lineEdit_3.text() + ",",
                                 "d=" + self.lineEdit_4.text() + ",", "name='" + self.lineEdit_11.text() +
@@ -1200,51 +1235,46 @@ class ExportGeometry(QWidget):
                     if self.comboBox.currentIndex() == 4:
                         d = 'z0='
                     list1 = ['= openmc.XPlane(', '= openmc.YPlane(', '= openmc.ZPlane(']
-                    print(self.lineEdit_11.text() + list1[self.comboBox.currentIndex() - 2] +
-                                "surface_id=" + self.lineEdit_12.text() + ",",
+                    print(self.lineEdit_11.text() + list1[self.comboBox.currentIndex() - 2] + SURF_ID_NEW + 
                                 d + self.lineEdit.text() + ",", "name='" + self.lineEdit_11.text() +
                                 "'" + Boundary_Def + ')')
 
                 elif self.comboBox.currentIndex() == 5:    # Sphere
-                    print(self.lineEdit_11.text() + "= openmc.Sphere(" + "surface_id=" + self.lineEdit_12.text() + ",",
+                    print(self.lineEdit_11.text() + "= openmc.Sphere(" + SURF_ID_NEW + 
                                 "x0=" + self.lineEdit.text() + ",", "y0=" + self.lineEdit_2.text() + ",",
                                 "z0=" + self.lineEdit_3.text() + ",",
                                 "r=" + self.lineEdit_4.text() + ",", "name='" + self.lineEdit_11.text() +
                                 "'" + Boundary_Def + ')')
                 elif self.comboBox.currentIndex() == 6:   # XCylinder
-                    print(self.lineEdit_11.text() + '= openmc.XCylinder(' +
-                                "surface_id=" + self.lineEdit_12.text() + ",",
+                    print(self.lineEdit_11.text() + '= openmc.XCylinder(' + SURF_ID_NEW + 
                                 "y0=" + self.lineEdit_2.text() + ",", "z0=" + self.lineEdit_3.text() + ",",
                                 "r=" + self.lineEdit_4.text() + ",", "name='" + self.lineEdit_11.text() +
                                 "'" + Boundary_Def + ')')
                 elif self.comboBox.currentIndex() == 7:  # YCylinder
-                    print(self.lineEdit_11.text() + '= openmc.YCylinder(' +
-                                "surface_id=" + self.lineEdit_12.text() + ",",
+                    print(self.lineEdit_11.text() + '= openmc.YCylinder(' + SURF_ID_NEW + 
                                 "x0=" + self.lineEdit.text() + ",", "z0=" + self.lineEdit_3.text() + ",",
                                 "r=" + self.lineEdit_4.text() + ",", "name='" + self.lineEdit_11.text() +
                                 "'" + Boundary_Def + ')')
                 elif self.comboBox.currentIndex() == 8:   # ZCylinder
-                    print(self.lineEdit_11.text() + '= openmc.ZCylinder(' +
-                                "surface_id=" + self.lineEdit_12.text() + ",",
+                    print(self.lineEdit_11.text() + '= openmc.ZCylinder(' + SURF_ID_NEW + 
                                 "x0=" + self.lineEdit.text() + ",", "y0=" + self.lineEdit_2.text() + ",",
                                 "r=" + self.lineEdit_4.text() + ",", "name='" + self.lineEdit_11.text() +
                                 "'" + Boundary_Def + ')')
                 elif self.comboBox.currentIndex() == 9:    # Cone
-                    print(self.lineEdit_11.text() + '= openmc.Cone(' + "surface_id=" + self.lineEdit_12.text() + ",",
+                    print(self.lineEdit_11.text() + '= openmc.Cone(' + SURF_ID_NEW + 
                                 "x0=" + self.lineEdit.text() + ",", "y0=" + self.lineEdit_2.text() + ",",
                                 "z0=" + self.lineEdit_3.text() + ",", "r2=" + self.lineEdit_4.text() + ",",
                                 "dx=" + self.lineEdit_5.text() + ",", "dy=" + self.lineEdit_6.text() + ",",
                                 "dz=" + self.lineEdit_7.text() + ",", "name='" + self.lineEdit_11.text() +
                                 "'" + Boundary_Def + ')')
                 elif self.comboBox.currentIndex() in [10, 11, 12]:  # XCone, YCone, ZCone
-                    print(self.lineEdit_11.text() + '= ' + self.comboBox.currentText() + '(' +
-                                "surface_id=" + self.lineEdit_12.text() + ",",
+                    print(self.lineEdit_11.text() + '= ' + self.comboBox.currentText() + '(' + SURF_ID_NEW + 
                                 "x0=" + self.lineEdit.text() + ",", "y0=" + self.lineEdit_2.text() + ",",
                                 "z0=" + self.lineEdit_3.text() + ",",
                                 "r2=" + self.lineEdit_4.text() + ",", "name='" + self.lineEdit_11.text() +
                                 "'" + Boundary_Def + ')')
                 elif self.comboBox.currentIndex() == 13:  # Quadratic
-                    print(self.lineEdit_11.text() + '= openmc.Quadric(' + "surface_id=" + self.lineEdit_12.text() + ",",
+                    print(self.lineEdit_11.text() + '= openmc.Quadric(' + SURF_ID_NEW + 
                                 "a=" + self.lineEdit.text() + ",", "b=" + self.lineEdit_2.text() + ",",
                                 "c=" + self.lineEdit_3.text() + ",", "d=" + self.lineEdit_4.text() + ",",
                                 "e=" + self.lineEdit_5.text() + ",", "f=" + self.lineEdit_6.text() + ",",
@@ -1253,7 +1283,7 @@ class ExportGeometry(QWidget):
                                 "name='" + self.lineEdit_11.text() +
                                 "'" + Boundary_Def + ')')
                 elif self.comboBox.currentIndex() in [14, 15, 16]:  # XTorus, YTorus, ZTorus
-                    print(self.lineEdit_11.text() + '= ' + self.comboBox.currentText() + '(' + "surface_id=" + self.lineEdit_12.text() + ",",
+                    print(self.lineEdit_11.text() + '= ' + self.comboBox.currentText() + '(' + SURF_ID_NEW + 
                                 "x0=" + self.lineEdit.text() + ",", "y0=" + self.lineEdit_2.text() + ",",
                                 "z0=" + self.lineEdit_3.text() + ",", "a=" + self.lineEdit_7.text() + ",",
                                 "b=" + self.lineEdit_8.text() + ",", "c=" + self.lineEdit_9.text() + ",",
@@ -1261,33 +1291,33 @@ class ExportGeometry(QWidget):
                                 "'" + Boundary_Def + ')')
                 elif self.comboBox.currentIndex() == 17:  # Rectangular prism
                     origin = (float(self.lineEdit.text()), float(self.lineEdit_2.text()),)
-                    print(self.lineEdit_11.text() + '= openmc.' + self.comboBox.currentText() + '(',
-                              self.lineEdit_7.text() + ",", self.lineEdit_8.text() + ",", "axis='" + self.Orientation_CB.currentText() + "',",
-                              "origin=" + str(origin) + ",",
+                    print(self.lineEdit_11.text() + '= openmc.' + self.comboBox.currentText() + '(' + SURF_ID_NEW + 
+                              str(self.lineEdit_7.text()) + ",", str(self.lineEdit_8.text()) + ",", "axis='" + 
+                              self.Orientation_CB.currentText() + "',", "origin=" + str(origin) + ",",
                               "corner_radius=" + self.lineEdit_4.text(), Boundary_Def + ')')
                 elif self.comboBox.currentIndex() == 18:  # Hexagonal prism
                     origin = (float(self.lineEdit.text()), float(self.lineEdit_2.text()),)
-                    print(self.lineEdit_11.text() + '= openmc.' + self.comboBox.currentText() + '(',
-                              "edge_length=" + self.lineEdit_7.text() + ",", "orientation='" + self.Orientation_CB.currentText() + "',",
-                              "origin=" + str(origin) + ",",
-                              "corner_radius=" + self.lineEdit_4.text(), Boundary_Def + ')')
+                    print(self.lineEdit_11.text() + '= openmc.' + self.comboBox.currentText() + '(' + SURF_ID_NEW + 
+                              "edge_length=" + str(self.lineEdit_7.text()) + ",", "orientation='" + 
+                              self.Orientation_CB.currentText() + "',", "origin=" + str(origin) + ",",
+                              "corner_radius=" + str(self.lineEdit_4.text()), Boundary_Def + ')')
                 elif self.comboBox.currentIndex() == 19:  # RightCircularCylinder
                     origin = (float(self.lineEdit_7.text()), float(self.lineEdit_8.text()), float(self.lineEdit_9.text()))
-                    print(self.lineEdit_11.text() + '= openmc.' + self.comboBox.currentText() + '(',
-                              "height=" + self.lineEdit.text() + ",", 
-                              "radius =" + self.lineEdit_2.text() + ",", 
+                    print(self.lineEdit_11.text() + '= openmc.' + self.comboBox.currentText() + '(' + SURF_ID_NEW + 
+                              "height=" + str(self.lineEdit.text()) + ",", 
+                              "radius =" + str(self.lineEdit_2.text()) + ",", 
                               "axis='" + self.Orientation_CB.currentText() + "',",
                               "center_base=" + str(origin) + ",",
-                              "upper_fillet_radius=" + self.lineEdit_4.text() + ",",
-                              "lower_fillet_radius=" + self.lineEdit_10.text(), Boundary_Def + ')')
+                              "upper_fillet_radius=" + str(self.lineEdit_4.text()) + ",",
+                              "lower_fillet_radius=" + str(self.lineEdit_10.text()), Boundary_Def + ')')
                 elif self.comboBox.currentIndex() == 20:  # RectangularParallelepiped
-                    print(self.lineEdit_11.text() + '= openmc.' + self.comboBox.currentText() + '(',
-                              "Xmin=" + self.lineEdit.text() + ",", 
-                              "Xmax=" + self.lineEdit_7.text() + ",", 
-                              "Ymin=" + self.lineEdit_2.text() + ",",
-                              "Ymax=" + self.lineEdit_8.text() + ",",
-                              "Zmin=" + self.lineEdit_3.text() + ",",
-                              "Zmax=" + self.lineEdit_9.text(), Boundary_Def + ')')
+                    print(self.lineEdit_11.text() + '= openmc.' + self.comboBox.currentText() + '(' + SURF_ID_NEW + 
+                              "xmin=" + str(self.lineEdit.text()) + ",", 
+                              "xmax=" + str(self.lineEdit_7.text()) + ",", 
+                              "ymin=" + str(self.lineEdit_2.text()) + ",",
+                              "ymax=" + str(self.lineEdit_8.text()) + ",",
+                              "zmin=" + str(self.lineEdit_3.text()) + ",",
+                              "zmax=" + str(self.lineEdit_9.text()), Boundary_Def + ')')
 
                 self.surface_name_list.append(self.lineEdit_11.text())
                 self.surface_name_sub_list.append(self.lineEdit_11.text())

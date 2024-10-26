@@ -1218,6 +1218,11 @@
                   </item>
                   <item>
                    <property name="text">
+                    <string>v0.15.0</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
                     <string>v0.14.0</string>
                    </property>
                   </item>
@@ -1746,12 +1751,22 @@
                     </property>
                     <item>
                      <property name="text">
+                      <string>ENDF/B-VIII.0 PWR spectrum v0.12+</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>ENDF/B-VIII.0 fast spectrum v0.12+</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
                       <string>ENDF-B/VII.1 PWR spectrum v0.11</string>
                      </property>
                     </item>
                     <item>
                      <property name="text">
-                      <string>ENDF-B/VII.1 PWR spectrum v0.12</string>
+                      <string>ENDF-B/VII.1 PWR spectrum v0.12+</string>
                      </property>
                     </item>
                     <item>
@@ -1761,7 +1776,7 @@
                     </item>
                     <item>
                      <property name="text">
-                      <string>ENDF-B/VII.1 fast spectrum v0.12</string>
+                      <string>ENDF-B/VII.1 fast spectrum v0.12+</string>
                      </property>
                     </item>
                     <item>
@@ -1771,7 +1786,7 @@
                     </item>
                     <item>
                      <property name="text">
-                      <string>Simplified chain PWR spectrum v0.12</string>
+                      <string>Simplified chain PWR spectrum v0.12+</string>
                      </property>
                     </item>
                     <item>
@@ -1781,7 +1796,7 @@
                     </item>
                     <item>
                      <property name="text">
-                      <string>Simplified chain fast spectrum v0.12</string>
+                      <string>Simplified chain fast spectrum v0.12+</string>
                      </property>
                     </item>
                    </widget>
@@ -2297,9 +2312,9 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="buttonGroup_3"/>
-  <buttongroup name="buttonGroup"/>
   <buttongroup name="buttonGroup_4"/>
   <buttongroup name="buttonGroup_2"/>
+  <buttongroup name="buttonGroup_3"/>
+  <buttongroup name="buttonGroup"/>
  </buttongroups>
 </ui>
