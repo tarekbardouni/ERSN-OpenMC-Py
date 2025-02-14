@@ -299,11 +299,11 @@ class ExportMaterials(QWidget):
     def Read_Mat_Data(self):
         #if self.Materials_Construct.currentIndex() == 1 and self.Mat_List_CB.currentIndex() >= 1:
         if self.Mat_List_CB.currentIndex() >= 1:
-            self.lines = self.v_1.toPlainText().split('\n')
+            Mat_Name = self.Mat_List_CB.currentText()  
+            self.lines = [line for line in self.v_1.toPlainText().split('\n') if Mat_Name in line]
             self.Value_To_Find = None
             self.Nuclide_CB.clear()
             #if self.materials_name_list:
-            Mat_Name = self.Mat_List_CB.currentText()  
             Mat_Id = self.materials_id_list[self.materials_name_list.index(Mat_Name)]   
             self.Mat_Name = Mat_Name
             self.Mat_Id = Mat_Id
@@ -339,7 +339,23 @@ class ExportMaterials(QWidget):
             else:
                 self.SAB_CB.setCurrentIndex(0)
                 self.SAB = ''
+            
             self.Value_To_Find = None
+            
+            self.Find_Depletable(self.lines, Mat_Name, 'depletable')
+            if self.Value_To_Find:
+                self.Deplete_CB2.setChecked(True)
+            else:
+                self.Deplete_CB2.setChecked(False)
+
+            self.Find_Volume(self.lines, Mat_Name, 'volume')
+            if self.Value_To_Find:
+                self.Volume_LE.setText(str(self.Value_To_Find))
+            else:
+                self.Volume_LE.setText('')
+
+            self.Value_To_Find = None 
+
             self.Store_Materials_Info(Mat_Name, Mat_Id)
             self.find_Nuclides(self.lines, Mat_Name, 'add_nuclide')
             self.find_Elements(self.lines, Mat_Name, 'add_element')
@@ -528,6 +544,10 @@ class ExportMaterials(QWidget):
 
             if self.SAB_CB.currentText() != 'None':
                 print(self.Mat_Name + ".add_s_alpha_beta(" + "'" + self.SAB_CB.currentText() + "')")
+            if self.Deplete_CB2.isChecked():
+                print(self.Mat_Name + ".depletable = True")
+            if self.is_numeric(self.Volume_LE.text()) or self.Volume_LE.text().isdigit():
+                print(self.Mat_Name + ".volume = " + str(self.Volume_LE.text()))
         else:
             return
 
@@ -550,6 +570,13 @@ class ExportMaterials(QWidget):
         self.Enrichment_Type_CB.setCurrentIndex(1)
         self.Element_CB.setCurrentIndex(0)
         self.Nuclide_CB.setCurrentIndex(0)
+
+    def is_numeric(self, s):
+        try:
+            float(s)  # Tries to convert the string to a float
+            return True
+        except ValueError:
+            return False
 
     def modify_nuclides(self):
         for nuclide in self.Mat_Nuclide_List[self.Mat_Name]:
@@ -1016,7 +1043,7 @@ class ExportMaterials(QWidget):
     def find_Temperature(self, lines, Mat_Name, key):
         from string import ascii_letters
         for line in lines:
-            if Mat_Name in line:
+            if Mat_Name == line.split('=',1)[0].replace(' ',''):
                 if key in line:
                     items = line.replace(' ', '').split(',')
                     for w in items:
@@ -1029,7 +1056,7 @@ class ExportMaterials(QWidget):
 
     def find_Density(self, lines, Mat_Name, key):
         for line in lines:
-            if Mat_Name in line:
+            if Mat_Name == line.split('.', 1)[0].replace(' ',''):
                 if key in line:
                     items = line[line.find("(") + 1: line.find(")")].replace(' ', '').split(',')
                     if len(items) >=2:    
@@ -1040,14 +1067,23 @@ class ExportMaterials(QWidget):
                         self.Value_To_Find = items[0]
                     break
 
-    def Detect_Data(self, line, key):
-        items = line[line.find("(") + 1: line.find(")")].replace(' ', '').split(',')
-        for w in items:
-            if key in w:
-                self.Value_To_Find = w.split('=')[1]
-                break
-            else:
-                self.Value_To_Find = None
+    def Find_Depletable(self, lines, Mat_Name, key):
+        for line in lines:
+            if Mat_Name == line.split('.', 1)[0].replace(' ',''):
+                if key in line:
+                    self.Value_To_Find = line.split('=')[1]
+                    break
+                else:
+                    self.Value_To_Find = None
+
+    def Find_Volume(self, lines, Mat_Name, key):
+        for line in lines:
+            if Mat_Name == line.split('.', 1)[0].replace(' ',''):
+                if key in line:
+                    self.Value_To_Find = line.split('=')[1]
+                    break
+                else:
+                    self.Value_To_Find = None
 
     def sync_name1(self):
         import string
@@ -1155,6 +1191,8 @@ class ExportMaterials(QWidget):
                 print(str(self.lineEdit.text()) + ".set_density('macro')")
             else:
                 print(str(self.lineEdit.text())+'.set_density(' + "'" + Density_Unit + "',", str(Density) + ")")
+            if self.Deplete_CB1.isChecked():
+                print(str(self.lineEdit.text())+'.depletable = True')
             if self.comboBox_2.currentText() != 'None':
                 print(str(self.lineEdit.text() + ".add_s_alpha_beta(") + str("'"+self.comboBox_2.currentText() + "')"))
 
@@ -1212,7 +1250,7 @@ class ExportMaterials(QWidget):
 
     def Fill_Mixture_List(self):
         if self.Check_Mixture_CB.isChecked():
-            self.label_12.hide()
+            #self.label_12.hide()
             self.Mixture_CB.show()
             self.Fraction_Type_CB.show()
             self.label_10.show()
@@ -1220,18 +1258,18 @@ class ExportMaterials(QWidget):
             self.Mixture_Density_LE.show()
             self.Mixture_Density_LE.setEnabled(False)
             self.label_38.hide()
-            self.label_42.hide()
+            #self.label_42.hide()
             self.lineEdit_4.hide()
             self.comboBox.hide()
         else:
-            self.label_12.show()
+            #self.label_12.show()
             self.Mixture_CB.hide()
             self.Fraction_Type_CB.hide()
             self.label_10.hide()
             self.label_11.hide()
             self.Mixture_Density_LE.hide()
             self.label_38.show()
-            self.label_42.show()
+            #self.label_42.show()
             self.lineEdit_4.show()
             self.comboBox.show()
             self.lineEdit_3.setText('293.6')

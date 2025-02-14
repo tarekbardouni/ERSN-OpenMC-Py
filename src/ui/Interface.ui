@@ -1267,6 +1267,31 @@
               <string>Simulation parameters</string>
              </property>
              <layout class="QGridLayout" name="gridLayout_12">
+              <item row="2" column="0">
+               <layout class="QVBoxLayout" name="verticalLayout">
+                <item>
+                 <widget class="QPushButton" name="pushButton_15">
+                  <property name="text">
+                   <string>Run OpenMC in plotting mode</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="pushButton_19">
+                  <property name="text">
+                   <string>Run an OpenMC simulation</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="Plotter_PB">
+                  <property name="text">
+                   <string>Run openmc-plotter tool</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
               <item row="0" column="0">
                <widget class="QRadioButton" name="radioButton">
                 <property name="text">
@@ -1290,21 +1315,18 @@
                 </attribute>
                </widget>
               </item>
-              <item row="2" column="0">
-               <widget class="QPushButton" name="pushButton_15">
-                <property name="text">
-                 <string>Create plots</string>
-                </property>
-               </widget>
+              <item row="4" column="0">
+               <layout class="QHBoxLayout" name="horizontalLayout_3">
+                <item>
+                 <widget class="QPushButton" name="pB_Clear_OW_2">
+                  <property name="text">
+                   <string>Clear Output Window</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
               </item>
               <item row="3" column="0">
-               <widget class="QPushButton" name="pushButton_19">
-                <property name="text">
-                 <string>Start simulation</string>
-                </property>
-               </widget>
-              </item>
-              <item row="4" column="0">
                <spacer name="verticalSpacer_8">
                 <property name="orientation">
                  <enum>Qt::Vertical</enum>
@@ -1316,17 +1338,6 @@
                  </size>
                 </property>
                </spacer>
-              </item>
-              <item row="5" column="0">
-               <layout class="QHBoxLayout" name="horizontalLayout_3">
-                <item>
-                 <widget class="QPushButton" name="pB_Clear_OW_2">
-                  <property name="text">
-                   <string>Clear Output Window</string>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
               </item>
              </layout>
             </widget>
@@ -1366,7 +1377,7 @@
      <x>0</x>
      <y>0</y>
      <width>1223</width>
-     <height>28</height>
+     <height>22</height>
     </rect>
    </property>
   </widget>

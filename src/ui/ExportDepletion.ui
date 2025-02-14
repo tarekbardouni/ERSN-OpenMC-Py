@@ -6,9 +6,21 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1167</width>
-    <height>715</height>
+    <width>1309</width>
+    <height>795</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>16777215</width>
+    <height>860</height>
+   </size>
   </property>
   <property name="windowTitle">
    <string>Depletion</string>
@@ -17,7 +29,7 @@
    <item row="0" column="0">
     <widget class="QGroupBox" name="groupBox_3">
      <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
@@ -26,6 +38,34 @@
       <string>Depletion parameters</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_6">
+      <item row="0" column="1">
+       <widget class="QGroupBox" name="groupBox_2">
+        <property name="minimumSize">
+         <size>
+          <width>60</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>60</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="title">
+         <string/>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_5">
+         <item row="0" column="0">
+          <widget class="QPushButton" name="CreateDepletion_PB">
+           <property name="text">
+            <string>&gt;&gt;</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
       <item row="0" column="2">
        <widget class="QGroupBox" name="groupBox_4">
         <property name="title">
@@ -63,36 +103,8 @@
         </layout>
        </widget>
       </item>
-      <item row="0" column="1">
-       <widget class="QGroupBox" name="groupBox_2">
-        <property name="minimumSize">
-         <size>
-          <width>60</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>60</width>
-          <height>16777215</height>
-         </size>
-        </property>
-        <property name="title">
-         <string/>
-        </property>
-        <layout class="QGridLayout" name="gridLayout_5">
-         <item row="0" column="0">
-          <widget class="QPushButton" name="CreateDepletion_PB">
-           <property name="text">
-            <string>&gt;&gt;</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </widget>
-      </item>
       <item row="0" column="0">
-       <widget class="QFrame" name="frame">
+       <widget class="QGroupBox" name="groupBox">
         <property name="maximumSize">
          <size>
           <width>500</width>
@@ -101,7 +113,7 @@
         </property>
         <layout class="QGridLayout" name="gridLayout_7">
          <item row="2" column="0">
-          <widget class="QGroupBox" name="groupBox">
+          <widget class="QGroupBox" name="groupBox_6">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
              <horstretch>0</horstretch>
@@ -109,308 +121,45 @@
             </sizepolicy>
            </property>
            <property name="title">
-            <string>Transport operator</string>
+            <string>Depletable material</string>
            </property>
-           <layout class="QGridLayout" name="gridLayout_14">
+           <layout class="QGridLayout" name="gridLayout_17">
             <item row="0" column="0">
-             <layout class="QGridLayout" name="gridLayout_4">
-              <item row="2" column="1">
-               <widget class="QLabel" name="label_13">
-                <property name="text">
-                 <string>Fission-Q (in eV)</string>
-                </property>
-               </widget>
-              </item>
+             <layout class="QGridLayout" name="gridLayout_16">
               <item row="0" column="2">
-               <widget class="QCheckBox" name="Prev_Res_CB">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
+               <widget class="QLabel" name="label_18">
                 <property name="text">
-                 <string>Previous results</string>
-                </property>
-               </widget>
-              </item>
-              <item row="8" column="1">
-               <widget class="QLineEdit" name="FissYieldOpts_LE">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-               </widget>
-              </item>
-              <item row="8" column="0">
-               <widget class="QComboBox" name="FissYieldMode_CB">
-                <item>
-                 <property name="text">
-                  <string>select mode</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>constant</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>cutoff</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>average</string>
-                 </property>
-                </item>
-               </widget>
-              </item>
-              <item row="0" column="0">
-               <widget class="QLabel" name="label_1">
-                <property name="text">
-                 <string>Transport Operator</string>
-                </property>
-               </widget>
-              </item>
-              <item row="3" column="2">
-               <widget class="QComboBox" name="Diff_Vol_Meth_CB">
-                <item>
-                 <property name="text">
-                  <string>select item</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>divide equally</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>match cell</string>
-                 </property>
-                </item>
-               </widget>
-              </item>
-              <item row="0" column="1">
-               <widget class="QLabel" name="label_9">
-                <property name="text">
-                 <string>Chain file</string>
-                </property>
-               </widget>
-              </item>
-              <item row="7" column="0">
-               <widget class="QLabel" name="label_14">
-                <property name="text">
-                 <string>Fission yield mode</string>
+                 <string>Volume (in cc or formula)</string>
                 </property>
                </widget>
               </item>
               <item row="1" column="2">
-               <widget class="QCheckBox" name="DiffBurnMats_CB">
+               <widget class="QLineEdit" name="Volume_LE">
                 <property name="sizePolicy">
                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                   <horstretch>0</horstretch>
                   <verstretch>0</verstretch>
                  </sizepolicy>
                 </property>
-                <property name="text">
-                 <string>diff_burnable_mats</string>
-                </property>
                </widget>
               </item>
-              <item row="2" column="0">
-               <widget class="QLabel" name="label_7">
+              <item row="0" column="0">
+               <widget class="QLabel" name="label_23">
                 <property name="text">
-                 <string>Normalization mode</string>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="2">
-               <widget class="QLabel" name="label_11">
-                <property name="text">
-                 <string>Diff volume method</string>
+                 <string>Material</string>
                 </property>
                </widget>
               </item>
               <item row="1" column="0">
-               <widget class="QComboBox" name="Op_CB">
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <item>
-                 <property name="text">
-                  <string>CoupledOperator</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>IndependentOperator</string>
-                 </property>
-                </item>
-               </widget>
-              </item>
-              <item row="9" column="0">
-               <widget class="QLabel" name="label_8">
-                <property name="text">
-                 <string>Reaction rate mode</string>
-                </property>
-               </widget>
-              </item>
-              <item row="3" column="0">
-               <widget class="QComboBox" name="NormMod_CB">
-                <item>
-                 <property name="text">
-                  <string>select item</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>energy-deposition</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>fission-q</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>source-rate</string>
-                 </property>
-                </item>
-               </widget>
+               <layout class="QGridLayout" name="gridLayout_19"/>
               </item>
               <item row="1" column="1">
-               <widget class="QComboBox" name="Chain_CB">
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <item>
-                 <property name="text">
-                  <string>chain_simple.xml</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>chain_endfb71_pwr.xml</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>chain_endfb71_sfr.xml</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>chain_endfb80_pwr.xml</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>chain_endfb80_sfr.xml</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>chain_casl_pwr.xml</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>chain_casl_sfr.xml</string>
-                 </property>
-                </item>
-               </widget>
-              </item>
-              <item row="3" column="1">
-               <widget class="QLineEdit" name="Fission_Q_LE">
+               <widget class="QLineEdit" name="Depletable_Mats_LE">
                 <property name="sizePolicy">
                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                   <horstretch>0</horstretch>
                   <verstretch>0</verstretch>
                  </sizepolicy>
-                </property>
-               </widget>
-              </item>
-              <item row="7" column="1">
-               <widget class="QLabel" name="label_15">
-                <property name="text">
-                 <string>Fission yield opts</string>
-                </property>
-               </widget>
-              </item>
-              <item row="10" column="0">
-               <widget class="QComboBox" name="RRMode_CB">
-                <item>
-                 <property name="text">
-                  <string>select mode</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>flux</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>direct</string>
-                 </property>
-                </item>
-               </widget>
-              </item>
-              <item row="9" column="1">
-               <widget class="QLabel" name="label_10">
-                <property name="text">
-                 <string>reaction_rate_opts</string>
-                </property>
-               </widget>
-              </item>
-              <item row="10" column="1">
-               <widget class="QLineEdit" name="RR_Opts_LE">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-               </widget>
-              </item>
-              <item row="10" column="2">
-               <widget class="QSpinBox" name="RedChainLevel_SP">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-               </widget>
-              </item>
-              <item row="9" column="2">
-               <widget class="QLabel" name="label_16">
-                <property name="text">
-                 <string>Reduce chain level</string>
-                </property>
-               </widget>
-              </item>
-              <item row="8" column="2">
-               <widget class="QCheckBox" name="ReduceChain_CB">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="text">
-                 <string>Reduce chain</string>
                 </property>
                </widget>
               </item>
@@ -419,7 +168,138 @@
            </layout>
           </widget>
          </item>
-         <item row="5" column="0">
+         <item row="1" column="0">
+          <widget class="QGroupBox" name="groupBox">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <layout class="QGridLayout" name="gridLayout_12">
+            <item row="0" column="0">
+             <layout class="QGridLayout" name="gridLayout_3">
+              <item row="1" column="2">
+               <widget class="QComboBox" name="TimeUnit_CB">
+                <item>
+                 <property name="text">
+                  <string>d</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>h</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>min</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>s</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+              <item row="1" column="3">
+               <widget class="QLineEdit" name="Power_LE">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>150</width>
+                  <height>0</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="2">
+               <widget class="QLabel" name="label_4">
+                <property name="minimumSize">
+                 <size>
+                  <width>60</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>60</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>Time units</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="0" colspan="2">
+               <widget class="QLabel" name="label_3">
+                <property name="text">
+                 <string>Time steps</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0" colspan="2">
+               <widget class="QLineEdit" name="TimeSteps_LE">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>160</width>
+                  <height>0</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="4">
+               <widget class="QComboBox" name="Power_Unit_CB">
+                <item>
+                 <property name="text">
+                  <string>W</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>KW</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>MW</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+              <item row="0" column="4">
+               <widget class="QLabel" name="label_5">
+                <property name="text">
+                 <string>Power units</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="3">
+               <widget class="QLabel" name="label_6">
+                <property name="text">
+                 <string>power</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item row="6" column="0">
           <widget class="QGroupBox" name="groupBox">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -479,7 +359,7 @@
           </widget>
          </item>
          <item row="3" column="0">
-          <widget class="QGroupBox" name="groupBox_5">
+          <widget class="QGroupBox" name="groupBox">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
              <horstretch>0</horstretch>
@@ -487,95 +367,954 @@
             </sizepolicy>
            </property>
            <property name="title">
-            <string/>
+            <string>Transport Depletion and Transmutation operator parameters</string>
            </property>
-           <layout class="QGridLayout" name="gridLayout_15">
+           <layout class="QGridLayout" name="gridLayout_13">
             <item row="0" column="0">
-             <layout class="QGridLayout" name="gridLayout_11">
-              <item row="0" column="0">
-               <widget class="QLabel" name="label_19">
-                <property name="text">
-                 <string>Keff</string>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="1">
-               <widget class="QLabel" name="label_17">
-                <property name="text">
-                 <string>Nuclides</string>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="2">
-               <widget class="QLabel" name="label_18">
-                <property name="text">
-                 <string>Volume (in cc)</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="0">
-               <layout class="QGridLayout" name="gridLayout_13">
+             <widget class="QTabWidget" name="tabWidget">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>250</height>
+               </size>
+              </property>
+              <property name="currentIndex">
+               <number>0</number>
+              </property>
+              <widget class="QWidget" name="COp_Tab">
+               <attribute name="title">
+                <string>CoupledOperator</string>
+               </attribute>
+               <layout class="QGridLayout" name="gridLayout_14">
                 <item row="0" column="0">
-                 <widget class="QCheckBox" name="From_Nuclide_CB">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <property name="minimumSize">
-                   <size>
-                    <width>152</width>
-                    <height>0</height>
-                   </size>
-                  </property>
-                  <property name="text">
-                   <string>from nuclides</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="1" column="0">
-                 <widget class="QLineEdit" name="Keff_LE">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                 </widget>
+                 <layout class="QGridLayout" name="gridLayout_4">
+                  <item row="0" column="1">
+                   <widget class="QLabel" name="label_9">
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>11111</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>Chain file</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="2">
+                   <widget class="QCheckBox" name="ReduceChain_CB">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="text">
+                     <string>Reduce chain</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="0">
+                   <widget class="QCheckBox" name="Prev_Res_CB">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="text">
+                     <string>Previous results</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="1">
+                   <widget class="QComboBox" name="Chain_CB">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>11111</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <item>
+                     <property name="text">
+                      <string>chain_simple.xml</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>chain_endfb71_pwr.xml</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>chain_endfb71_sfr.xml</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>chain_endfb80_pwr.xml</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>chain_endfb80_sfr.xml</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>chain_casl_pwr.xml</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>chain_casl_sfr.xml</string>
+                     </property>
+                    </item>
+                   </widget>
+                  </item>
+                  <item row="1" column="2">
+                   <layout class="QHBoxLayout" name="horizontalLayout_2">
+                    <item>
+                     <widget class="QLabel" name="label_16">
+                      <property name="text">
+                       <string>level</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QSpinBox" name="RedChainLevel_SP">
+                      <property name="enabled">
+                       <bool>false</bool>
+                      </property>
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </item>
+                  <item row="2" column="0">
+                   <widget class="QLabel" name="label_7">
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>111111</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>Normalization mode</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="1">
+                   <widget class="QLabel" name="label_13">
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>111111</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>Fission-Q (in eV)</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="3" column="0">
+                   <widget class="QComboBox" name="NormMod_CB">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>11111</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <item>
+                     <property name="text">
+                      <string>select item</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>energy-deposition</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>fission-q</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>source-rate</string>
+                     </property>
+                    </item>
+                   </widget>
+                  </item>
+                  <item row="3" column="1">
+                   <widget class="QLineEdit" name="Fission_Q_LE">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>11111</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="3" column="2">
+                   <widget class="QCheckBox" name="DiffBurnMats_CB">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>111111</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>diff_burnable_mats</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="4" column="0">
+                   <widget class="QLabel" name="label_14">
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>11111</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>Fission yield mode</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="4" column="1">
+                   <widget class="QLabel" name="label_15">
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>111111</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>Fission yield opts</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="4" column="2">
+                   <widget class="QLabel" name="label_11">
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>111111</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>Diff volume method</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="5" column="0">
+                   <widget class="QComboBox" name="FissYieldMode_CB">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>11111</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <item>
+                     <property name="text">
+                      <string>select mode</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>constant</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>cutoff</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>average</string>
+                     </property>
+                    </item>
+                   </widget>
+                  </item>
+                  <item row="5" column="1">
+                   <widget class="QLineEdit" name="FissYieldOpts_LE">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>11111</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="5" column="2">
+                   <widget class="QComboBox" name="Diff_Vol_Meth_CB">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>1111</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <item>
+                     <property name="text">
+                      <string>select item</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>divide equally</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>match cell</string>
+                     </property>
+                    </item>
+                   </widget>
+                  </item>
+                  <item row="6" column="0">
+                   <widget class="QLabel" name="label_8">
+                    <property name="maximumSize">
+                     <size>
+                      <width>1111</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>Reaction rate mode</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="6" column="1">
+                   <widget class="QLabel" name="label_10">
+                    <property name="text">
+                     <string>reaction_rate_opts</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="7" column="0">
+                   <widget class="QComboBox" name="RRMode_CB">
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>11111</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <item>
+                     <property name="text">
+                      <string>select mode</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>direct</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>flux</string>
+                     </property>
+                    </item>
+                   </widget>
+                  </item>
+                  <item row="7" column="1" colspan="2">
+                   <widget class="QLineEdit" name="RR_Opts_LE">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="sizeIncrement">
+                     <size>
+                      <width>160</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
                 </item>
                </layout>
-              </item>
-              <item row="1" column="1">
-               <widget class="QLineEdit" name="Nuclides_LE">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string/>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="2">
-               <widget class="QLineEdit" name="Volume_LE">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-               </widget>
-              </item>
-             </layout>
+              </widget>
+              <widget class="QWidget" name="IOp_tab">
+               <attribute name="title">
+                <string>IndependentOperator</string>
+               </attribute>
+               <layout class="QGridLayout" name="gridLayout_15">
+                <item row="0" column="0">
+                 <layout class="QGridLayout" name="gridLayout_11">
+                  <item row="1" column="1">
+                   <widget class="QComboBox" name="Chain_CB_2">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>11111</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <item>
+                     <property name="text">
+                      <string>chain_simple.xml</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>chain_endfb71_pwr.xml</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>chain_endfb71_sfr.xml</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>chain_endfb80_pwr.xml</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>chain_endfb80_sfr.xml</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>chain_casl_pwr.xml</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>chain_casl_sfr.xml</string>
+                     </property>
+                    </item>
+                   </widget>
+                  </item>
+                  <item row="3" column="1">
+                   <widget class="QLineEdit" name="Fission_Q_LE_2">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>111111</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="2">
+                   <widget class="QCheckBox" name="ReduceChain_CB_2">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="text">
+                     <string>Reduce chain</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="2">
+                   <layout class="QHBoxLayout" name="horizontalLayout_3">
+                    <item>
+                     <widget class="QLabel" name="label_26">
+                      <property name="text">
+                       <string>level</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QSpinBox" name="RedChainLevel_SP_2">
+                      <property name="enabled">
+                       <bool>false</bool>
+                      </property>
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </item>
+                  <item row="2" column="0">
+                   <widget class="QLabel" name="label_27">
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>111111</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>Normalization mode</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="5" column="0">
+                   <widget class="QLineEdit" name="Keff_LE">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>1111111</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="3" column="2">
+                   <widget class="QLineEdit" name="FissYieldOpts_LE_2">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>11111</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="0">
+                   <widget class="QCheckBox" name="Prev_Res_CB_2">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="text">
+                     <string>Previous results</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="3" column="0">
+                   <widget class="QComboBox" name="NormMod_CB_2">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>11111</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <item>
+                     <property name="text">
+                      <string>select item</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>energy-deposition</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>fission-q</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>source-rate</string>
+                     </property>
+                    </item>
+                   </widget>
+                  </item>
+                  <item row="2" column="2">
+                   <widget class="QLabel" name="label_30">
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>111111</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>Fission yield opts</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="0">
+                   <widget class="QCheckBox" name="Decay_Only_CB">
+                    <property name="text">
+                     <string>Decay only</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QLabel" name="label_25">
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>11111</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>Chain file</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="1">
+                   <widget class="QLabel" name="label_28">
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>111111</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>Fission-Q (in eV)</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="4" column="0">
+                   <widget class="QLabel" name="label_19">
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>111111</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>Keff</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="6" column="0">
+                   <widget class="QLabel" name="label_24">
+                    <property name="maximumSize">
+                     <size>
+                      <width>1111</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>Fluxes (in n-cm/src)</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="4" column="2">
+                   <widget class="QLabel" name="label_29">
+                    <property name="text">
+                     <string>Energy group structure</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="5" column="2">
+                   <widget class="QComboBox" name="Flux_Energy_Gr_CB">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="5" column="1">
+                   <widget class="QCheckBox" name="checkBox_2">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>1111111</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>get microXS - Flux</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="4" column="1">
+                   <widget class="QCheckBox" name="checkBox">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>111111</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>get Keff</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="6" column="2">
+                   <widget class="QLabel" name="label_17">
+                    <property name="text">
+                     <string>microXS (in b)</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="7" column="2">
+                   <widget class="QPushButton" name="Load_XS_PB">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="text">
+                     <string>Load XS file</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="7" column="0" colspan="2">
+                   <widget class="QLineEdit" name="Fluxes_LE">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>11111111</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </item>
+               </layout>
+              </widget>
+             </widget>
             </item>
            </layout>
           </widget>
@@ -594,44 +1333,10 @@
            <layout class="QGridLayout" name="gridLayout_9">
             <item row="0" column="0">
              <layout class="QGridLayout" name="gridLayout_2">
-              <item row="0" column="0">
-               <widget class="QLabel" name="label">
-                <property name="text">
-                 <string>Geometry name</string>
-                </property>
-               </widget>
-              </item>
               <item row="0" column="1">
                <widget class="QLabel" name="label_12">
                 <property name="text">
                  <string>Materials name</string>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="2">
-               <widget class="QLabel" name="label_2">
-                <property name="text">
-                 <string>Settings name</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="0">
-               <widget class="QLineEdit" name="Geom_LE">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="1">
-               <widget class="QLineEdit" name="Mats_LE">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
                 </property>
                </widget>
               </item>
@@ -651,48 +1356,18 @@
                 </property>
                </widget>
               </item>
-             </layout>
-            </item>
-           </layout>
-          </widget>
-         </item>
-         <item row="1" column="0">
-          <widget class="QGroupBox" name="groupBox">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <layout class="QGridLayout" name="gridLayout_12">
-            <item row="0" column="0">
-             <layout class="QGridLayout" name="gridLayout_3">
-              <item row="1" column="2">
-               <widget class="QComboBox" name="TimeUnit_CB">
-                <item>
-                 <property name="text">
-                  <string>d</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>h</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>min</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>s</string>
-                 </property>
-                </item>
+              <item row="3" column="0">
+               <widget class="QLineEdit" name="Model_LE"/>
+              </item>
+              <item row="0" column="0">
+               <widget class="QLabel" name="label">
+                <property name="text">
+                 <string>Geometry name</string>
+                </property>
                </widget>
               </item>
-              <item row="1" column="3">
-               <widget class="QLineEdit" name="Power_LE">
+              <item row="1" column="0">
+               <widget class="QLineEdit" name="Geom_LE">
                 <property name="sizePolicy">
                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                   <horstretch>0</horstretch>
@@ -702,71 +1377,46 @@
                </widget>
               </item>
               <item row="0" column="2">
-               <widget class="QLabel" name="label_4">
-                <property name="minimumSize">
-                 <size>
-                  <width>68</width>
-                  <height>0</height>
-                 </size>
-                </property>
+               <widget class="QLabel" name="label_2">
                 <property name="text">
-                 <string>Time units</string>
+                 <string>Settings name</string>
                 </property>
                </widget>
               </item>
-              <item row="0" column="3">
-               <widget class="QLabel" name="label_6">
-                <property name="text">
-                 <string>Power</string>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="0" colspan="2">
-               <widget class="QLabel" name="label_3">
-                <property name="text">
-                 <string>Time steps</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="0" colspan="2">
-               <widget class="QLineEdit" name="TimeSteps_LE">
+              <item row="1" column="1">
+               <widget class="QLineEdit" name="Mats_LE">
                 <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                   <horstretch>0</horstretch>
                   <verstretch>0</verstretch>
                  </sizepolicy>
                 </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>220</width>
-                  <height>0</height>
-                 </size>
+               </widget>
+              </item>
+              <item row="2" column="0">
+               <widget class="QLabel" name="label_20">
+                <property name="text">
+                 <string>Model name</string>
                 </property>
                </widget>
               </item>
-              <item row="1" column="4">
-               <widget class="QComboBox" name="Power_Unit_CB">
-                <item>
-                 <property name="text">
-                  <string>W</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>KW</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>MW</string>
-                 </property>
-                </item>
+              <item row="3" column="1">
+               <widget class="QLineEdit" name="Operator_LE"/>
+              </item>
+              <item row="3" column="2">
+               <widget class="QLineEdit" name="Integrator_LE"/>
+              </item>
+              <item row="2" column="1">
+               <widget class="QLabel" name="label_21">
+                <property name="text">
+                 <string>Operator name</string>
+                </property>
                </widget>
               </item>
-              <item row="0" column="4">
-               <widget class="QLabel" name="label_5">
+              <item row="2" column="2">
+               <widget class="QLabel" name="label_22">
                 <property name="text">
-                 <string>Power units</string>
+                 <string>Integrator name</string>
                 </property>
                </widget>
               </item>

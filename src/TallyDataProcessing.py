@@ -7,16 +7,19 @@ from PyQt5 import uic
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
-from PyQt5.QtWidgets import QMessageBox
+#from PyQt5.QtWidgets import QMessageBox
 import datetime
 import shutil
 import subprocess
 from pathlib import Path
-from PyQt5.QtGui import QFont, QTextCharFormat, QBrush
+#from PyQt5.QtGui import QFont, QTextCharFormat, QBrush
 from src.PyEdit import TextEdit, NumberBar, tab, lineHighlightColor
 import numpy as np
 from matplotlib import pyplot as plt, cm
 from matplotlib import colors
+from matplotlib.ticker import ScalarFormatter
+from matplotlib.ticker import FuncFormatter
+
 import pandas as pd
 import glob
 import h5py
@@ -31,10 +34,40 @@ from PyQt5 import QtPrintSupport
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PyQt5.QtGui import QTextOption
 
+from PyQt5.QtCore import Qt, pyqtSignal
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+def global_exception_handler(exc_type, exc_value, exc_traceback):
+    """
+    Custom exception handler to display unhandled exceptions in a dialog.
+    """
+    if issubclass(exc_type, KeyboardInterrupt):
+        # Let the interpreter handle KeyboardInterrupt (e.g., Ctrl+C).
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+
+    # Create an error message dialog
+    error_message = f"Unhandled Exception:\n{exc_value}"
+    QMessageBox.critical(None, "Application Error", error_message)
+
+    # Optionally log the exception
+    with open("error_log.txt", "a") as f:
+        import traceback
+        f.write("".join(traceback.format_exception(exc_type, exc_value, exc_traceback)))
+
+# Assign the custom exception handler
+sys.excepthook = global_exception_handler
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 iconsize = QSize(24, 24)
 pd.set_option('display.max_rows', None)
 pd.set_option('display.max_columns', None)
 pd.set_option('max_colwidth', 30)
+
 try:
     import openmc
 except:
@@ -42,9 +75,8 @@ except:
 
 class TallyDataProcessing(QtWidgets.QMainWindow):
     from src.func import resize_ui, showDialog
-    
-    #def __init__(self, shellwin, parent=None):
-    def __init__(self, parent=None):
+
+    def __init__(self, Directory, Sp, parent=None):
         super(TallyDataProcessing, self).__init__(parent)
         uic.loadUi("src/ui/TallyDataProcessing.ui", self)
         try:
@@ -59,7 +91,6 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                         'DistribcellFilter', 'DelayedGroupFilter', 'EnergyFunctionFilter', 'LegendreFilter',
                         'SpatialLegendreFilter', 'SphericalHarmonicsFilter', 'ZernikeFilter', 'ZernikeRadialFilter',
                         'ParticleFilter', 'TimeFilter']
-        self.sp_file = 'None'
         self.Filter_names = ['']
         self.Display = False
         self.Tallies = {}
@@ -69,7 +100,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         self.spinBox.hide()
         self.spinBox_2.hide()
         self.Normalizing_GB.hide()
-        self.buttons = [self.xLog_CB, self.yLog_CB, self.Add_error_bars_CB, self.xGrid_CB, self.yGrid_CB, self.MinorGrid_CB, self.label_2, self.label_3]
+        self.buttons = [self.yLog_CB, self.Add_error_bars_CB, self.xGrid_CB, self.yGrid_CB, self.MinorGrid_CB, self.label_2, self.label_3]
         self.buttons_Stack = [self.label_5, self.label_6, self.label_7, self.row_SB, self.col_SB]
         for elm in self.buttons: 
             elm.setEnabled(False)
@@ -95,7 +126,14 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         layoutH9.addWidget(self.editor1)    
         self.gridLayout_5.addLayout(layoutH9, 0, 0)
 
-        self.grid = False
+        self.Y2Label_CB.setEnabled(False)
+        self.Y2Label_CB.setChecked(False)
+        self.y2Grid_CB.setEnabled(False)
+        self.Curve_y2Label.clear()
+        self.Curve_y2Label.setEnabled(False)
+        self.YSecondary = False
+
+        self.xgrid = False; self.ygrid = False; self.y2grid = False
         self.which_axis = 'none'
         self.which_grid = 'both'
         self.resize_ui()
@@ -104,6 +142,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         self.Norm_Bins_comboBox.addItem('Check item')
         self.gridLayout_Norm.addWidget(self.Norm_Bins_comboBox)
         self.Norm_Bins_comboBox.model().item(0).setEnabled(False)
+        self.Norm_Bins_comboBox.model().item(0).setCheckState(Qt.Unchecked)
 
         # +++++++++++++++++++++++
         self.Tally_name_LE.setPlaceholderText("Name")
@@ -123,18 +162,41 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         sys.stdout = EmittingStream(textWritten=self.normalOutputWritten)
         #sys.stderr = EmittingStream(textWritten=self.normalOutputWritten)
         
-        # lines to be removed   
-        #self.sp_file = str(Path.home()) + '/My_Projects/Project-ERSN-OpenMC/Gui_orig/examples/tallies/statepoint.310.h5'
-        cwd = os.getcwd()
-        self.sp_file = str(cwd) + '/examples/tallies/statepoint.310.h5'
-        if not os.path.isfile(self.sp_file):
-            self.sp_file = None
-        else:
-            self.lineEdit.setText(self.sp_file)
-            self.Get_data_from_SP_file()
+        self.directory = Directory
+        if Sp != '':
+            if os.path.isfile(Sp): 
+                self.sp_file = Sp
+                self.lineEdit.setText(self.sp_file)
+                self.Get_data_from_SP_file()
+            else:
+                self.sp_file = None
+        
+        self.Get_Summary_File()
 
         self.Omit_Blank_Graph_CB.setEnabled(False)
-                  
+
+        # Possible scores
+        self.FlUX_SCORES = ['flux']
+        self.FlUX_UNIT = ' particle-cm per source particle'
+        self.REACTION_SCORES = ['absorption', 'elastic', 'fission', 'scatter', 'total', '(n,elastic)', '(n,2nd)', '(n,2n)', '(n,3n)',
+                                '(n,na)', '(n,n3a)', '(n,2na)', '(n,3na)', '(n,np)', '(n,n2a)', '(n,2n2a)', '(n,nd)',
+                                '(n,nt)', '(n,n3He)', '(n,nd2a)', '(n,nt2a)', '(n,4n)', '(n,2np)', '(n,3np)', '(n,n2p)',
+                                '(n,n*X*)', '(n,nc)', '(n,gamma)', '(n,p)', '(n,d)', '(n,t)', '(n,3He)', '(n,a)',
+                                '(n,2a)', '(n,3a)', '(n,2p)', '(n,pa)', '(n,t2a)', '(n,d2a)', '(n,pd)', '(n,pt)', '(n,da)',
+                                'coherent-scatter', 'incoherent-scatter', 'photoelectric', 'pair-production', 'Arbitrary integer']
+        self.REACTION_UNIT = ' reactions per source particle'
+        self.PARTICLE_PRODUCTION_SCORES = ['delayed-nu-fission', 'prompt-nu-fission', 'nu-fission', 'nu-scatter',
+                                           'H1-production', 'H2-production', 'H3-production', 'He3-production', 'He4-production']
+        self.PARTICLE_PRODUCTION_UNIT = ' particles produced per source particle'
+        self.MISCELLANEOUS_SCORES = ['current', 'events', 'inverse-velocity', 'decay-rate']
+        self.MISCELLANEOUS_UNIT = [' particles per source particle', 'events per source particle', ' s/cm', ' /s']
+        self.ENERGY_SCORES = ['heating', 'heating-local', 'kappa-fission', 'damage-energy', 'pulse-height',
+                                     'fission-q-prompt', 'fission-q-recoverable']
+        self.ENERGY_SCORES_UNIT = ' eV per source particle'
+
+        x_Format = ['x axis format ', '1.0 10\u00b3', '1.00 10\u00b3', '1.000 10\u00b3']
+        self.x_Format_CB.addItems(x_Format)
+
     def _initButtons(self):
         self.browse_PB.clicked.connect(self.Get_SP_File)
         self.get_tally_info_PB.clicked.connect(self.Display_Tallies_Inf)
@@ -151,8 +213,10 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         self.Mesh_yz_RB.clicked.connect(self.Mesh_settings)
         self.Graph_type_CB.currentIndexChanged.connect(self.set_Scales)
         self.Plot_by_CB.currentIndexChanged.connect(self.set_Scales)
+        self.Y2Label_CB.toggled.connect(self.Y2Label)
         self.xGrid_CB.stateChanged.connect(self.plot_grid_settings)
         self.yGrid_CB.stateChanged.connect(self.plot_grid_settings)
+        self.y2Grid_CB.stateChanged.connect(self.plot_grid_settings)
         self.MinorGrid_CB.stateChanged.connect(self.plot_grid_settings)
         self.Graph_Layout_CB.currentIndexChanged.connect(self.set_Graph_stack)
         self.Plot_by_CB.currentIndexChanged.connect(self.set_Graph_stack)
@@ -161,13 +225,36 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         self.ResetPlotSettings_PB.clicked.connect(self.Reset_Plot_Settings)
         self.Nuclides_List_LE.textChanged.connect(lambda:self.score_plot_PB.setEnabled(False))
         self.Scores_List_LE.textChanged.connect(lambda:self.score_plot_PB.setEnabled(False))
-        self.lineEdit.textChanged.connect(self.Reset_Tally_CB)
-        self.Tally_Normalizing_CB.toggled.connect(self.Enable_Tally_Normalising)
+        self.Tally_Normalizing_CB.toggled.connect(self.Enable_Tally_Normalizing)
+        self.Norm_to_BW_CB.toggled.connect(self.Normalize_to_Bin_Width)
+        self.Norm_to_UnitLethargy_CB.toggled.connect(self.Normalize_to_Unit_of_Lethargy)
+        self.Norm_to_Vol_CB.toggled.connect(self.Normalize_to_Volume)
+        self.Norm_to_SStrength_CB.toggled.connect(self.Normalize_to_SourceStrength)
+        self.S_Strength_LE.textChanged.connect(lambda:self.Norm_to_SStrength_CB.setChecked(False))
+        self.Vol_List_LE.textChanged.connect(lambda:self.Norm_to_Vol_CB.setChecked(False))
         self.Define_Buttons()
         
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #++++++++++++++++++++++ CODE TO PROCESS SIMULATION SP FILE +++++++++++++++++++++++++++++++++++++++++++
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    def Get_Summary_File(self):
+        # read summary file
+        if self.directory == '':
+            return
+        self._f = h5py.File(self.directory + '/summary.h5', 'r')
+        self.Cells = []; self.Cells_id = []; self.surfaces = []; self.materials = []
+        for key, group in self._f['geometry/cells'].items():
+            cell_id = int(key.lstrip('cell '))
+            self.Cells_id.append(cell_id)
+            name = group['name'][()].decode() if 'name' in group else ''
+            self.Cells.append(name)
+        for group in self._f['materials'].values():
+            name = group['name'][()].decode() if 'name' in group else ''
+            self.materials.append(name)
+        for group in self._f['geometry/surfaces'].values():
+            name = group['name'][()].decode() if 'name' in group else ''
+            self.surfaces.append(name)
+
     def Get_SP_File(self):
         self.Tally_id_comboBox.clear()
         self.Tally_id_comboBox.addItem("Select the tally's ID")
@@ -177,10 +264,13 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         self.Nuclides_comboBox.clear()
         self.Scores_comboBox.clear()
         self.tabWidget_2.setCurrentIndex(0)
-        self.sp_file = QtWidgets.QFileDialog.getOpenFileName(self,"Select The StatePoint File","~","statepoint*.h5")[0]
+        self.sp_file = QtWidgets.QFileDialog.getOpenFileName(self, "Select HDF5 File", self.directory, "statepoint file (statepoint*.h5);;openmc_simulation file (openmc*.h5)")[0]
+        self.directory = os.path.dirname(self.sp_file)    
+        
         self.lineEdit.setText(self.sp_file)
         self.Get_data_from_SP_file()
         self.lineLabel3.clear()
+        self.Get_Summary_File()
 
     def Get_data_from_SP_file(self):
         global sp
@@ -219,7 +309,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                     pass
 
             self.tallies_group = self._f['tallies']
-            self.n_tallies = self.tallies_group.attrs['n_tallies']
+            self.n_tallies = self.tallies_group.attrs['n_tallies'] 
             if self.n_tallies > 0:
                 self.tally_ids = self.tallies_group.attrs['ids']
                 self.filters_group = self._f['tallies/filters']
@@ -266,7 +356,8 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             self.lineLabel2.setText('containing :  ' + str(self.n_tallies) + '  tallies')
         except:
             pass
-
+        self.Reset_Tally_CB()
+        
     def Display_Tallies_Inf(self):
         self.Display = False
         self.Normalization = False
@@ -313,13 +404,19 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 self.editor1.insertPlainText('*'*57 + ' TALLIES RESULTS ' + '*'*58 + '\n')
                 for tally_id in self.tally_ids:
                     self.tally_id = tally_id
-                    self.tally = sp.get_tally(id=tally_id)
-                    df = self.tally.get_pandas_dataframe(float_format = '{:.2e}')  #'{:.6f}') 
                     try:
-                        self.Print_Formated_df(df, tally_id, self.editor1) 
+                        self.tally = sp.get_tally(id=tally_id)
+                        if self.tally:
+                            df = self.tally.get_pandas_dataframe(float_format = '{:.2e}')  #'{:.6f}') 
+                        try:
+                            self.Print_Formated_df(df, tally_id, self.editor1) 
+                        except:
+                            self.showDialog('Warning', 'The size of statepoint file may be huge!')
                     except:
-                        self.showDialog('Warning', 'The size of statepoint file may be huge!')
+                        self.tally_ids = np.delete(self.tally_ids, self.tally_ids.tolist().index(self.tally_id))
+                        self.n_tallies -= 1
 
+                        pass
         except:
             self.showDialog('Warning', 'Some thing went wrong or invalid statepoint file!')
             return
@@ -339,7 +436,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 sp = openmc.StatePoint(self.sp_file)
                 if self.run_mode == 'eigenvalue':
                     self.Tally_id_comboBox.addItem('Keff result')
-                self.Tally_id_comboBox.addItems([str(tally) for tally in list(sp.tallies.keys())])
+                self.Tally_id_comboBox.addItems([str(tally) for tally in list(sp.tallies.keys()) if tally])
             else:
                 pass
         except:
@@ -360,14 +457,20 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         name = ''
         if self.lineEdit.text():
             self.sp_file = self.lineEdit.text()
-        if not os.path.isfile(str(self.sp_file)):
-            self.lineLabel1.setText("Current statepoint file : No valid statepoint file")
-            return
+        try:
+            if not os.path.isfile(str(self.sp_file)):
+                self.lineLabel1.setText("Current statepoint file : No valid statepoint file")
+                return
+        except:
+            pass
         self.score_plot_PB.setText('plot data')
         self.filters = []
         self.Bins = {}
         self.Tally_name_LE.clear()
         self.Curve_title.clear()
+        self.Curve_xLabel.clear()
+        self.Curve_yLabel.clear()
+        self.Curve_y2Label.clear()
         self.Nuclides_List_LE.clear()
         self.Scores_List_LE.clear()
         self.Plot_by_CB.clear()
@@ -383,7 +486,9 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         self.score_plot_PB.setEnabled(False)
         self.xGrid_CB.setChecked(False)
         self.yGrid_CB.setChecked(False)
+        self.y2Grid_CB.setChecked(False)
         self.MinorGrid_CB.setChecked(False)
+        self.Tally_Normalizing_CB.setChecked(False)
         if self.Tally_id_comboBox.currentIndex() > 0 and 'Keff' not in self.Tally_id_comboBox.currentText():
             tally_id = int(self.Tally_id_comboBox.currentText())
             self.Filters_comboBox.clear()
@@ -463,8 +568,10 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             self.scores_display_PB.setEnabled(True)     
             self.label.setText('plot by')   
             self.Plot_by_CB.clear()
-
+            self.Tally_Normalizing_CB.setEnabled(True)
+            self.Tally_Normalizing_CB.setChecked(False)
         elif 'Keff' in self.Tally_id_comboBox.currentText():
+            self.Add_error_bars_CB.setEnabled(False)                # Keff errors could not be extracted from statepoint file
             self.Checked_batches = []
             self.Checked_batches_bins = []
             self.Tally_name_LE.setText('Keff vs batches')
@@ -477,12 +584,9 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             self.Bins_comboBox[0] = CheckableComboBox()
             self.gridLayout_20.addWidget(self.Bins_comboBox[0], 0, 0)
             self.Filters_comboBox.setCurrentIndex(1)
-            #self.SelectFilter()
             self.nuclides_display_PB.setEnabled(False)
             self.scores_display_PB.setEnabled(False)
-            self.score_plot_PB.setEnabled(True)
-            self.Graph_type_CB.setEnabled(True)
-            self.Plot_by_CB.setEnabled(True)
+            self.filters_display_PB.setText('select')
             self.score_plot_PB.setText('plot Keff')
             for bt in self.buttons:
                 bt.setEnabled(True)
@@ -503,9 +607,14 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             else:
                 self.Plot_by_CB.addItem('Keff')
             self.Plot_by_CB.setCurrentIndex(1)
+            self.Tally_Normalizing_CB.setEnabled(False)
+            self.Tally_Normalizing_CB.setChecked(False)
         else:
             self.Tally_name_LE.clear()
             self.Curve_title.clear()
+            self.Curve_xLabel.clear()
+            self.Curve_yLabel.clear()
+            self.Curve_y2Label.clear()
             self.Filters_comboBox.clear()
             try:
                 for i in range(len(self.Bins_comboBox)):
@@ -520,9 +629,10 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         power_items = [self.label_21, self.label_22, self.label_16, self.label_17, self.label_18, self.Nu_LE, 
                        self.Heating_LE, self.Keff_LE, self.Q_LE, self.Norm_to_Power_CB, self.Norm_to_Heating_CB, 
                        self.Power_LE, self.Factor_LE]
-        Norm_Other = [self.label_37, self.label_19, self.label_23, self.Norm_to_BW_CB, self.Norm_to_Vol_CB, self.Norm_to_UnitLethargy_CB,
-                      self.Norm_Bins_comboBox, self.Vol_List_LE]
-        CBoxes = [self.Norm_to_BW_CB, self.Norm_to_Vol_CB, self.Norm_to_UnitLethargy_CB, self.Norm_to_Power_CB, self.Norm_to_Heating_CB]
+        Norm_Other = [self.label_37, self.label_19, self.Norm_to_BW_CB, self.Norm_to_Vol_CB, self.Norm_to_UnitLethargy_CB,
+                      self.Norm_Bins_comboBox, self.Vol_List_LE, self.S_Strength_LE]
+        CBoxes = [self.Norm_to_BW_CB, self.Norm_to_Vol_CB, self.Norm_to_UnitLethargy_CB, self.Norm_to_Power_CB, 
+                    self.Norm_to_Heating_CB, self.Norm_to_SStrength_CB]
         for item in power_items:
             item.setEnabled(False)
         for item in Norm_Other:
@@ -611,16 +721,17 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                        'azimuthal high [rad]', 'time low [s]', 'time high [s]']:
                 FMT = '{:<20.3e}'
             elif KEY in ['mu low', 'mu high', "mean", "std. dev."]:
-                FMT = '{:<16.3e}'
+                FMT = '{:<22.3e}'
             elif KEY in ['nuclide', 'particle', 'legendre', 'zernike']:
                 FMT = '{:<14}'
             elif KEY in ['score', 'spatiallegendre', 'sphericalharmonics', 'zernikeradial']:
-                FMT = '{:<20}'
+                FMT = '{:<25}'
             elif KEY in ['multiplier']:
                 FMT = '{:<16.6e}'
             elif 'level' in KEY:
                 FMT = '{:<10d}'
-            df.loc[:, key] = df[key].map(FMT.format)
+            #df.loc[:, key] = df[key].map(FMT.format)
+            df[key] = df[key].map(FMT.format)
             try:
                 LJUST = int(FMT.split('<')[1].split('.')[0].replace('d', '').replace('}', ''))
             except:
@@ -666,14 +777,17 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             cursor.insertText('*'*60 + ' K EFFECTIVE ' + '*'*60 + '\n')
             for key in df.keys():
                 if key in ['mean', 'std_dev']:
-                    df.loc[:, key] = df[key].map('{:<20.6f}'.format)
+                    #df.loc[:, key] = df[key].map('{:<20.6f}'.format)
+                    df[key] = df[key].map('{:<20.6f}'.format)
         elif j == 1:
             cursor.insertText('*'*55 + TITLE + '*'*55 + '\n')
             for key in df.keys():
                 if 'batch' in key:
-                    df.loc[:, key] = df[key].map('{:d}'.format)
+                    #df.loc[:, key] = df[key].map('{:d}'.format)
+                    df[key] = df[key].map('{:d}'.format)
                 elif 'Keff' in key or 'Entropy' in key:
-                    df.loc[:, key] = df[key].map('{:<20.6f}'.format)
+                    #df.loc[:, key] = df[key].map('{:<20.6f}'.format)
+                    df[key] = df[key].map('{:<20.6f}'.format)
         columns_header = [column_name for column_name in df.keys()]
         df.columns = columns_header  
                       
@@ -694,9 +808,10 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         self.xlabel.setText('xlabel')
         self.ylabel.setText('ylabel')
         self.score_plot_PB.setText('plot data')
+        self.Curve_title.clear()
         self.Curve_xLabel.clear()
         self.Curve_yLabel.clear()
-        self.Curve_title.clear()
+        self.Curve_y2Label.clear()
 
         if self.Tally_id_comboBox.currentIndex() > 0 and 'Keff' not in self.Tally_id_comboBox.currentText():
             self.tally_id = int(self.Tally_id_comboBox.currentText())
@@ -812,14 +927,15 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 self.Bins_comboBox[0].model().item(0).setEnabled(False)            
                 self.Bins_comboBox[0].addItem('All bins')
                 self.Bins_comboBox[0].addItems([str(i) for i in self.batches])
-
+                self.Bins_comboBox[0].currentIndexChanged.connect(self.Activate_Plot_BT)
                 for bt in self.buttons:
                     bt.setEnabled(True) 
-                self.score_plot_PB.setEnabled(True)
+                #self.score_plot_PB.setEnabled(True)
                 self.Curve_title.setText(self.Tally_name_LE.text())
                 self.Curve_xLabel.setText('batches')
                 self.Curve_yLabel.setText('Keff')
                 self.Graph_type_CB.setEnabled(True)
+                self.Plot_by_CB.setEnabled(True)
                 try:
                     if self.Checked_batches_bins:
                         for j in self.Checked_batches_bins: 
@@ -831,10 +947,17 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                     self.showDialog('Warning', 'Filter bins not checked!')
             else:
                 self.Graph_type_CB.setEnabled(False)
+                self.Plot_by_CB.setEnabled(False)
+                self.score_plot_PB.setEnabled(False)
                 try:
                     self.Bins_comboBox[0].clear()
                 except:
                     pass
+    def Activate_Plot_BT(self):
+        if self.Bins_comboBox[0].checkedItems():
+            self.score_plot_PB.setEnabled(True)
+        else:
+            self.score_plot_PB.setEnabled(False)
 
     def SelectFilterMesh(self):
         tally_id = self.tally_id
@@ -850,7 +973,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         self.Mesh_xy_RB.setChecked(True)
         self.Curve_xLabel.setText('x/cm')
         self.Curve_yLabel.setText('y/cm')
-        self.Curve_title.setText(self.Tally_name_LE.text())
+        #self.Curve_title.setText(self.Tally_name_LE.text())
         self.mesh_id = tally.filters[idx].mesh.id
         self.mesh_type = str(tally.filters[idx].mesh).split('\n')[0]
         self.mesh_name = tally.name
@@ -976,19 +1099,19 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                     if filter_name == 'MeshFilter':
                         if self.Mesh_xy_RB.isChecked():
                             if len(tally.filters[idx].mesh._grids) == 2:
-                                z = self.z[self.Bins_comboBox[idx].currentIndex()-2]
+                                z = self.z[self.Bins_comboBox[idx].currentIndex()-1]
                             else:
                                 z = self.z[0]
                             self.xyz = [(x, y) + (z,) for y in self.y[:self.mesh_dimension[1]] for x in self.x[:self.mesh_dimension[0]]]
                         if self.Mesh_xz_RB.isChecked():
                             if len(tally.filters[idx].mesh._grids) == 2:
-                                y = self.y[self.Bins_comboBox[idx].currentIndex()-2]
+                                y = self.y[self.Bins_comboBox[idx].currentIndex()-1]
                             else:
                                 y = self.y[0]
                             self.xyz = [(x,) + (y,) + (z,) for z in self.z[:self.mesh_dimension[1]] for x in self.x[:self.mesh_dimension[0]]]
                         if self.Mesh_yz_RB.isChecked():
                             if len(tally.filters[idx].mesh._grids) == 2:
-                                x = self.x[self.Bins_comboBox[idx].currentIndex()-2]
+                                x = self.x[self.Bins_comboBox[idx].currentIndex()-1]
                             else:
                                 x = self.x[0]
                             self.xyz = [(x,) + (y, z) for z in self.z[:self.mesh_dimension[1]] for y in self.y[:self.mesh_dimension[0]]]
@@ -1124,6 +1247,9 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                     '\nChecked batches bins: ' + str(self.Checked_batches_bins) +
                     '\n************************************************************')
                 self.Bins_comboBox[0].setCurrentIndex(0)  
+                self.Plot_by_CB.setEnabled(True)
+                self.Graph_type_CB.setEnabled(True)
+                self.score_plot_PB.setEnabled(True)
             else:
                 self.showDialog('Warning', 'Select Tally first!')
         else:
@@ -1170,6 +1296,11 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
     def Display_scores(self):
         self.Display = True
         self.Normalization = False
+        self.Tally_Normalizing_CB.setChecked(False)
+        self.Q_LE.setText('193.')
+        self.Nu_LE.setText('2.45')
+        self.Curve_title.clear()
+        self.Curve_y2Label.clear()
         if not self.sp_file:
             self.showDialog('Warning', 'Select a valid StatePoint file first!')
             return
@@ -1256,8 +1387,10 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                     self.Plot_by_CB.addItem(item.split(' ')[0] + ' center of bin')
                 else:
                     self.Plot_by_CB.addItem(str(item))
-
-        self.Curve_title.setText(self.Tally_name_LE.text())
+        if len(self.selected_nuclides) == 1 and self.selected_nuclides[0] != 'total':
+            self.Curve_title.setText(self.Tally_name_LE.text() + ' - ' + self.selected_nuclides[0])
+        else:
+            self.Curve_title.setText(self.Tally_name_LE.text())
 
         if 'MeshFilter' in self.Filter_names:
             self.Omit_Blank_Graph_CB.setEnabled(True)
@@ -1265,16 +1398,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             self.Omit_Blank_Graph_CB.setEnabled(False)
         
         self.Omit_Blank_Graph_CB.setChecked(False)
-
-        if 'MeshFilter' not in self.Filter_names:   #self.Filters_comboBox.currentText():
-            if len(self.selected_scores) == 1: 
-                if self.selected_scores[0] == 'flux':
-                    self.Curve_yLabel.setText(self.selected_scores[0] + ' / cm ')
-                else:
-                    self.Curve_yLabel.setText(self.selected_scores[0])
-            else:
-                self.Curve_yLabel.setText('Tallies')
-        
+            
         cursor = self.editor.textCursor()
         cursor.movePosition(cursor.End)
 
@@ -1321,7 +1445,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             if self.n_filters > 0:
                 for idx in range(self.n_filters):
                     self.df_filtered = self.df_filtered.loc[self.df[self.Keys[idx]].isin(self.Key_Selected_Bins[idx])].copy()
-
+        
         self.Print_Formated_df(self.df_filtered.copy(), self.tally_id, self.editor)
         self.Plot_by_CB.setCurrentIndex(1)
         self.Graph_Layout_CB.setCurrentIndex(1)
@@ -1333,8 +1457,103 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                     self.Curve_xLabel.setText('$\mu$')
                 else:
                     self.Curve_xLabel.setText(self.Plot_By_Key.replace('center', '').replace('low', '').replace('[', '/ ').replace(']', ''))
-       
+
+        if 'flux' in self.selected_scores and len(self.selected_scores) > 1:
+            self.selected_scores.append(self.selected_scores.pop(self.selected_scores.index('flux')))
+
+        self.Y2Label_CB.setChecked(False)
+        self.YSecondary = False
+        self.Scores_comboBox.setCurrentIndex(0)
+        self.Set_Axis_Labels()
         self.Normalizing_Settings()
+
+    def Set_Axis_Labels(self):
+        if 'MeshFilter' not in self.Filter_names:   
+            if len(self.selected_scores) == 1: 
+                score = self.selected_scores[0]
+                if score  == 'flux':
+                    yText = score + self.FlUX_UNIT
+                elif score in self.REACTION_SCORES:
+                    yText = score + self.REACTION_UNIT
+                elif score in self.MISCELLANEOUS_SCORES:
+                    if score != 'events':
+                        yText = score + self.MISCELLANEOUS_UNIT[self.MISCELLANEOUS_SCORES.index(score)]
+                    else: 
+                        yText = self.MISCELLANEOUS_UNIT[self.MISCELLANEOUS_SCORES.index(score)]
+                elif score in self.ENERGY_SCORES:
+                    yText = score + self.ENERGY_SCORES_UNIT
+            else:
+                if all(score in self.REACTION_SCORES for score in self.selected_scores):
+                    yText = 'Reactions per source particle'
+                elif all(score in self.ENERGY_SCORES for score in self.selected_scores):
+                    yText = 'Tallies eV per source particle'
+                else: 
+                    if len(self.selected_scores) == 2 and 'flux' in self.selected_scores:
+                        if self.YSecondary:
+                            score = [score for score in self.selected_scores if score != 'flux'][0]
+                            if score in self.ENERGY_SCORES:
+                                yText = score + self.ENERGY_SCORES_UNIT
+                            elif score in self.MISCELLANEOUS_SCORES:
+                                if score != 'events':
+                                    yText = score + self.MISCELLANEOUS_UNIT[self.MISCELLANEOUS_SCORES.index(score)]
+                                else:
+                                    yText = self.MISCELLANEOUS_UNIT[self.MISCELLANEOUS_SCORES.index(score)]
+                            elif score in self.REACTION_SCORES:
+                                yText = score + self.REACTION_UNIT
+                            self.Curve_y2Label.setText('flux' + self.FlUX_UNIT)
+                        else:
+                            yText = 'Tallies per source particle'
+                            self.Curve_y2Label.clear()
+                    else:
+                        if 'flux' in self.selected_scores:
+                            self.remaining_scores = [score for score in self.selected_scores if score != 'flux']
+
+                            if self.YSecondary:
+                                if all(score in self.REACTION_SCORES for score in self.remaining_scores):
+                                    yText = 'Reactions per source particle'
+                                elif all(score in self.ENERGY_SCORES for score in self.remaining_scores):
+                                    yText = 'Tallies eV per source particle'
+                                else:
+                                    yText = 'Tallies per source particle'
+                                self.Curve_y2Label.setText('flux' + self.FlUX_UNIT)
+                            else:
+                                yText = 'Tallies per source particle'
+                                self.Curve_y2Label.clear()
+                        else:
+                            yText = 'Tallies per source particle'
+            self.Curve_yLabel.setText(yText)
+        else:
+            yText = 'Tallies per source particle'
+            self.Curve_title.setText(yText)
+        
+
+    def Y2Label(self, checked):
+        if self.Tally_id_comboBox.currentIndex() > 0 and 'Keff' not in self.Tally_id_comboBox.currentText():
+            if checked:
+                self.YSecondary = True
+                self.Curve_y2Label.setEnabled(True)
+            else:
+                self.YSecondary = False
+                self.y2Grid_CB.setEnabled(False)
+                self.Curve_y2Label.setEnabled(False)
+            
+            self.Set_Axis_Labels()
+            # Normalize to power
+            if self.Norm_to_Power_CB.isChecked() or self.Norm_to_Heating_CB.isChecked():
+                self.Normalize_to_Power_Units()
+            # Normalize to source strength
+            elif self.Norm_to_SStrength_CB.isChecked():
+                self.Normalize_to_SStrength_Units()
+            # Normalize to cells volume
+            if self.Norm_to_Vol_CB.isChecked():   
+                self.Normalize_to_Volume_Units(checked)
+            # Normalize to variable bin width
+            if self.Norm_to_BW_CB.isChecked():
+                self.Normalize_to_Bin_Width_Units(checked)
+            # Normalize to unit of lethargy
+            elif self.Norm_to_UnitLethargy_CB.isChecked():
+                self.Normalize_to_Unit_of_Lethargy_Units(checked)
+            #self.Normalizing_Settings()
 
     def Filtered_Scores(self):
         self.DATA = {}
@@ -1373,12 +1592,12 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 self.Keys[idx] = 'cellfrom'
                 self.Checked_cellsfrom = self.Select_Bins(idx)
                 self.Key_Selected_Bins[idx] = self.Checked_cellsfrom
-                self.BIN[idx] = ' from cell '
+                self.BIN[idx] = ' from '
             elif self.filter_name == 'CellBornFilter':
                 self.Keys[idx] = 'cellborn'
                 self.Checked_cellsborn = self.Select_Bins(idx)
                 self.Key_Selected_Bins[idx] = self.Checked_cellsborn
-                self.BIN[idx] = ' born in cell '
+                self.BIN[idx] = ' born in '
             elif self.filter_name == 'SurfaceFilter':
                 self.Keys[idx] = 'surface'
                 self.Checked_surfaces = self.Select_Bins(idx)
@@ -1424,7 +1643,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 self.Bins_For_Title[idx] = [str((Format.format(x), Format.format(y),)).replace("'", "") for x, y in
                                     zip(Low, High)]
                 self.BIN[idx] = ' at energy '
-                self.UNIT[idx] = ' eV '
+                self.UNIT[idx] = ' eV'
             elif self.filter_name == 'EnergyoutFilter':
                 self.Keys[idx] = 'energyout low [eV]'
                 self.Checked_energiesout_Low, self.Checked_energiesout_High, self.Checked_energiesout_Center, self.Checked_Energyout_Bins = self.Select_Bins_Energy_Angle_Time(idx)
@@ -1445,7 +1664,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 self.Bins_For_Title[idx] = [str((Format.format(x), Format.format(y),)).replace("'", "") for x, y in
                                     zip(Low, High)]                
                 self.BIN[idx] = ' at energyout '
-                self.UNIT[idx] = ' eV '
+                self.UNIT[idx] = ' eV'
             elif self.filter_name == 'MuFilter':
                 self.Keys[idx] = 'mu low'
                 self.Checked_mu_Low, self.Checked_mu_High, self.Checked_mu_Center, self.Checked_Mu_Bins = self.Select_Bins_Energy_Angle_Time(idx)
@@ -1486,7 +1705,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 self.Bins_For_Title[idx] = [str((Format.format(x), Format.format(y),)).replace("'", "") for x, y in
                                     zip(Low, High)]
                 self.BIN[idx] = " at polar "
-                self.UNIT[idx] = ' rad '
+                self.UNIT[idx] = ' rad'
             elif self.filter_name == 'AzimuthalFilter':
                 self.Keys[idx] = 'azimuthal low [rad]'
                 self.Checked_azimuthal_Low, self.Checked_azimuthal_High, self.Checked_azimuthal_Center, self.Checked_Azimuthal_Bins = self.Select_Bins_Energy_Angle_Time(idx)
@@ -1507,7 +1726,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 self.Bins_For_Title[idx] = [str((Format.format(x), Format.format(y),)).replace("'", "") for x, y in
                                     zip(Low, High)]
                 self.BIN[idx] = " at azimuthal "
-                self.UNIT[idx] = ' rad '
+                self.UNIT[idx] = ' rad'
             elif self.filter_name == 'TimeFilter':
                 self.Keys[idx] = 'time low [s]'
                 self.Checked_time_Low, self.Checked_time_High, self.Checked_time_Center, self.Checked_Time_Bins = self.Select_Bins_Energy_Angle_Time(idx)
@@ -1528,7 +1747,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 self.Bins_For_Title[idx] = [str((Format.format(x), Format.format(y),)).replace("'", "") for x, y in
                                     zip(Low, High)]
                 self.BIN[idx] = " at time "
-                self.UNIT[idx] = ' s '
+                self.UNIT[idx] = ' s'
             elif self.filter_name == 'LegendreFilter':
                 self.Keys[idx] = 'legendre'
                 self.Checked_legendres = self.Select_Bins(idx)
@@ -1632,7 +1851,8 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 self.std['root'][nuclide] = {} 
                 for score in self.selected_scores:
                     if score != '':
-                        Score = df[df['nuclide'] == nuclide][df['score'] == score]
+                        Score = df[df['nuclide'] == nuclide]
+                        Score = Score[Score['score'] == score]
                         #Score1 = Score[Score['score'] == score]
                         index = self.selected_scores.index(score)
                         self.mean['root'][nuclide][index] = []
@@ -1693,74 +1913,81 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             return
         if self.Graph_type_CB.currentIndex() == 0:
             self.showDialog('Warning', 'Select graph type first!')
-        else:
-            from matplotlib.ticker import MaxNLocator
-            Graph_type = self.Graph_type_CB.currentText()
-            fig, ax = plt.subplots()
-            x = self.Checked_batches
-            if self.Plot_By_Key == 0:
-                self.showDialog('Warning', 'Select data to plot!')
-                plt.close()
-                return
-            elif self.Plot_By_Key == 'Keff':
-                y = [self.Keff_List[i-1] for i in x]
-                if Graph_type == 'Lin-Lin':
-                    ax.plot(x, y, label='keff', color='b')
-                elif Graph_type == 'Scatter':
-                    ax.scatter(x, y, marker='^')
-                ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-                plt.title(self.Curve_title.text())
-                plt.xlabel(self.Curve_xLabel.text())
-                plt.ylabel(self.Curve_yLabel.text(), color='b')
-                try:
-                    ax.errorbar(x, y, np.array(y_error), ecolor='black')
-                except:
-                    pass
-            elif self.Plot_By_Key == 'Keff & Shannon entropy':
-                y = [self.Keff_List[i-1] for i in x]
-                if Graph_type == 'Lin-Lin':
-                    ax.plot(x, y, label='keff', color='b')
-                elif Graph_type == 'Scatter':
-                    ax.scatter(x, y, marker='^')
-                plt.title(self.Curve_title.text())
-                plt.xlabel(self.Curve_xLabel.text())
-                plt.ylabel(self.Curve_yLabel.text(), color='b') 
-                
-                try:
-                    H = [self.H[i-1] for i in x]
-                    ax2 = ax.twinx()
-                    if Graph_type == 'Lin-Lin':
-                        ax2.plot(x, H, label='entropy', color='g')
-                    elif Graph_type == 'Scatter':
-                        ax2.scatter(x, H, marker='^', color='g')
-                    plt.ylabel('Shannon entropy', color='g', fontsize=int(self.yFont_CB.currentText()))
-                    ax2.yaxis.set_tick_params(labelsize=int(self.yFont_CB.currentText())*0.75)
-                except:
-                    self.showDialog('Warning', 'Shannon entropy was not specified in simulation settings!')
-                try:
-                    ax.errorbar(x, y, np.array(y_error), ecolor='black')
-                except:
-                    pass
-            elif self.Plot_By_Key == 'Shannon entropy':
-                try:
-                    H = [self.H[i-1] for i in x]
-                    if Graph_type == 'Lin-Lin':
-                        ax.plot(x, H, label='entropy', color='g')
-                    elif Graph_type == 'Scatter':
-                        ax.scatter(x, H, marker='^', color='g')
-                    plt.ylabel('Shannon entropy', color='g')
-                except:
-                    self.showDialog('Warning', 'Shannon entropy was not specified in simulation settings!')
-            if self.grid:
-                ax.grid(visible=self.grid, which=self.which_grid, axis=self.which_axis)
-            else:
-                ax.grid(False)
+            return
+        if self.Plot_by_CB.currentIndex() == 0:
+            self.showDialog('Warning', 'Select what to plot first!')
+            return
+
+        from matplotlib.ticker import MaxNLocator
+        Graph_type = self.Graph_type_CB.currentText()
+        fig, ax = plt.subplots()
+        x = self.Checked_batches
+        """if self.Plot_By_Key == 0:
+            self.showDialog('Warning', 'Select data to plot!')
+            plt.close()
+            return"""
+        if self.Plot_By_Key == 'Keff':
+            y = [self.Keff_List[i-1] for i in x]
+            if Graph_type == 'Lin-Lin':
+                ax.plot(x, y, label='keff', color='b')
+            elif Graph_type == 'Scatter':
+                ax.scatter(x, y, marker='^')
+            ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+            plt.title(self.Curve_title.text())
+            plt.xlabel(self.Curve_xLabel.text())
+            plt.ylabel(self.Curve_yLabel.text(), color='b')
+            try:
+                ax.errorbar(x, y, np.array(y_error), ecolor='black')
+            except:
+                pass
+        elif self.Plot_By_Key == 'Keff & Shannon entropy':
+            y = [self.Keff_List[i-1] for i in x]
+            if Graph_type == 'Lin-Lin':
+                ax.plot(x, y, label='keff', color='b')
+            elif Graph_type == 'Scatter':
+                ax.scatter(x, y, marker='^')
+            plt.title(self.Curve_title.text())
+            plt.xlabel(self.Curve_xLabel.text())
+            plt.ylabel(self.Curve_yLabel.text(), color='b') 
             
-            self.Change_Scales(ax, Graph_type)
-            self.Labels_Font(ax, plt)            
-            plt.subplots_adjust(left=0.18, right=0.98, top=0.92, bottom=0.12)
-            plt.tight_layout()
-            plt.show()
+            try:
+                H = [self.H[i-1] for i in x]
+                ax2 = ax.twinx()
+                if Graph_type == 'Lin-Lin':
+                    ax2.plot(x, H, label='entropy', color='g')
+                elif Graph_type == 'Scatter':
+                    ax2.scatter(x, H, marker='^', color='g')
+                plt.ylabel(self.Curve_y2Label.text(), color='g', fontsize=int(self.yFont_CB.currentText()))
+                ax2.yaxis.set_tick_params(labelsize=int(self.yFont_CB.currentText())*0.75)
+                self.Change_Scales(ax2, Graph_type)
+                if self.y2grid:
+                    ax2.yaxis.grid(self.y2grid, which=self.which_grid, color='olive', linestyle='--', linewidth=0.7) 
+            except:
+                self.showDialog('Warning', 'Shannon entropy was not specified in simulation settings!')
+            try:
+                ax.errorbar(x, y, np.array(y_error), ecolor='black')
+            except:
+                pass
+        elif self.Plot_By_Key == 'Shannon entropy':
+            try:
+                H = [self.H[i-1] for i in x]
+                if Graph_type == 'Lin-Lin':
+                    ax.plot(x, H, label='entropy', color='g')
+                elif Graph_type == 'Scatter':
+                    ax.scatter(x, H, marker='^', color='g')
+                plt.ylabel('Shannon entropy', color='g')
+            except:
+                self.showDialog('Warning', 'Shannon entropy was not specified in simulation settings!')
+
+        if self.xgrid:
+            ax.xaxis.grid(self.xgrid, which=self.which_grid, color='gray', linestyle='-', linewidth=0.5)
+        if self.ygrid:
+            ax.yaxis.grid(self.ygrid, which=self.which_grid, color='gray', linestyle='-', linewidth=0.5)
+        
+        
+        self.Change_Scales(ax, Graph_type)
+        self.Labels_Font(ax, plt)            
+        fig.show()
                    
     def Plot_Score(self):
         #Plot tallies
@@ -1804,8 +2031,8 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             self.yFont_CB.setCurrentIndex(6)
         else:
             self.TitleFont_CB.setCurrentIndex(8)
-            self.xFont_CB.setCurrentIndex(7)
-            self.yFont_CB.setCurrentIndex(7)
+            self.xFont_CB.setCurrentIndex(6)
+            self.yFont_CB.setCurrentIndex(6)
 
         if 'Keff' not in self.Tally_id_comboBox.currentText():
             if self.Graph_Layout_CB.currentIndex() in [0, 3]:
@@ -1820,7 +2047,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 elif self.Graph_Layout_CB.currentIndex() == 3:
                     self.score_plot_PB.setText('plot Box Plot')
                     self.score_plot_PB.setEnabled(True)
-                for CB in [self.xLog_CB, self.yLog_CB, self.Add_error_bars_CB, self.xGrid_CB, self.yGrid_CB, self.MinorGrid_CB]:
+                for CB in [self.xLog_CB, self.yLog_CB, self.Add_error_bars_CB, self.xGrid_CB, self.yGrid_CB, self.y2Grid_CB, self.MinorGrid_CB]:
                     CB.setChecked(False)
             else:
                 for elm in self.buttons:
@@ -1837,6 +2064,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                     self.label_3.setEnabled(False)
                     self.xGrid_CB.setEnabled(False)
                     self.yGrid_CB.setEnabled(False)
+                    self.y2Grid_CB.setEnabled(False)
                     self.MinorGrid_CB.setEnabled(False)
                 else:
                     self.score_plot_PB.setText('plot score')
@@ -1906,6 +2134,22 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                     self.row_SB.setValue(int(self.row_SB.value() / self.col_SB.value() + 0.5))
             except:
                 pass
+        else:
+            self.Add_error_bars_CB.setEnabled(False)
+            for PB in self.buttons:
+                PB.setEnabled(True)
+            if self.Plot_by_CB.currentIndex() == 2:
+                self.Y2Label_CB.setEnabled(False)
+                self.Y2Label_CB.setChecked(True)
+                self.Curve_y2Label.setEnabled(True)
+                self.Curve_y2Label.setText('Shannon entropy')
+                #self.Y2Label_CB.toggled.connect(self.Y2Label)
+                self.YSecondary = True
+            else:
+                self.Y2Label_CB.setEnabled(False)
+                self.Y2Label_CB.setChecked(False)
+                self.Curve_y2Label.setEnabled(False)
+                self.Curve_y2Label.clear()
 
     def Multiple_Curves(self, df):
         if self.row_SB.value()*self.col_SB.value() > 20:
@@ -1929,11 +2173,8 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             self.Plot_By_Nuclide_Score(df, ax)
         else:
             self.Plot_By_Filter(df, ax)
-
-        if not self.Stack_Plot:
-            plt.tight_layout()
-            if self.WillPlot:
-                plt.show()
+        if self.No_Plot:
+            return
     
     def Stacking_plot_Curves(self, df):
         self.WillPlot = True
@@ -1975,9 +2216,8 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             for i in range(self.N_Fig, Stack_Size):
                 ax[i].set_visible(False)        # to remove empty plots
         if self.WillPlot:
-            plt.subplots_adjust(left=0.18, right=0.98, top=0.92, bottom=0.12)
-            plt.tight_layout()
-            plt.show()
+            #fig.tight_layout()
+            fig.show()               
 
     def Plot_By_Nuclide_Score(self, df, ax): 
         # up to 6 filters
@@ -2001,6 +2241,11 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
 
         X_Shift = Width * 0.5 * (len(Checked_bins01) - 1)
         X_ = np.arange(len(Checked_bins0))
+        if Graph_type == 'Stacked Area':
+            if len(X_) < 2:
+                self.showDialog('Warning', 'Not enough data to plot Stacked Area!')
+                self.No_Plot = True
+                return
         Stack_Size = self.row_SB.value() * self.col_SB.value()
         Checked_bins = [''] * self.n_filters
         Bins_For_Title = [''] * self.n_filters
@@ -2037,6 +2282,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                             if self.n_filters >= 6:
                                 key6 = key[5]; BIN6 = BIN[5]; UNIT6 = UNIT[5]; Checked_bins6 = Checked_bins[5]; Bins_For_Title6 = Bins_For_Title[5]
 
+        self.No_Plot = False
         i = 0
         Delete_AX = False
         for bin6 in Checked_bins6:
@@ -2058,13 +2304,14 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                     if i + 1 > Stack_Size:
                                         break
 
-                                xs_ = []; y_ = {}; y_err = {}  
+                                xx_bar = []; xs_ = []; y_ = {}; y_err = {}  
                                 for bin01 in Checked_bins01:
                                     y_[bin01] = []; y_err[bin01] = []
                                 for bin0 in Checked_bins0: 
                                     bin0_idx = Checked_bins0.index(bin0)
                                     y_error = []; ys_ = []; ys_err = []
                                     X = bin0_idx   
+                                    x_bar = []
                                     multiplier = 0
                                     xs_.append(X)                
                                     for bin01 in Checked_bins01:
@@ -2073,10 +2320,13 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                             offset = Width * multiplier
                                             X += offset
                                         x = X 
+                                        x_bar.append(x)
                                         multiplier = 1  
                                         
-                                        y = df[df[KEY0] == bin0][df[KEY01] == bin01]['mean']
-                                        y_error = df[df[KEY0] == bin0][df[KEY01] == bin01]['std. dev.']
+                                        y = df[df[KEY0] == bin0]
+                                        y = y[y[KEY01] == bin01]['mean']
+                                        y_error = df[df[KEY0] == bin0]
+                                        y_error = y_error[y_error[KEY01] == bin01]['std. dev.']
                                         if self.n_filters >= 1: 
                                             y = y[df[key1] == bin1]
                                             y_error = y_error[df[key1] == bin1]
@@ -2102,19 +2352,45 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                         y_err[bin01].append(y_error)    
                                         ys_.append(y_[bin01])
                                         ys_err.append(y_err[bin01]) 
-                                        Label = bin01 if bin0_idx == 0 else None
-                                        if Graph_type in ['Bar', 'Scatter']:
-                                            if Graph_type == 'Bar':
-                                                pass
-                                                ax[i].bar(x, y, width=Width, label=Label, color=prop_cycle_color[index])
-                                            elif Graph_type == 'Scatter':
-                                                ax[i].scatter(x, y, marker='^', label = Label, color=prop_cycle_color[index])
-                                            if self.Add_error_bars_CB.isChecked():
-                                                ax[i].errorbar(x, y, np.array(y_error), ecolor='black')
                                     
                                     ax[i].set_prop_cycle(None)
+                                    
+                                    xx_bar.append(x_bar)
+                                XX = [list(group) for group in zip(*xx_bar)]
+                                    
+                                if Graph_type == 'Bar':
+                                    for bin01 in Checked_bins01:
+                                        #Label = bin01 if bin0_idx == 0 else None
+                                        index = Checked_bins01.index(bin01)
+                                        if self.Add_error_bars_CB.isChecked():
+                                            Y_Err = ys_err[index]
+                                        else:
+                                            Y_Err = None
+                                        if self.YSecondary and bin01 == 'flux': 
+                                            ax2 = ax[i].twinx()
+                                            ax2.bar(XX[index], ys_[index], width=Width, yerr=Y_Err, label=bin01, color=prop_cycle_color[index])
+                                            lines2, labels2 = ax2.get_legend_handles_labels()
+                                        else:
+                                            ax[i].bar(XX[index], ys_[index], width=Width, yerr=Y_Err, label=bin01, color=prop_cycle_color[index])
+                                        lines1, labels1 = ax[i].get_legend_handles_labels()
 
-                                if Graph_type == 'Stacked Bars':
+                                elif Graph_type == 'Scatter':
+                                    for bin01 in Checked_bins01:        
+                                        index = Checked_bins01.index(bin01)
+                                        if self.Add_error_bars_CB.isChecked():
+                                            Y_Err = ys_err[index]
+                                        else:
+                                            Y_Err = None
+                                        if self.YSecondary and bin01 == 'flux': 
+                                            ax2 = ax[i].twinx()
+                                            ax2.errorbar(xs_, ys_[index], fmt='^', yerr=Y_Err, label=bin01, color=prop_cycle_color[index])
+                                            lines2, labels2 = ax2.get_legend_handles_labels()
+                                        else:
+                                            ax[i].errorbar(xs_, ys_[index], fmt='^', yerr=Y_Err, label=bin01, color=prop_cycle_color[index])
+                                        lines1, labels1 = ax[i].get_legend_handles_labels()
+                                            
+
+                                elif Graph_type == 'Stacked Bars':
                                     Bottom = np.zeros(len(Checked_bins0))
                                     for bin01 in Checked_bins01:
                                         Label = bin01 if len(Checked_bins01) > 1 else None
@@ -2136,8 +2412,26 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                     ax[i].legend()
 
                                 ax[i].set_xlabel(self.Curve_xLabel.text())
-                                ax[i].set_ylabel(self.Curve_yLabel.text())    
-                                Title = self.Curve_title.text()
+                                  
+
+                                ax[i].set_ylabel(self.Curve_yLabel.text())
+                                ax[i].yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
+                                ax[i].ticklabel_format(axis='y', style='scientific', scilimits=(0, 0))  # Force scientific notation
+
+                                if self.YSecondary and self.Plot_By_Key == 'nuclide': 
+                                    ax2.set_ylabel(self.Curve_y2Label.text())
+                                    ax2.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
+                                    ax2.ticklabel_format(axis='y', style='scientific', scilimits=(0, 0))  # Force scientific notation
+
+                                if Graph_type in ['Stacked Area', 'Stacked Bars', 'Bar']:  
+                                    ax[i].set_xticks(X_ + X_Shift, Checked_bins0)  
+                                else:
+                                    ax[i].set_xticks(X_, Checked_bins0) 
+
+                                Title = self.Curve_title.text()  
+                                if len(self.selected_nuclides) == 1 and self.Plot_By_Key == 'nuclide':
+                                    Title = Title.replace(bin0, '').replace(' - ', '')
+                                
                                 if self.n_filters >= 1: 
                                     Title = Title + BIN1 + str(Bins_For_Title1[j1]).replace("'", "") + UNIT1
                                     if self.n_filters >= 2:
@@ -2153,22 +2447,37 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                 
                                 ax[i].set_title(Title)
 
-                                if Graph_type in ['Stacked Area', 'Stacked Bars', 'Bar']:  
-                                    ax[i].set_xticks(X_ + X_Shift, Checked_bins0)  
-                                else:
-                                    ax[i].set_xticks(X_, Checked_bins0)   
-
-                                self.Change_Scales(ax[i], Graph_type)
-                                
-                                if len(Checked_bins01) > 1: 
-                                    ax[i].legend()
-
                                 self.Labels_Font(ax[i], plt)
-                                if self.grid:
-                                    ax[i].grid(visible=self.grid, which=self.which_grid, axis=self.which_axis)
-                                else:
-                                    ax[i].grid(False)  
-                                i += 1 
+                                self.Change_Scales(ax[i], Graph_type)
+
+                                if self.YSecondary and self.Plot_By_Key == 'nuclide':
+                                    self.Change_Scales(ax2, Graph_type)
+                                    ax2.yaxis.label.set_size(int(self.yFont_CB.currentText()))
+                   
+                                # Add legends
+                                if len(Checked_bins01) > 1: 
+                                    if Graph_type in ['Scatter', 'Bar']:
+                                        if self.YSecondary and self.Plot_By_Key == 'nuclide':
+                                            ax[i].legend(lines1 + lines2, labels1 + labels2) #, prop = { "size": LegendeFontSize }, loc="upper left")
+                                        else:
+                                            ax[i].legend(lines1, labels1) #, prop = { "size": LegendeFontSize }, loc="upper left")
+                                    else:
+                                        ax[i].legend()
+
+                                # Add grids
+                                if self.xgrid:
+                                    ax[i].xaxis.grid(self.xgrid, which=self.which_grid, color='gray', linestyle='-', linewidth=0.5)
+                                if self.ygrid:
+                                    ax[i].yaxis.grid(self.ygrid, which=self.which_grid, color='gray', linestyle='-', linewidth=0.5)
+                                if self.y2grid:
+                                    if self.YSecondary and bin01 == 'flux' and self.self.Plot_By_Key == 'nuclide':
+                                        ax2.yaxis.grid(self.y2grid, which=self.which_grid, color='olive', linestyle='--', linewidth=0.5) 
+
+                                i += 1
+                                if not self.Stack_Plot:
+                                    fig.show()
+                                    fig.tight_layout()
+                                
 
     def Plot_By_Filter(self, df, ax):
         Checked_bins = [''] * self.n_filters
@@ -2233,8 +2542,6 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 BIN[i] = self.DATA[idx]['BIN']
                 UNIT[i] = self.DATA[idx]['UNIT']
                 i += 1
-
-        X_ = np.arange(len(Checked_bins))
         
         self.Plot_by_All_Filters(df, ax, Checked_bins, Checked_bins_Low, Checked_bins_High, key, Bins_For_Title, BIN, UNIT)
 
@@ -2245,6 +2552,20 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         X_Shift = Width * 0.5 * (len(self.selected_scores) - 1)
         Stack_Size = self.row_SB.value()*self.col_SB.value()
         X_ = np.arange(len(Checked_bins[0]))
+        self.No_Plot = False
+        Keys = self.df.keys()
+        if 'mean' not in Keys:
+            self.showDialog('Warning', 'Cannot find data to plot!')
+            return
+        if 'std. dev.' not in Keys:
+            self.add_errors = False
+        else:
+            self.add_errors = True
+        if Graph_type == 'Stacked Area':
+            if len(X_) < 2:
+                self.showDialog('Warning', 'Not enough data to plot Stacked Area!')
+                self.No_Plot = True
+                return
         x_Lin = Checked_bins[0]
         key2 = ['']; BIN2 = ['']; UNIT2 = ['']; Checked_bins2 = ['']; Bins_For_Title2 = ['']
         key3 = ['']; BIN3 = ['']; UNIT3 = ['']; Checked_bins3 = ['']; Bins_For_Title3 = ['']
@@ -2259,6 +2580,10 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                             '#AE31F0', '#F08080']  
         if Checked_bins_Low == ['']:
             Checked_bins_Low = Checked_bins[0]
+        if Graph_type == 'Stairs':
+            edges = [Checked_bins_Low[0]]
+            edges.extend(Checked_bins_High)
+            midpoints = 0.5 * (np.array(edges[:-1]) + np.array(edges[1:]))
 
         if self.n_filters >= 1:
             key1 = key[0]; BIN1 = BIN[0]; UNIT1 = UNIT[0]
@@ -2272,7 +2597,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                             key5 = key[4]; BIN5 = BIN[4]; UNIT5 = UNIT[4]; Checked_bins5 = Checked_bins[4]; Bins_For_Title5 = Bins_For_Title[4]
                             if self.n_filters >= 6:
                                 key6 = key[5]; BIN6 = BIN[5]; UNIT6 = UNIT[5]; Checked_bins6 = Checked_bins[5]; Bins_For_Title6 = Bins_For_Title[5]
-        
+
         i = 0
         for bin6 in Checked_bins6:                        # loop on Filter6
             j6 = Checked_bins6.index(bin6)
@@ -2286,18 +2611,21 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                             j2 = Checked_bins2.index(bin2)
                             for nuclide in self.selected_nuclides:               # loop on nuclides                                
                                 if not self.Stack_Plot:
+                                    #if i < len(self.selected_scores) or len(self.selected_scores) == 1:   
                                     fig, ax[i] = plt.subplots()
                                 else:
                                     if i + 1 > Stack_Size:
                                         break
-
-                                xs_ = []; y_ = {}; y_err = {}  
+                                                                    
+                                xx_bar = []; xs_ = []; y_ = {}; y_err = {}  
                                 for score in self.selected_scores:
                                     y_[score] = []; y_err[score] = []
+
                                 for bin in Checked_bins_Low: 
                                     bin_idx = Checked_bins_Low.index(bin)
                                     y_error = []; ys_ = []; ys_err = []
-                                    X = Checked_bins_Low.index(bin)    
+                                    X = Checked_bins_Low.index(bin) 
+                                    x_bar = []   
                                     multiplier = 0
                                     xs_.append(X)
                                     for score in self.selected_scores:
@@ -2306,10 +2634,16 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                             offset = Width * multiplier 
                                             X += offset
                                         x = X 
+                                        x_bar.append(x)
                                         multiplier = 1   
 
-                                        y = df[df[key1] == bin][df.nuclide == nuclide][df.score == score]['mean']  
-                                        y_error = df[df[key1]  == bin][df.nuclide == nuclide][df.score == score]['std. dev.']  
+                                        y = df[df[key1] == bin]
+                                        y = y[y.nuclide == nuclide]
+                                        y = y[y.score == score]['mean'] 
+                                        y_error = df[df[key1]  == bin]
+                                        y_error = y_error[y_error.nuclide == nuclide]
+                                        if self.add_errors:    
+                                            y_error = y_error[y_error.score == score]['std. dev.']
                                         if self.n_filters >= 2:
                                             y = y[df[key2] == bin2]
                                             y_error = y_error[df[key2] == bin2]
@@ -2327,64 +2661,126 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                                             y_error = y_error[df[key6] == bin6]   
 
                                         y = y.tolist()[0]          
-                                        y_error = y_error.tolist()[0]          
                                         y_[score].append(y)   
-                                        y_err[score].append(y_error)   
                                         ys_.append(y_[score])
-                                        ys_err.append(y_err[score])                    
-        
-                                        if Graph_type == 'Bar':
-                                            Label = score if bin_idx == 0 else None
-                                            ax[i].bar(x, y, width=Width, label=Label, color=prop_cycle_color[index])
-                                            if self.Add_error_bars_CB.isChecked():
-                                                ax[i].errorbar(x, y, y_error, fmt='|', ecolor='black')                            
-                                    
-                                    #ax[i].set_prop_cycle(None)
+                                        if self.add_errors:
+                                            y_error = y_error.tolist()[0]          
+                                            y_err[score].append(y_error)   
+                                            ys_err.append(y_err[score])                    
+                                                             
+                                    xx_bar.append(x_bar)
+                                XX = [list(group) for group in zip(*xx_bar)]
 
-                                if Graph_type in ['Lin-Lin', 'Scatter', 'Stairs']:
-                                    for score in self.selected_scores:
-                                        if len(self.selected_scores) > 1:
-                                            Label = score
+                                if Graph_type == 'Bar':
+                                    for score in self.selected_scores:    
+                                        index = self.selected_scores.index(score)
+                                        if self.Add_error_bars_CB.isChecked() and self.add_errors:
+                                            Y_Err = ys_err[index]
                                         else:
-                                            Label = None
+                                            Y_Err = None
+                                        if self.YSecondary and score == 'flux': 
+                                            ax2 = ax[i].twinx()
+                                            ax2.bar(XX[index], ys_[index], width=Width, yerr=Y_Err, label=score, color=prop_cycle_color[index])
+                                            lines2, labels2 = ax2.get_legend_handles_labels()
+                                        else:
+                                            ax[i].bar(XX[index], ys_[index], width=Width, yerr=Y_Err, label=score, color=prop_cycle_color[index])
+                                        lines1, labels1 = ax[i].get_legend_handles_labels()
+                                elif Graph_type in ['Lin-Lin', 'Scatter', 'Stairs']:
+                                    for score in self.selected_scores:
+                                        Label = score if len(self.selected_scores) > 1 else None
                                         k = self.selected_scores.index(score)
                                         if Graph_type == 'Lin-Lin':
-                                            if score == 'flux':    
-                                                ax[i].plot(x_Lin, ys_[k], label = Label, drawstyle='steps-mid', color=prop_cycle_color[k])
+                                            if self.YSecondary and score == 'flux': 
+                                                ax2 = ax[i].twinx()
+                                                #ax2.plot(x_Lin, ys_[k], label = Label, drawstyle='steps-mid', color=prop_cycle_color[k])
+                                                if len(x_Lin) == 1:
+                                                    ax2.scatter(x_Lin, ys_[k], marker='^', label=Label, color=prop_cycle_color[k])
+                                                else:
+                                                    ax2.plot(x_Lin, ys_[k], label=Label, color=prop_cycle_color[k])
+                                                lines2, labels2 = ax2.get_legend_handles_labels()
                                             else:
-                                                ax[i].plot(x_Lin, ys_[k], label = Label, color=prop_cycle_color[k])
+                                                if len(x_Lin) == 1:
+                                                    ax[i].scatter(x_Lin, ys_[k], marker='^', label = Label, color=prop_cycle_color[k])
+                                                else:
+                                                    ax[i].plot(x_Lin, ys_[k], label=Label, color=prop_cycle_color[k])
+                                            lines1, labels1 = ax[i].get_legend_handles_labels()                                                
                                         elif Graph_type == 'Scatter':
-                                            if 'low' in self.Plot_By_Key or 'center' in self.Plot_By_Key:
-                                                ax[i].scatter(x_Lin, ys_[k], marker='^', label = Label, color=prop_cycle_color[k])
-                                            else:
-                                                ax[i].scatter(X_, ys_[k], marker='^', label = Label, color=prop_cycle_color[k])
-                                                ax[i].set_xticks(X_, Bins_For_Title[0])
+                                            if self.YSecondary and score == 'flux': 
+                                                ax2 = ax[i].twinx()
+                                                if 'low' in self.Plot_By_Key or 'center' in self.Plot_By_Key:
+                                                    ax2.scatter(x_Lin, ys_[k], marker='^', label = Label, color=prop_cycle_color[k])
+                                                else:
+                                                    ax2.scatter(X_, ys_[k], marker='^', label = Label, color=prop_cycle_color[k])
+                                                lines2, labels2 = ax2.get_legend_handles_labels()
+                                            else:    
+                                                if 'low' in self.Plot_By_Key or 'center' in self.Plot_By_Key:
+                                                    ax[i].scatter(x_Lin, ys_[k], marker='^', label = Label, color=prop_cycle_color[k])
+                                                else:
+                                                    ax[i].scatter(X_, ys_[k], marker='^', label = Label, color=prop_cycle_color[k])
+                                                    ax[i].set_xticks(X_, Bins_For_Title[0])
+                                            lines1, labels1 = ax[i].get_legend_handles_labels()
                                         elif Graph_type == 'Stairs':
-                                            edges = [Checked_bins_Low[0]]
-                                            edges.extend(Checked_bins_High)
-                                            ax[i].stairs(ys_[k], edges, label = Label, color=prop_cycle_color[k])
-                                        if self.Add_error_bars_CB.isChecked():
-                                            ax[i].errorbar(x_Lin, ys_[k], ys_err[k], fmt='|', ecolor='black')
+                                            if self.YSecondary and score == 'flux': 
+                                                ax2 = ax[i].twinx()
+                                                ax2.stairs(ys_[k], edges, label = Label, color=prop_cycle_color[k])
+                                                lines2, labels2 = ax2.get_legend_handles_labels()
+                                            else: 
+                                                ax[i].stairs(ys_[k], edges, label = Label, color=prop_cycle_color[k])
+                                            lines1, labels1 = ax[i].get_legend_handles_labels()                                                
+                                                
+                                        if self.Add_error_bars_CB.isChecked() and self.add_errors:
+                                            if Graph_type == 'Stairs':
+                                                if self.YSecondary  and score == 'flux':
+                                                    if 'low' in self.Plot_By_Key or 'center' in self.Plot_By_Key:
+                                                        ax2.errorbar(midpoints, ys_[k], ys_err[k], fmt='|', ecolor='black')
+                                                else:
+                                                    if 'low' in self.Plot_By_Key or 'center' in self.Plot_By_Key:
+                                                        ax[i].errorbar(midpoints, ys_[k], ys_err[k], fmt='|', ecolor='black')
+                                            else:
+                                                if self.YSecondary  and score == 'flux':
+                                                    if 'low' in self.Plot_By_Key or 'center' in self.Plot_By_Key:
+                                                        ax2.errorbar(x_Lin, ys_[k], ys_err[k], fmt='|', ecolor='black')
+                                                    else:
+                                                        ax2.errorbar(X_, ys_[k], ys_err[k], fmt='|', ecolor='black')
+                                                else:
+                                                    if 'low' in self.Plot_By_Key or 'center' in self.Plot_By_Key:
+                                                        ax[i].errorbar(x_Lin, ys_[k], ys_err[k], fmt='|', ecolor='black')
+                                                    else:
+                                                        ax[i].errorbar(X_, ys_[k], ys_err[k], fmt='|', ecolor='black')
                                 elif Graph_type == 'Stacked Bars':
                                     Bottom = np.zeros(len(Checked_bins[0]))
                                     for score in self.selected_scores:
                                         Label = score if len(self.selected_scores) > 1 else None           
                                         k = self.selected_scores.index(score)
-                                        if self.Add_error_bars_CB.isChecked():
+                                        if self.Add_error_bars_CB.isChecked() and self.add_errors:
                                             ax[i].bar(np.array(xs_) + X_Shift, ys_[k], yerr=np.array(ys_err[k]), bottom=Bottom, label=Label, color=prop_cycle_color[k])
                                         else:
                                             ax[i].bar(np.array(xs_) + X_Shift, ys_[k], bottom = Bottom, label = Label, color=prop_cycle_color[k])
                                         Bottom += ys_[k]            
                                 elif Graph_type == 'Stacked Area':
                                     ax[i].stackplot(np.array(xs_) + X_Shift, ys_[:len(self.selected_scores)], labels = self.selected_scores, colors=prop_cycle_color)
-                                    if self.Add_error_bars_CB.isChecked():
+                                    if self.Add_error_bars_CB.isChecked() and self.add_errors:
                                         Bottom = np.zeros(len(Checked_bins[0]))
                                         for k in range(len(self.selected_scores)):
                                             ax[i].errorbar(np.array(xs_) + X_Shift, ys_[k] + Bottom, np.array(ys_err[k]), fmt = '|', ecolor='black')
                                             Bottom += ys_[k]
 
                                 ax[i].set_xlabel(self.Curve_xLabel.text())
+                                if 'low' in self.Plot_By_Key or 'center' in self.Plot_By_Key:
+                                    if self.x_Format_CB.currentIndex() > 0:
+                                        ax[i].xaxis.set_major_formatter(FuncFormatter(self.scientific_notation_formatter))
                                 ax[i].set_ylabel(self.Curve_yLabel.text())
+                                ax[i].yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
+                                ax[i].ticklabel_format(axis='y', style='scientific', scilimits=(0, 0))  # Force scientific notation
+
+                                if self.YSecondary: # and Graph_type not in ['Stacked Area', 'Stacked Bars']: #, 'Bar']:
+                                    ax2.set_ylabel(self.Curve_y2Label.text())
+                                    ax2.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
+                                    ax2.ticklabel_format(axis='y', style='scientific', scilimits=(0, 0))  # Force scientific notation
+
+                                if Graph_type in ['Stacked Area', 'Stacked Bars', 'Bar']:  
+                                    ax[i].set_xticks(X_ + X_Shift, Bins_For_Title[0])           
+
                                 if score in ['flux', 'current']:
                                     Subtitle = ''
                                 else:
@@ -2392,7 +2788,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                         Subtitle = ''
                                     else:  
                                         Subtitle = '\nnuclide ' + str(nuclide)
-        
+
                                 Title = self.Curve_title.text()
                                 if self.n_filters >= 2:
                                     Title = Title + ' - ' + BIN2 + str(Bins_For_Title2[j2]).replace("'","") + UNIT2
@@ -2404,48 +2800,129 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                                 Title = Title + ' - ' + BIN5 + str(Bins_For_Title5[j5]).replace("'","") + UNIT5
                                                 if self.n_filters >= 6:
                                                     Title = Title + ' - ' + BIN6 + str(Bins_For_Title6[j6]).replace("'","") + UNIT6
-                        
-                                ax[i].set_title(Title + Subtitle)
-
-                                if Graph_type in ['Stacked Area', 'Stacked Bars', 'Bar']:  
-                                    ax[i].set_xticks(X_ + X_Shift, Bins_For_Title[0])   # self.x)
-                                    
-                                self.Change_Scales(ax[i], Graph_type)
                                 
-                                if len(self.selected_scores) > 1: 
-                                    ax[i].legend(self.selected_scores)
-
-                                if self.grid:
-                                    ax[i].grid(visible=self.grid, which=self.which_grid, axis=self.which_axis)
-                                else:
-                                    ax[i].grid(False)            
+                                if 'in cell' in Title: 
+                                    Cell_id = int(Title.split('in cell')[1].lstrip()[0])
+                                    if Cell_id in self.Cells_id:
+                                        name = self.Cells[self.Cells_id.index(Cell_id)]
+                                        Title = Title.replace('in cell ' + str(Cell_id), 'in ' + name + ' cell').replace('  ', ' ')
+                                if 'born in' in Title: 
+                                    Cell_id = int(Title.split('born in')[1].lstrip()[0])
+                                    if Cell_id in self.Cells_id:
+                                        name = self.Cells[self.Cells_id.index(Cell_id)]
+                                        Title = Title.replace('born in ' + str(Cell_id), 'born in ' + name).replace('  ', ' ')
+                                if 'from' in Title: 
+                                    Cell_id = int(Title.split('from')[1].lstrip()[0])
+                                    if Cell_id in self.Cells_id:
+                                        name = self.Cells[self.Cells_id.index(Cell_id)]
+                                        Title = Title.replace('from ' + str(Cell_id), 'from ' + name).replace('  ', ' ')
+                                    
+                                ax[i].set_title(Title + Subtitle)
                                 self.Labels_Font(ax[i], plt)
+                                self.Change_Scales(ax[i], Graph_type)
+                                if self.YSecondary and score == 'flux' and Graph_type not in ['Stacked Area', 'Stacked Bars']: #, 'Bar']:
+                                    self.Change_Scales(ax2, Graph_type)
+                                    ax2.yaxis.label.set_size(int(self.yFont_CB.currentText()))
                                                     
-                                i += 1
+                                
 
-    def Enable_Tally_Normalising(self, checked):
+                                # Add legends
+                                if len(self.selected_scores) > 1: 
+                                    #if Graph_type in ['Lin-Lin', 'Scatter', 'Stairs']:
+                                    if Graph_type in ['Lin-Lin', 'Scatter', 'Stairs', 'Bar']:
+                                        if self.YSecondary:
+                                            ax[i].legend(lines1 + lines2, labels1 + labels2) #, prop = { "size": LegendeFontSize }, loc="upper left")
+                                        else:
+                                            ax[i].legend(lines1, labels1) #, prop = { "size": LegendeFontSize }, loc="upper left")
+                                    else:
+                                        ax[i].legend(self.selected_scores)
+
+                                # Add grids
+                                if self.xgrid:
+                                    ax[i].xaxis.grid(self.xgrid, which=self.which_grid, color='gray', linestyle='-', linewidth=0.5)
+                                if self.ygrid:
+                                    ax[i].yaxis.grid(self.ygrid, which=self.which_grid, color='gray', linestyle='-', linewidth=0.5)
+                                if self.y2grid:
+                                    if self.YSecondary and score == 'flux' and Graph_type not in ['Stacked Area', 'Stacked Bars']:  #, 'Bar']:
+                                        ax2.yaxis.grid(self.y2grid, which=self.which_grid, color='olive', linestyle='--', linewidth=0.5) 
+
+                                i += 1   # increment curves number
+
+                                if not self.Stack_Plot:
+                                    fig.show()
+                                    fig.tight_layout()
+
+    def scientific_notation_formatter(self, val, pos):
+        # Define a custom formatter function
+        if val == 0:
+            return "0"  # Handle the case for zero
+        exponent = int(np.floor(np.log10(abs(val))))
+        base = val / (10**exponent)
+        if base == 1:
+            if exponent in [0, 1]:
+                return f"{base * 10**exponent:.1f}"
+            else:
+                return f"$10^{{{exponent}}}$"
+        if exponent in [-1, 0, 1]:
+            return f"{base * 10**exponent:.1f}"
+        if self.x_Format_CB.currentIndex() == 1:
+            return f"${base:.1f} \\ 10^{{{exponent}}}$"  # Format with LaTeX
+        elif self.x_Format_CB.currentIndex() == 2:
+            return f"${base:.2f} \\ 10^{{{exponent}}}$"
+        elif self.x_Format_CB.currentIndex() == 3:
+            return f"${base:.3f} \\ 10^{{{exponent}}}$"
+
+    def Enable_Tally_Normalizing(self, checked):
+        #self.Checked_Keys_Norm = []
+        self.Norm_Bins_comboBox.model().dataChanged.connect(self.Deactivate_Norm_BW)
         if checked:
             self.Normalizing_GB.show()
         else:
             self.Normalizing_GB.hide()
+            self.Norm_to_BW_CB.setChecked(False)
+            self.Norm_to_Vol_CB.setChecked(False)
+            self.Norm_to_Power_CB.setChecked(False)
+            self.Norm_to_Heating_CB.setChecked(False)
+            self.Norm_to_UnitLethargy_CB.setChecked(False)
+            self.Norm_to_SStrength_CB.setChecked(False)
+
+    def Verify_Q_Nu_Value(self, LE):
+        if LE == 'self.Q_LE':
+            if LE.text() == '' or LE.text() == '0':
+                self.showDialog('Invalid Q value!')
+                return
+        elif LE == 'self.Nu_LE':
+            if LE.text() == '' or LE.text() == '0':
+                self.showDialog('Invalid \u03BD value!')
+                return
+
+        if self.Norm_to_Power_CB.isChecked():
+            self.Normalize_to_Power()
 
     def Normalizing_Settings(self):    # called by Display_scores
         # Set normalizing parameters 
+        self.Q_LE.textChanged.connect(lambda:self.Verify_Q_Nu_Value(self.Q_LE))
+        self.Nu_LE.textChanged.connect(lambda:self.Verify_Q_Nu_Value(self.Nu_LE))
         self.ENERGY_ANGLE_FILTER = ['EnergyFilter', 'EnergyoutFilter', 'MuFilter', 'PolarFilter', 'AzimuthalFilter', 'TimeFilter']
         self.Norm_Keys = ['energy', 'mu', 'polar', 'azimuthal', 'time']
         self.Norm_Available_Keys = [key.split()[0] for key in self.df_Keys if 'low' in key]
-        Norm_CBox = [self.Norm_to_Power_CB, self.Norm_to_Heating_CB, self.Norm_to_UnitLethargy_CB, self.Norm_to_Vol_CB, self.Norm_to_BW_CB]
-        Norm_LE = [self.Nu_LE, self.Heating_LE, self.Q_LE, self.Power_LE, self.Factor_LE, self.Keff_LE]
+        Norm_CBox = [self.Norm_to_Power_CB, self.Norm_to_Heating_CB, self.Norm_to_UnitLethargy_CB, self.Norm_to_Vol_CB, 
+                    self.Norm_to_BW_CB]
+        Norm_LE = [self.Nu_LE, self.Heating_LE, self.Q_LE, self.Power_LE, self.Factor_LE, self.Keff_LE, self.S_Strength_LE]
         validator_positif = QRegExpValidator(QRegExp("((\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?)"))   
         for LE in Norm_LE:
             LE.setValidator(validator_positif)
         self.Norm_Bins_comboBox.clear()
-        self.Norm_Bins_comboBox.addItem('Check item')        
-        self.Norm_Bins_comboBox.addItems([key.split()[0] for key in self.df_Keys if 'low' in key])
+        self.Norm_Bins_comboBox.addItem('Check item')      
+        self.Norm_Bins_comboBox.addItems(self.Norm_Available_Keys)
         self.Norm_Bins_comboBox.model().item(0).setEnabled(False)
+
         if self.run_mode == 'eigenvalue': 
             for item in power_items:
                 item.setEnabled(True)
+            self.Keff_LE.setEnabled(False)
+            self.Norm_to_SStrength_CB.setEnabled(False)
+            self.S_Strength_LE.setEnabled(False)
             self.Norm_to_Heating_CB.stateChanged.connect(self.onStateChange)
             self.Norm_to_Power_CB.stateChanged.connect(self.onStateChange)
             self.Norm_to_Heating_CB.toggled.connect(self.Normalize_to_Power)
@@ -2455,6 +2932,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         else:
             for item in power_items:
                 item.setEnabled(False)
+            self.Norm_to_SStrength_CB.setEnabled(True)
         for item in Norm_Other:
             item.setEnabled(True)
         for item in Norm_CBox:
@@ -2469,18 +2947,13 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             self.Norm_Bins_comboBox.setEnabled(False)
         if any('energy' in item for item in self.df_Keys):
             self.Norm_to_UnitLethargy_CB.setEnabled(True)
-            self.label_23.setEnabled(True)
         else:
             self.Norm_to_UnitLethargy_CB.setEnabled(False)
-            self.label_23.setEnabled(False)
-
-        self.Norm_to_BW_CB.toggled.connect(self.Normalize_to_Bin_Width)
-        self.Norm_to_UnitLethargy_CB.toggled.connect(self.Normalize_Flux_to_Unit_of_Lethargy)
-        self.Norm_to_Vol_CB.toggled.connect(self.Normalize_to_Volume)
-        self.Vol_List_LE.textChanged.connect(lambda:self.Norm_to_Vol_CB.setChecked(False))
 
     def Normalizing(self):             # called by Plot_Scores
-        if self.Norm_to_BW_CB.isChecked() or self.Norm_to_UnitLethargy_CB.isChecked() or self.Norm_to_Vol_CB.isChecked() or self.Norm_to_Power_CB.isChecked():
+        if self.Norm_to_BW_CB.isChecked() or self.Norm_to_UnitLethargy_CB.isChecked() or self.Norm_to_Vol_CB.isChecked() \
+                                        or self.Norm_to_Power_CB.isChecked() or self.Norm_to_SStrength_CB.isChecked() \
+                                        or self.Norm_to_Heating_CB.isChecked():
             self.Normalization = True 
         else:
             self.Normalization = False
@@ -2500,7 +2973,10 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
 
         # Normalize to power
         if self.Norm_to_Power_CB.isChecked() or self.Norm_to_Heating_CB.isChecked():
-            self.Normalizing_Factor *= np.array(self.Power_Factor)             
+            self.Normalizing_Factor *= np.array(self.Power_Factor)
+        # Normalize to source strength
+        elif self.Norm_to_SStrength_CB.isChecked():
+            self.Normalizing_Factor *= np.array(self.Strength_Factor)
         # Normalize to cells volume
         if self.Norm_to_Vol_CB.isChecked():   
             self.Normalizing_Factor *= self.Volume_Factor
@@ -2512,7 +2988,11 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             self.Normalizing_Factor *= self.Lethargy_Factor
     
         # multiply scores and std. dev. by Normalizing_Factor
-        df.loc[:,['mean', 'std. dev.']] *= np.array(self.Normalizing_Factor[:, None])  # to be verified
+        if self.add_errors:
+            df.loc[:,['mean', 'std. dev.']] *= np.array(self.Normalizing_Factor[:, None])  # to be verified
+        else:
+            df.loc[:,['mean']] *= np.array(self.Normalizing_Factor[:, None])  # to be verified
+
         df['multiplier'] = self.Normalizing_Factor.tolist()
 
         self.df_filtered_normalized = df
@@ -2527,7 +3007,10 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 self.Norm_to_Power_CB.setChecked(False)
 
     def Normalize_to_Bin_Width(self, checked):
-        self.Checked_Keys_Norm = [self.Norm_Bins_comboBox.itemText(i) for i in self.Norm_Bins_comboBox.checkedItems()]
+        if self.Norm_Bins_comboBox.checkedItems():
+            self.Checked_Keys_Norm = [self.Norm_Bins_comboBox.itemText(i) for i in self.Norm_Bins_comboBox.checkedItems()]
+        else:
+            self.Checked_Keys_Norm = []
         if checked:
             self.Norm_to_UnitLethargy_CB.setEnabled(False)
             if len(self.Checked_Keys_Norm) == 0:
@@ -2540,38 +3023,75 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 self.Bin_Factor = [''] * self.n_filters
                 self.Bin_Factor = np.ones(count_row)
                 HIGH_Keys = [key for key in self.df_Keys if 'high' in key]
-
-                for i in  range(self.n_filters): 
+                
+                for i in range(self.n_filters): 
                     if i < len(self.Checked_Keys_Norm):
                         elem = self.Checked_Keys_Norm[i]
                         for key in self.Keys:
                             if elem in key and 'low' in key:
                                 idx = self.Keys.index(key)
                                 Low = df[key].values[:]
-                                High = df[HIGH_Keys[idx]].values[:]
+                                High = df[HIGH_Keys[idx - 1]].values[:]
                                 self.Bin_Factor *= [1. / (y - x) for x,y in zip(Low, High)]
         else:
-            self.Norm_to_UnitLethargy_CB.setEnabled(True)
+            if 'energy' in self.Norm_Available_Keys:
+                self.Norm_to_UnitLethargy_CB.setEnabled(True)
+            for i in range(len(self.Norm_Available_Keys) + 1):
+                self.Norm_Bins_comboBox.setItemChecked(i, False)
+            self.Norm_Bins_comboBox.setCurrentIndex(0)
         
-        if 'MeshFilter' not in self.Filter_names:
+        self.Normalize_to_Bin_Width_Units(checked)
+        
+    def Normalize_to_Bin_Width_Units(self, checked):
+        if 'MeshFilter' not in self.Filter_names:    # plot scores
             if checked:
                 yText = self.Curve_yLabel.text()
+                if self.YSecondary:
+                    y2Text = self.Curve_y2Label.text()
                 for elem in self.Checked_Keys_Norm:
-                    i = self.Checked_Keys_Norm.index(elem)
+                    i = [i for i, item in enumerate(self.Filter_names) if elem in item.replace('Filter', '').lower()][0]
                     if self.UNIT[i] == '':
                         unit = ''
+                    elif self.UNIT[i] == ' eV' and 'eV' in yText and " eV\u207B\u00B9" not in yText:
+                        unit = ''
+                        self.Curve_yLabel.setText(yText.replace(' eV', ''))
                     else:
-                        unit = ' /' + self.UNIT[i]
-                    if unit not in yText:
-                        self.Curve_yLabel.setText(yText + unit)
-                    else:
-                        self.Curve_yLabel.setText(yText)
+                        unit = f" {self.UNIT[i]}\u207B\u00B9"
+                        if unit not in yText:
+                            self.Curve_yLabel.setText(yText + unit)
+                        else:
+                            self.Curve_yLabel.setText(yText)
+                    
+                    if self.YSecondary:
+                        unit = f" {self.UNIT[i]}\u207B\u00B9"
+                        if unit not in y2Text:
+                            self.Curve_y2Label.setText(y2Text + unit)
+                        else:
+                            self.Curve_y2Label.setText(y2Text)
             else:
                 for elem in self.Norm_Available_Keys:
-                    i = self.Norm_Available_Keys.index(elem)
-                    unit = ' /' + self.UNIT[i]
-                    yText = self.Curve_yLabel.text().replace(unit, '')
-                self.Curve_yLabel.setText(yText)
+                    score = self.selected_scores[0]
+                    if score in self.ENERGY_SCORES:
+                        yText = score + self.ENERGY_SCORES_UNIT
+                        self.Curve_yLabel.setText(yText.replace('  ', ' '))
+                    else:    
+                        i = [i for i, item in enumerate(self.Filter_names) if elem in item.replace('Filter', '').lower()][0]
+                        if self.UNIT[i] != '':
+                            unit = f"{self.UNIT[i]}\u207B\u00B9"
+                            yText = self.Curve_yLabel.text().replace(unit, '')
+                            self.Curve_yLabel.setText(yText.replace('  ', ' '))
+                        else:
+                            yText = self.Curve_yLabel.text()
+                    
+                    if self.YSecondary:
+                        if self.UNIT[i] != '':
+                            unit = f"{self.UNIT[i]}\u207B\u00B9"
+                            y2Text = self.Curve_y2Label.text().replace(unit, '')
+                        else:
+                            y2Text = self.Curve_y2Label.text()
+                        self.Curve_y2Label.setText(y2Text.replace('  ', ' '))
+
+                #self.Curve_yLabel.setText(yText.replace('  ', ' '))
         else:
             if checked:
                 Title = self.Curve_title.text()
@@ -2580,7 +3100,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                     if self.UNIT[i] == '':
                         unit = ''
                     else:
-                        unit = ' /' + self.UNIT[i]
+                        unit = f"{self.UNIT[i]}\u207B\u00B9"
                     if unit not in Title:
                         self.Curve_title.setText(Title + unit)
                     else:
@@ -2588,71 +3108,185 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             else:
                 for elem in self.Norm_Available_Keys:
                     i = self.Norm_Available_Keys.index(elem)
-                    unit = ' /' + self.UNIT[i]
+                    unit = f"{self.UNIT[i]}\u207B\u00B9"
                     Title = self.Curve_title.text().replace(unit, '')
                 self.Curve_title.setText(Title)
 
+    def Deactivate_Norm_BW(self):
+        try:
+            Checked_Keys = self.Checked_Keys_Norm
+            self.Norm_to_BW_CB.setChecked(False)
+            #for i in range(1, len(self.Norm_Available_Keys)):
+            for i,item in enumerate(self.Norm_Available_Keys):
+                #item = self.Norm_Bins_comboBox.model().item(i)
+                if item.checkState() == Qt.Checked:
+                    if item not in Checked_Keys:
+                        Checked_Keys.append(item)  
+                else:
+                    if item in Checked_Keys:
+                        Checked_Keys.pop(Checked_Keys.index(item))  
+            for i,item in enumerate(self.Norm_Available_Keys):
+                if item in Checked_Keys:
+                    self.Norm_Bins_comboBox.model().item(i).setCheckState(Qt.Checked)
+
+            self.Normalize_to_Bin_Width(True)
+        except:
+            pass
+
+    def Normalize_to_SourceStrength(self):
+        self.Norm_to_Heating_CB.setChecked(False)
+        self.Norm_to_Heating_CB.setEnabled(False)
+        self.Norm_to_Power_CB.setChecked(False)
+        self.Norm_to_Power_CB.setEnabled(False)
+        if self.S_Strength_LE.text():
+            if list(self.S_Strength_LE.text())[-1] not in ['E', 'e', '+', '-']:
+                self.Strength_Factor = float(self.S_Strength_LE.text())                  # MW = J/s
+            else:
+                return
+        else:
+            self.showDialog('Warning', 'Enter source strength first!')
+            return
+        
+        self.Normalize_to_SStrength_Units()
+        
+    def Normalize_to_SStrength_Units(self):
+        if 'MeshFilter' not in self.Filter_names:
+            yText = self.Curve_yLabel.text()
+            if self.Norm_to_SStrength_CB.isChecked():
+                if 's\u207B\u00B9' not in yText:
+                    yText = yText.replace('per source particle', '') + ' s\u207B\u00B9 '
+                else:
+                    yText = yText.replace('s\u207B\u00B9', '') + ' s\u207B\u00B9 '
+                if self.YSecondary:
+                    y2Text = self.Curve_y2Label.text()
+                    if 's\u207B\u00B9' not in y2Text:
+                        y2Text = y2Text.replace('per source particle', '').replace('  ', ' ') + ' s\u207B\u00B9 '
+                    else:
+                        y2Text = y2Text.replace('s\u207B\u00B9', '') + ' s\u207B\u00B9 '
+                    self.Curve_y2Label.setText(y2Text.replace('  ', ' '))
+            else:
+                if self.YSecondary:
+                    y2Text = self.Curve_y2Label.text()
+                    self.Curve_y2Label.setText(y2Text.replace('s\u207B\u00B9', '') + ' per source particle ')
+                yText = yText.replace('s\u207B\u00B9', '') + ' per source particle '
+            self.Curve_yLabel.setText(yText.replace('  ', ' '))
+        else:
+            Title = self.Curve_title.text()
+            if self.Norm_to_SStrength_CB.isChecked():
+                if 's\u207B\u00B9' not in Title:
+                    Title = Title + ' s\u207B\u00B9 '
+                else:
+                    Title = Title.replace('s\u207B\u00B9', '') + ' s\u207B\u00B9 '
+            else:
+                Title = Title.replace('s\u207B\u00B9', '')
+            self.Curve_title.setText(Title.replace('  ', ' '))
+
     def Normalize_to_Power(self):
+        self.Norm_to_SStrength_CB.setChecked(False)
+        self.Norm_to_SStrength_CB.setEnabled(False)
         self.Factor_LE.clear()
         if self.Power_LE.text():
             if list(self.Power_LE.text())[-1] not in ['E', 'e', '+', '-']:
-                Power = float(self.Power_LE.text())                  # MW = J/s
+                Power = float(self.Power_LE.text())                  # W = J/s
             else:
                 return
         else:
             self.showDialog('Warning', 'Enter reactor power first!')
             return
-        if self.Norm_to_Power_CB.isChecked() or self.Norm_to_Heating_CB.isChecked():
-            if self.Norm_to_Power_CB.isChecked():
-                if self.Power_LE.text():
-                    Nu = float(self.Nu_LE.text())
-                    Q = float(self.Q_LE.text()) * 1.6022E-13       # MeV * J/eV = J
-                    Keff = self.keff
-                    Factor = Power * Nu / Q / Keff      # 1/s 
-                else:
-                    Factor = 1.
-            elif self.Norm_to_Heating_CB.isChecked():
-                if self.Heating_LE.text():
-                    if list(self.Heating_LE.text())[-1] not in ['E', 'e', '+', '-']:
-                        H = float(self.Heating_LE.text())                  # MW = J/s
-                    else:
-                        return
-                    H = float(self.Heating_LE.text()) * 1.6022E-19   # eV * J/eV  = J
-                    if H != 0:
-                        Factor = Power / H                  # 1/s
-                    else:
-                        Factor = 1.
-                else:
-                    Factor = 1.
-
+        if self.Norm_to_Power_CB.isChecked():
             self.Keff_LE.setText(str("{:.5f}".format(self.keff)))
-            self.Power_Factor = Factor
+            if self.Power_LE.text():
+                if self.Nu_LE.text() not in ['', '0']:
+                    if 'E' in self.Nu_LE.text():
+                        if self.Nu_LE.text().split('E')[1] in ['', '+', '-']:
+                            return
+                    Nu = float(self.Nu_LE.text())
+                else:
+                    Nu = 2.45
+                    self.showDialog('Warning', 'Invalid \u03BD value! Default \u03BD = 2.45 will be used!')
+                    self.Nu_LE.setText('2.45')
+
+                if self.Q_LE.text() not in ['', '0']:
+                    if 'E' in self.Q_LE.text():
+                        if self.Q_LE.text().split('E')[1] in ['', '+', '-']:
+                            return
+                    Q = float(self.Q_LE.text()) * 1.6022E-13       # MeV * J/eV = J
+                else:
+                    Q = 193. * 1.6022E-13
+                    self.showDialog('Warning', 'Invalid Q value! Default Q = 193. MeV will be used!')
+                    self.Q_LE.setText('193.')
+                
+                Keff = self.keff
+                Factor = Power * Nu / Q / Keff      # 1/s 
+            else:
+                Factor = 1.
+        elif self.Norm_to_Heating_CB.isChecked():
+            if self.Heating_LE.text():
+                if list(self.Heating_LE.text())[-1] not in ['E', 'e', '+', '-']:
+                    H = float(self.Heating_LE.text())                  # MW = J/s
+                else:
+                    return
+                H = float(self.Heating_LE.text()) * 1.6022E-19   # eV * J/eV  = J
+                if H != 0:
+                    Factor = Power / H                  # 1/s
+                else:
+                    Factor = 1.
+            else:
+                Factor = 1.         
         else:
-            self.Power_Factor = 1.
+            Factor = 1.
+        self.Power_Factor = Factor
         self.Factor_LE.setText(str(self.Power_Factor))
+        self.Normalize_to_Power_Units()
 
+    def Normalize_to_Power_Units(self):
         if 'MeshFilter' not in self.Filter_names:
-            if self.Norm_to_Power_CB.isChecked() or self.Norm_to_Heating_CB.isChecked():
-                yText = self.Curve_yLabel.text()
-                if ' / s ' not in yText:
-                    self.Curve_yLabel.setText(yText + ' / s ')
+            yText = self.Curve_yLabel.text()
+            if self.Norm_to_Power_CB.isChecked() or self.Norm_to_Heating_CB.isChecked(): # or self.Norm_to_SStrength_CB.isChecked():
+                if 's\u207B\u00B9' not in yText:
+                    if 'per source particle' in yText:
+                        yText = yText.replace('per source particle', '') + ' s\u207B\u00B9 '
+                    else:
+                        yText = yText + ' s\u207B\u00B9 '
                 else:
-                    self.Curve_yLabel.setText(yText)
-            else:
-                yText = self.Curve_yLabel.text()
-                self.Curve_yLabel.setText(yText.replace(' / s ', ''))
-        else:
-            if self.Norm_to_Power_CB.isChecked() or self.Norm_to_Heating_CB.isChecked():
-                Title = self.Curve_title.text()
-                if ' / s ' not in Title:
-                    self.Curve_title.setText(Title + ' / s ')
-                else:
-                    self.Curve_title.setText(Title)
-            else:
-                Title = self.Curve_title.text()
-                self.Curve_title.setText(Title.replace(' / s ', ''))
+                    yText = yText.replace('s\u207B\u00B9', '') + ' s\u207B\u00B9 '
+                
+                self.Curve_yLabel.setText(yText.replace('  ', ' '))
 
-    def Normalize_Flux_to_Unit_of_Lethargy(self, checked):
+                if self.YSecondary:
+                    y2Text = self.Curve_y2Label.text()
+                    if 's\u207B\u00B9' not in y2Text:
+                        if 'per source particle' in y2Text:
+                            y2Text = y2Text.replace('per source particle', '') + ' s\u207B\u00B9 '
+                        else:
+                            y2Text = y2Text + ' s\u207B\u00B9 '
+                    else:
+                        y2Text = y2Text.replace('s\u207B\u00B9', '') + ' s\u207B\u00B9 '
+
+                    self.Curve_y2Label.setText(y2Text.replace('  ', ' '))
+            else:
+                yText = yText.replace('s\u207B\u00B9', '') + ' per source particle '
+                self.Curve_yLabel.setText(yText.replace('  ', ' '))
+
+                if self.YSecondary:
+                    y2Text = self.Curve_y2Label.text()
+                    y2Text = y2Text.replace('s\u207B\u00B9', '') + ' per source particle '
+                    self.Curve_y2Label.setText(y2Text.replace('  ', ' '))
+        else:
+            Title = self.Curve_title.text()
+            if self.Norm_to_Power_CB.isChecked() or self.Norm_to_Heating_CB.isChecked(): # or self.Norm_to_SStrength_CB.isChecked():
+                if 's\u207B\u00B9' not in Title:
+                    if 'per source particle' in Title:
+                        Title = Title.replace('per source particle', '') + ' s\u207B\u00B9 '
+                    else:
+                        Title = Title + ' s\u207B\u00B9 '
+                else:
+                    Title = Title.replace('s\u207B\u00B9', '') + ' s\u207B\u00B9 '
+            else:
+                Title = Title.replace('s\u207B\u00B9', '') + ' per source particle '
+            self.Curve_title.setText(Title.replace('  ', ' '))
+
+    def Normalize_to_Unit_of_Lethargy(self, checked):
         import math
         df = self.df_filtered.copy()
         count_row = df.shape[0]
@@ -2668,27 +3302,40 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             self.Norm_to_BW_CB.setEnabled(False)
         else:
             self.Norm_to_BW_CB.setEnabled(True)
+        self.Normalize_to_Unit_of_Lethargy_Units(checked)
 
+    def Normalize_to_Unit_of_Lethargy_Units(self, checked):
         if 'MeshFilter' not in self.Filter_names:
             if checked:    
                 yText = self.Curve_yLabel.text()
-                if ' / unit lethargy ' not in yText:
-                    self.Curve_yLabel.setText(yText + ' / unit lethargy ')
+                if 'per unit lethargy' not in yText:
+                    self.Curve_yLabel.setText(yText + ' per unit lethargy ')
                 else:
-                    self.Curve_yLabel.setText(yText)
+                    self.Curve_yLabel.setText(yText.replace('per unit lethargy', '') + ' per unit lethargy ')
+
+                if self.YSecondary:
+                    y2Text = self.Curve_y2Label.text()
+                    if 'per unit lethargy' not in y2Text:
+                        self.Curve_y2Label.setText(y2Text + ' per unit lethargy ')
+                    else:
+                        self.Curve_y2Label.setText(yText.replace('per unit lethargy', '').replace('  ', ' ') + ' per unit lethargy ')
             else:
                 yText = self.Curve_yLabel.text()
-                self.Curve_yLabel.setText(yText.replace(' / unit lethargy ', ''))
+                self.Curve_yLabel.setText(yText.replace(' per unit lethargy ', '').replace('  ', ' '))
+                
+                if self.YSecondary:
+                    y2Text = self.Curve_y2Label.text()
+                    self.Curve_y2Label.setText(y2Text.replace(' per unit lethargy ', '').replace('  ', ' '))
         else:
             if checked:    
                 Title = self.Curve_title.text()
-                if ' / unit lethargy ' not in Title:
-                    self.Curve_title.setText(Title + ' / unit lethargy ')
+                if 'per unit lethargy' not in Title:
+                    self.Curve_title.setText(Title + ' per unit lethargy ')
                 else:
-                    self.Curve_title.setText(Title)
+                    self.Curve_title.setText(Title.replace('per unit lethargy', '') + ' per unit lethargy ')
             else:
                 Title = self.Curve_title.text()
-                self.Curve_title.setText(Title.replace(' / unit lethargy ', ''))
+                self.Curve_title.setText(Title.replace(' per unit lethargy ', '').replace('  ', ' '))
 
     def Normalize_to_Volume(self, checked):
         # Obtain the width of Lethargy Energy
@@ -2736,42 +3383,80 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
 
                 self.Volume_Factor = np.reciprocal(self.All_Volumes).tolist()
 
+        self.Normalize_to_Volume_Units(checked)
+
+    def Normalize_to_Volume_Units(self, checked):
         if 'MeshFilter' not in self.Filter_names:        
+            yText = self.Curve_yLabel.text()   
             if checked: 
-                yText = self.Curve_yLabel.text()   
-                if 'flux' in yText:
-                    if ' / cm ' in yText:
-                        self.Curve_yLabel.setText(yText.replace(' / cm ', ' / cm\u00b2 '))
+                if len(self.selected_scores) == 1:
+                    if 'flux' in yText:
+                        if '-cm' in yText:
+                            yText = yText.replace('-cm ', " cm\u207B\u00B2 ")
+                        else:
+                            if "cm\u207B\u00B2" not in yText:
+                                yText = yText + " cm\u207B\u00B2 "
                     else:
-                        self.Curve_yLabel.setText(yText + ' / cm\u00b2 ')
+                        if 'cm\u00b3' in yText:
+                            yText = yText.replace('cm\u00b3', '')
+                        else:
+                            yText = yText + " cm\u207B\u00B3 "
                 else:
-                    if ' / cc ' not in yText:
-                        self.Curve_yLabel.setText(yText + ' / cc ')
+                    if 'cm\u00b3' in yText:
+                        yText = yText.replace('cm\u00b3', '')
+                    else:
+                        if "cm\u207B\u00B3" not in yText:
+                            yText = yText + " cm\u207B\u00B3 "                  
+                    
+                    if self.YSecondary: 
+                        y2Text = self.Curve_y2Label.text()
+                        if '-cm' in y2Text:
+                            y2Text = y2Text.replace('-cm ', " cm\u207B\u00B2 ")
+                        else:
+                            if "cm\u207B\u00B2" not in y2Text:
+                                y2Text = y2Text + " cm\u207B\u00B2 "
+                            
+                        self.Curve_y2Label.setText(y2Text)
             else:
-                yText = self.Curve_yLabel.text()
                 if 'flux' in yText:
-                    yText = self.Curve_yLabel.text().replace(' / cm\u00b2 ', ' / cm ')
+                    yText = yText.replace(" cm\u207B\u00B2 ", '-cm ')
                 else:
-                    yText = self.Curve_yLabel.text().replace(' / cc ', '')
-                self.Curve_yLabel.setText(yText)
+                    if "cm\u207B\u00B3" in yText:
+                        yText = yText.replace(" cm\u207B\u00B3 ", '')
+                    else:
+                        yText = yText + ' cm\u00b3 '
+
+                if self.YSecondary:
+                    y2Text = self.Curve_y2Label.text()
+                    if "cm\u207B\u00B2" in y2Text:
+                        y2Text = y2Text.replace(" cm\u207B\u00B2 ", '-cm ')
+                        if 'per source particle' in y2Text:
+                            y2Text = y2Text.replace('per source particle', '') + ' per source particle '
+                    self.Curve_y2Label.setText(y2Text.replace('  ', ' '))
+            
+            if 'per source particle' in yText:
+                yText = yText.replace('per source particle', '') + ' per source particle '
+            self.Curve_yLabel.setText(yText.replace('  ', ' '))
         else:
             if checked:
                 Title = self.Curve_title.text()
                 if 'flux' in Title:
-                    if ' / cm ' in Title:
-                        self.Curve_title.setText(Title.replace(' / cm ', ' / cm\u00b2 '))
+                    if '-cm ' in Title:
+                        Title = Title.replace('-cm ', " cm\u207B\u00B2 ")
                     else:
-                        self.Curve_title.setText(Title + ' / cm\u00b2 ')
+                        Title = Title + " cm\u207B\u00B2 "
                 else:
-                    if ' / cc ' not in Title:
-                        self.Curve_title.setText(Title + ' / cc ')
+                    if "cm\u207B\u00B3" not in Title:
+                        Title = Title + " cm\u207B\u00B3 "
             else:
                 Title = self.Curve_title.text()
                 if 'flux' in Title:
-                    Title = self.Curve_title.text().replace(' / cm\u00b2 ', ' / cm ')
+                    Title = self.Curve_title.text().replace(" cm\u207B\u00B2 ", '-cm ')
                 else:
-                    Title = self.Curve_title.text().replace(' / cc ', '')
-                self.Curve_title.setText(Title)
+                    Title = self.Curve_title.text().replace(" cm\u207B\u00B3 ", '')
+            if ' per source particle ' in Title:
+                Title = Title.replace(' per source particle ', '') + ' per source particle '
+            self.Curve_title.setText(Title)
 
     def LE_to_List(self, LineEdit):
         text = LineEdit.text().replace('(', '').replace(')', '')
@@ -2839,7 +3524,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 self.Graph_type_CB.setEnabled(False)
                 self.Plot_by_CB.clear()            
             else:
-                if 'Batches' not in self.Filters_comboBox.currentText():
+                if 'Keff' not in self.Tally_id_comboBox.currentText():
                     self.Plot_By_Key = self.Plot_by_CB.currentText()
                     if self.Plot_By_Key in ['mu low', 'mu center of bin']:
                         self.Curve_xLabel.setText('$\mu$')
@@ -2853,34 +3538,49 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                         self.Curve_xLabel.setText(self.Plot_By_Key)
                     for elm in self.buttons:
                         elm.setEnabled(True)
-                    if self.Graph_type_CB.currentText() in ['Bar', 'Stacked Bars', 'Stacked Area']:
+                    if self.Graph_type_CB.currentText() in ['Stacked Bars', 'Stacked Area']:
                         self.xLog_CB.setEnabled(False)
-                    elif self.Graph_type_CB.currentText() == 'Scatter':
-                        if self.Plot_By_Key in ['cell', 'cellfrom', 'cellborn', 'distribcell', 'material', 
-                                                'universe', 'surface', 'particle' ,'collision', 'nuclide', 'score']:
-                            self.xLog_CB.setEnabled(False)  
-                        else:
-                            self.xLog_CB.setEnabled(True)  
+                        self.Y2Label_CB.setChecked(False)
+                        self.Y2Label_CB.setEnabled(False)
+                        self.Curve_y2Label.setEnabled(False)
                     else:
-                        pass           
-  
+                        if self.Graph_type_CB.currentText() == 'Bar':
+                            self.xLog_CB.setEnabled(False)
+                        elif self.Graph_type_CB.currentText() in ['Lin-Lin', 'Scatter', 'Stairs']:
+                            if self.Plot_By_Key in ['cell', 'cellfrom', 'cellborn', 'distribcell', 'material', 
+                                                    'universe', 'surface', 'particle' ,'collision', 'nuclide', 'score']:
+                                self.xLog_CB.setEnabled(False)  
+                            else:
+                                self.xLog_CB.setEnabled(True)
+                        if len(self.selected_scores) > 1 and 'flux' in self.selected_scores:
+                            self.Y2Label_CB.setEnabled(True)
+                            #self.Y2Label_CB.setChecked(True)
+                            self.Curve_y2Label.setEnabled(True)
+                        else:
+                            self.Y2Label_CB.setEnabled(False)
+                            self.Y2Label_CB.setChecked(False)
+                            self.Curve_y2Label.setEnabled(False)
+          
+
     def plot_grid_settings(self):
+        self.xgrid = False; self.ygrid = False; self.y2grid = False
         if self.MinorGrid_CB.isChecked():
             self.which_grid = 'both'
         else:
             self.which_grid = 'major'
-        if self.xGrid_CB.isChecked() and self.yGrid_CB.isChecked():
-            self.grid = True
-            self.which_axis = 'both'
-        elif self.xGrid_CB.isChecked() and not self.yGrid_CB.isChecked():
-            self.grid = True
-            self.which_axis = 'x'
-        elif not self.xGrid_CB.isChecked() and self.yGrid_CB.isChecked() :
-            self.grid = True
-            self.which_axis = 'y'
+        if self.xGrid_CB.isChecked(): 
+            self.xgrid = True
         else:
-            self.grid = False
-            self.which_axis = ''
+            self.xgrid = False
+        if self.yGrid_CB.isChecked():
+            self.ygrid = True
+        else:
+            self.ygrid = False
+        if self.YSecondary:
+            if self.y2Grid_CB.isChecked():
+                self.y2grid = True
+            else:
+                self.y2grid = False
 
     def Activate_Curve_Type(self):
         for i in range(1,6):
@@ -2990,7 +3690,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 self.WillPlot = False
                 return
         
-        fig, axs = plt.subplots(self.row_SB.value(), self.col_SB.value())  #, layout="constrained")   #, sharex=True)
+        fig, axs = plt.subplots(self.row_SB.value(), self.col_SB.value(), figsize=(8, 6),)  #, layout="constrained")   #, sharex=True)
         if self.N_Fig < Stack_Size:
             ax = [None] * Stack_Size
         else:    
@@ -3002,20 +3702,15 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         self.i_omitted = 0
         self.Plot_Mesh_Stack(df, fig, ax)
 
-        """if self.n_filters == 1:  
-            self.Plot_Mesh1_Stack(df, fig, ax)
-        else:
-            self.Plot_Mesh_Stack(df, fig, ax)"""
-
         if Stack_Size > self.N_Fig - self.i_omitted:
             for i in range(self.N_Fig - self.i_omitted, Stack_Size):
                 if ax[i]:
                     ax[i].set_visible(False)        # to remove empty plots
         
         if self.WillPlot:
-            plt.subplots_adjust(left=0.18, right=0.98, top=0.92, bottom=0.12)
-            plt.tight_layout()
-            plt.show()
+            fig.subplots_adjust(left=0.18, right=0.98, top=0.92, bottom=0.12)
+            fig.show()
+            fig.tight_layout()
 
     def Plot_Mesh(self, dff):
         df = dff.copy()
@@ -3071,8 +3766,10 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         msg1 = ''
         msg2 = ''
         i_fig = 1
+
         for score in self.selected_scores:
             if score != '':
+                Suptitle1 = ''
                 for nuclide in self.selected_nuclides:
                     if nuclide != '':
                         for bin in self.checked_bins_indices:
@@ -3099,7 +3796,10 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                             i_bin4 = Checked_bins4.index(bin4)
                                             for bin5 in Checked_bins5: 
                                                 i_bin5 = Checked_bins5.index(bin5)
-                                                yy = df[df.nuclide == nuclide][df.score == score][df[key] == bin - 1] #[df[key1] == bin1]
+                                                #yy = df[df.nuclide == nuclide][df.score == score][df[key] == bin - 1] #[df[key1] == bin1]
+                                                yy = df[df.nuclide == nuclide]
+                                                yy = yy[yy.score == score]
+                                                yy = yy[yy[key] == bin - 1] 
                                                 if len(Keys_Loop) >= 1:
                                                     yy = yy[df[key1] == bin1]
                                                     if len(Keys_Loop) >= 2:
@@ -3111,9 +3811,8 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                                                 if len(Keys_Loop) >= 5:
                                                                     yy = yy[df[key5] == bin5]
                                                 self.Print_Formated_df(yy.copy(), self.tally_id, self.editor)
-                                                mean = np.array(yy['mean'].tolist()).reshape((self.dim1, self.dim2))
-                                                errors = np.array(yy['std. dev.'].tolist()).reshape((self.dim1, self.dim2))
-
+                                                mean = np.transpose(np.array(yy['mean'].tolist()).reshape((self.dim1, self.dim2)))
+                                                errors = np.transpose(np.array(yy['std. dev.'].tolist()).reshape((self.dim1, self.dim2)))
                                                 if self.Add_error_bars_CB.isChecked():
                                                     mean = errors
                                                 if self.xLog_CB.isChecked():
@@ -3138,24 +3837,39 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                                             ' is empty and has been omitted.\n'
                                                     break
                                                 else:
-                                                    plt.subplots()
-                                                    im = plt.imshow(mean, cmap=cm.rainbow, norm=Norm, interpolation=Interpolation, origin='lower', extent=[x.min(), x.max(), y.min(), y.max()])
-                                                    plt.show()
-                                                
+                                                    fig, ax = plt.subplots()
+                                                    im = ax.imshow(mean, cmap=cm.rainbow, norm=Norm, interpolation=Interpolation, origin='lower', extent=[x.min(), x.max(), y.min(), y.max()])
+                                                    fig.show()
+                                                    
                                                 if score == 'flux':
                                                     if self.Norm_to_Vol_CB.isChecked():
-                                                        Suptitle1 = score + ' / cm\u00b2'
+                                                        Suptitle1 = score + self.FlUX_UNIT.replace('-cm', ' / cm\u00b2')
                                                     else:
-                                                        Suptitle1 = score + ' / cm'
+                                                        Suptitle1 = score + self.FlUX_UNIT
                                                 else:
+                                                    if score in self.REACTION_SCORES:
+                                                        Suptitle1 = score + self.REACTION_UNIT 
+                                                    elif score in self.MISCELLANEOUS_SCORES:
+                                                        if score != 'events':
+                                                            Suptitle1 = score + self.MISCELLANEOUS_UNIT[self.MISCELLANEOUS_SCORES.index(score)]
+                                                        else:
+                                                            Suptitle1 = self.MISCELLANEOUS_UNIT[self.MISCELLANEOUS_SCORES.index(score)]
+                                                    elif score in self.ENERGY_SCORES:
+                                                        Suptitle1 = score + self.ENERGY_SCORES_UNIT
+
                                                     if self.Norm_to_Vol_CB.isChecked():
-                                                        Suptitle1 = score + ' rate ' 
+                                                        Suptitle1 = Suptitle1 + ' / cm\u00b3'
+
+                                                if self.Norm_to_Power_CB.isChecked() or self.Norm_to_SStrength_CB.isChecked():
+                                                    if 's/cm' in Suptitle1:
+                                                        Suptitle1 = Suptitle1.replace('s/cm', '1/cm')
                                                     else:
-                                                        Suptitle1 = score + ' rate ' + '/ cm\u00b3'
-                                                if self.Norm_to_Power_CB.isChecked():
-                                                    Suptitle1 = Suptitle1 + ' /s'
+                                                        Suptitle1 = Suptitle1.replace('per source particle', ' /s')
                                                 if self.Norm_to_BW_CB.isChecked():
-                                                    Suptitle1 = Suptitle1 + ' /eV'
+                                                    if 'eV ' in Suptitle1:
+                                                        Suptitle1 = Suptitle1.replace('eV ', '')
+                                                    else:
+                                                        Suptitle1 = Suptitle1 + ' / eV'
                                                 elif self.Norm_to_UnitLethargy_CB.isChecked():
                                                     Suptitle1 = Suptitle1 + ' per unit lethargy'                      
                                                 
@@ -3177,9 +3891,17 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                                 else:
                                                     self.showDialog('Warning', 'More than 6 filters not supported yet!')
                                                 
-                                                cbar = plt.colorbar()
+                                                cbar = fig.colorbar(im, ax=ax, aspect=20, pad=0.06, shrink=0.8)  # Match the aspect ratio
                                                 cbar.set_label(Suptitle1, rotation=270, labelpad=20)                                                
-                                                
+
+                                                # Format the colorbar labels in scientific notation
+                                                formatter = ScalarFormatter(useMathText=True)  # Use scientific notation
+                                                formatter.set_powerlimits((-2, 2))  # Show scientific notation for values outside the range 10^-2 to 10^2
+                                                cbar.ax.yaxis.set_major_formatter(formatter)
+
+                                                # Add the exponent notation to the colorbar
+                                                cbar.ax.yaxis.offsetText.set_visible(True)  # Ensure the offset text (e.g., 1e-3) is visible
+
                                                 if nuclide != 'total':
                                                     plt.title(Suptitle3 + '\nNuclide : ' + nuclide, fontsize=int(self.TitleFont_CB.currentText()))   #, horizontalalignment='center')
                                                 else:    
@@ -3189,110 +3911,17 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                                 plt.xlabel(self.Curve_xLabel.text(), fontsize=int(self.xFont_CB.currentText()))
                                                 plt.ylabel(self.Curve_yLabel.text(), fontsize=int(self.yFont_CB.currentText()))
                                                 plt.xticks(fontsize=int(self.xFont_CB.currentText())*0.75, rotation=int(self.xLabelRot_CB.currentText()))
-                                                plt.yticks(fontsize=int(self.yFont_CB.currentText())*0.75)                                    
+                                                plt.yticks(fontsize=int(self.yFont_CB.currentText())*0.75)  
+
+                                                fig.tight_layout()
+                                                fig.subplots_adjust(left=0.131, right=0.939, top=0.962, bottom=0.048, hspace=0.2, wspace=0.2)
+                                                                                  
                                                 i_fig += 1
         if msg1 != '':
             self.showDialog('Warning', msg + msg1)
         if msg2 != '':
             print(msg2)
-        plt.tight_layout()
-        plt.show()
-
-    def Plot_Mesh1_Stack(self, df, fig, ax):
-        from matplotlib.ticker import FormatStrFormatter
-        from matplotlib.ticker import ScalarFormatter
-        index = self.filter_ids.index(self.filter_id)
-        key = self.mesh_axis_key
-        x = np.linspace(self.LL1, self.UR1, num=self.dim1 + 1)
-        y = np.linspace(self.LL2, self.UR2, num=self.dim2 + 1)
-        msg = 'Cannot plot in Log scale scores that are all null!\n'
-        msg1 = ''
-        i_fig = 1
-
-        for bin in self.checked_bins_indices:
-            for score in self.selected_scores:
-                if score != '':
-                    for nuclide in self.selected_nuclides:
-                        if nuclide != '':
-                            z = df[df.nuclide == nuclide][df.score == score]
-                            z1 = z[df[key] == bin - 1]
-                            mean = np.array(z1['mean'].tolist()).reshape((self.dim1, self.dim2))
-                            errors = np.array(z1['std. dev.'].tolist()).reshape((self.dim1, self.dim2))
-                            if self.Add_error_bars_CB.isChecked():
-                                mean = errors
-                            if self.xLog_CB.isChecked():
-                                Interpolation = 'spline36'
-                            else:
-                                Interpolation = None
-                            if self.yLog_CB.isChecked():
-                                if np.count_nonzero(mean) == 0:
-                                    Norm = None
-                                    msg1 += 'Figure ' + str(i_fig) + ': ' + score + ' on ' + nuclide + '\n'
-                                else:
-                                    Norm = colors.LogNorm()
-                            else:
-                                Norm = None
-                            
-                            if self.Omit_Blank_Graph_CB.isChecked() and np.count_nonzero(mean) == 0:
-                                break
-                            else:
-                                i = i_fig - 1
-                                if i < self.row_SB.value() * self.col_SB.value():
-                                    im = ax[i].imshow(mean, cmap=cm.rainbow, norm=Norm, interpolation=Interpolation, origin='lower', extent=[x.min(), x.max(), y.min(), y.max()])
-                                else:
-                                    break
-
-                            if score == 'flux':
-                                if self.Norm_to_Vol_CB.isChecked():
-                                    Suptitle = score + ' / cm\u00b2'
-                                else:
-                                    Suptitle = score + ' / cm'
-                            else:
-                                if self.Norm_to_Vol_CB.isChecked():
-                                    Suptitle = score + ' rate ' 
-                                else:
-                                    Suptitle = score + ' rate ' + '/ cm\u00b3'
-                            if self.Norm_to_Power_CB.isChecked():
-                                Suptitle = Suptitle + ' /s'
-                            if self.Norm_to_BW_CB.isChecked():
-                                Suptitle = Suptitle + ' /eV'
-                            elif self.Norm_to_UnitLethargy_CB.isChecked():
-                                Suptitle = Suptitle + ' per unit lethargy'
-                            if len(self.tally.filters[0].mesh._grids) == 3:
-                                Suptitle1 = 'score at ' + str(self.Tallies[self.tally_id][self.filter_ids[0]]['bins'][bin-2]).replace('slice at', '') + (' cm')
-                            else:
-                                if self.Mesh_xy_RB.isChecked():
-                                    Suptitle1 = ' score integrated on z axis'
-                                elif self.Mesh_xz_RB.isChecked():
-                                    Suptitle1 = ' score integrated on y axis'
-                                elif self.Mesh_yz_RB.isChecked():
-                                    Suptitle1 = ' score integrated on x axis'
-                            if self.Add_error_bars_CB.isChecked():
-                                Suptitle = Suptitle.replace(score, 'errors on ' + score)
-                                Suptitle1 = Suptitle1.replace('score', 'errors on score')
-                            
-                            if nuclide != 'total':
-                                ax[i].set_title(Suptitle1 + '\nNuclide : ' + nuclide, fontsize=int(self.TitleFont_CB.currentText()))
-                            else:    
-                                ax[i].set_title(Suptitle1, fontsize=int(self.TitleFont_CB.currentText()))
-                            ax[i].set_xlabel(self.Curve_xLabel.text(), fontsize=int(self.xFont_CB.currentText()))
-                            ax[i].set_ylabel(self.Curve_yLabel.text(), fontsize=int(self.yFont_CB.currentText()))
-                            #ax[i].xticks(fontsize=int(self.xFont_CB.currentText())*0.75, rotation=int(self.xLabelRot_CB.currentText()))
-                            #ax[i].yticks(fontsize=int(self.yFont_CB.currentText())*0.75)
-                            cbar = fig.colorbar(im, ax=ax[i], location='right')
-                            cbar.set_label(Suptitle, rotation=270, labelpad=20)
-                            
-                            #cbar.tick_params(labelsize=int(self.xFont_CB.currentText())*0.75)
-                            #cbar.ax[i].tick_params(labelsize=int(self.xFont_CB.currentText())*0.75)
-                            #cbar.ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-                            #cbar.ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))                    
-                            #cbar.tick_params(labelsize=int(self.xFont_CB.currentText())*0.75)
-
-                            i_fig += 1
-        if msg1 != '':
-            self.showDialog('Warning', msg + msg1)
         #plt.tight_layout()
-        #plt.show()
 
     def Plot_Mesh_Stack(self, dff, fig, ax):
         df = dff.copy()
@@ -3373,7 +4002,10 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                             i_bin4 = Checked_bins4.index(bin4)
                                             for bin5 in Checked_bins5: 
                                                 i_bin5 = Checked_bins5.index(bin5)
-                                                yy = df[df.nuclide == nuclide][df.score == score][df[key] == bin - 1]
+                                                #yy = df[df.nuclide == nuclide][df.score == score][df[key] == bin - 1]
+                                                yy = df[df.nuclide == nuclide]
+                                                yy = yy[yy.score == score]
+                                                yy = yy[yy[key] == bin - 1]
                                                 if len(Keys_Loop) >= 1:
                                                     yy = yy[df[key1] == bin1]
                                                     if len(Keys_Loop) >= 2:
@@ -3386,8 +4018,8 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                                                     yy = yy[df[key5] == bin5]
                                                 self.Print_Formated_df(yy.copy(), self.tally_id, self.editor)
                                                 if len(yy) != 0:    
-                                                    mean = np.array(yy['mean'].tolist()).reshape((self.dim1, self.dim2))
-                                                    errors = np.array(yy['std. dev.'].tolist()).reshape((self.dim1, self.dim2))
+                                                    mean = np.transpose(np.array(yy['mean'].tolist()).reshape((self.dim1, self.dim2)))
+                                                    errors = np.transpose(np.array(yy['std. dev.'].tolist()).reshape((self.dim1, self.dim2)))
                                                 else:
                                                     mean = None
 
@@ -3429,16 +4061,21 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                                 
                                                     if score == 'flux':
                                                         if self.Norm_to_Vol_CB.isChecked():
-                                                            Suptitle1 = score + ' / cm\u00b2'
+                                                            #Suptitle1 = score + ' / cm\u00b2'
+                                                            Suptitle1 = score + ' particle / cm\u00b2 per source particle'
                                                         else:
-                                                            Suptitle1 = score + ' / cm'
+                                                            #Suptitle1 = score + ' / cm'
+                                                            Suptitle1 = score + ' particle-cm per source particle'
                                                     else:
                                                         if self.Norm_to_Vol_CB.isChecked():
-                                                            Suptitle1 = score + ' rate ' 
+                                                            #Suptitle1 = score + ' rate ' 
+                                                            Suptitle1 = score + ' rate per source particle' 
                                                         else:
-                                                            Suptitle1 = score + ' rate ' + '/ cm\u00b3'
-                                                    if self.Norm_to_Power_CB.isChecked():
-                                                        Suptitle1 = Suptitle1 + ' /s'
+                                                            #Suptitle1 = score + ' rate ' + '/ cm\u00b3'
+                                                            Suptitle1 = score + ' rate ' + ' cm\u00b3 per source particle'
+                                                    if self.Norm_to_Power_CB.isChecked() or self.Norm_to_SStrength_CB.isChecked():
+                                                        #Suptitle1 = Suptitle1 + ' /s'
+                                                        Suptitle1 = Suptitle1.replace('per source particle', ' /s')
                                                     if self.Norm_to_BW_CB.isChecked():
                                                         Suptitle1 = Suptitle1 + ' /eV'
                                                     elif self.Norm_to_UnitLethargy_CB.isChecked():
@@ -3471,13 +4108,20 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                                     ax[i].set_ylabel(self.Curve_yLabel.text(), fontsize=int(self.yFont_CB.currentText()))
 
                                                     if i < self.row_SB.value() * self.col_SB.value():
-                                                        cbar = fig.colorbar(im, ax=ax[i], location='right')
+                                                        cbar = fig.colorbar(im, ax=ax[i], aspect=20, pad=0.06, shrink=0.8)  # Match the aspect ratio
                                                         cbar.set_label(Suptitle1, rotation=270, labelpad=20)                                                
-                                                                                                
+                                                        formatter = ScalarFormatter(useMathText=True)  # Use scientific notation
+                                                        formatter.set_powerlimits((-2, 2))  # Show scientific notation for values outside the range 10^-2 to 10^2
+                                                        cbar.ax.yaxis.set_major_formatter(formatter)
+
+                                                        # Add the exponent notation to the colorbar
+                                                        cbar.ax.yaxis.offsetText.set_visible(True)  # Ensure the offset text (e.g., 1e-3) is visible
+                                    
                                                     #cbar.tick_params(labelsize=int(self.xFont_CB.currentText())*0.75)
                                                     #ax[i].set_xticks(fontsize=int(self.xFont_CB.currentText())*0.75, rotation=int(self.xLabelRot_CB.currentText()))
                                                     #ax[i].set_yticks(fontsize=int(self.yFont_CB.currentText())*0.75)                                    
                                                     i_fig += 1
+
         if msg1 != '':
             self.showDialog('Warning', msg + msg1)
         if msg2 != '':
@@ -3530,7 +4174,11 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                             i_bin4 = Checked_bins4.index(bin4)
                                             for bin5 in Checked_bins5:
                                                 i_bin5 = Checked_bins5.index(bin5)
-                                                yy = df[df.nuclide == nuclide][df.score == score][df[key] == bin - 1][df[key1] == bin1]
+                                                #yy = df[df.nuclide == nuclide][df.score == score][df[key] == bin - 1][df[key1] == bin1]
+                                                yy = df[df.nuclide == nuclide]
+                                                yy = yy[yy.score == score]
+                                                yy = yy[yy[key] == bin - 1]
+                                                yy = yy[yy[key1] == bin1]
                                                 if len(Keys_Loop) >= 2:
                                                     yy = yy[df[key2] == bin2]
                                                     if len(Keys_Loop) >= 3:
@@ -3541,6 +4189,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                                                 yy = yy[df[key5] == bin5]
                                                 mean = np.array(yy['mean'].tolist())   #.reshape((self.dim1, self.dim2))
                                                 errors = np.array(yy['std. dev.'].tolist())  #.reshape((self.dim1, self.dim2))
+                                                
                                                 if self.Omit_Blank_Graph_CB.isChecked() and np.count_nonzero(mean) == 0:
                                                     self.N_Fig -= 1
                                                     break
@@ -3640,15 +4289,24 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 plt.title('RR ')
 
     def Reset_Plot_Settings(self):
-        self.TitleFont_CB.setCurrentIndex(8)
-        self.xFont_CB.setCurrentIndex(7)
-        self.yFont_CB.setCurrentIndex(7)        
+        self.TitleFont_CB.setCurrentIndex(7)
+        self.xFont_CB.setCurrentIndex(6)
+        self.yFont_CB.setCurrentIndex(6)        
         self.xLabelRot_CB.setCurrentIndex(0)
         self.Legende_CB.setCurrentIndex(6)
         self.Graph_Layout_CB.setCurrentIndex(0)
         self.Graph_type_CB.setCurrentIndex(0)
+        self.Plot_by_CB.setCurrentIndex(0)
+        self.Curve_title.clear()
+        self.Curve_xLabel.clear()
+        self.Curve_yLabel.clear()
+        self.Curve_y2Label.clear()
         for CB in [self.xLog_CB, self.yLog_CB, self.Add_error_bars_CB, self.xGrid_CB, self.yGrid_CB, self.MinorGrid_CB]:
             CB.setChecked(False)
+        for CB in [self.xLog_CB, self.yLog_CB, self.Add_error_bars_CB, self.xGrid_CB, self.yGrid_CB, self.MinorGrid_CB, self.label_2, self.label_3]:
+            CB.setEnabled(True)
+        if 'Keff' in self.Tally_id_comboBox.currentText():
+            self.Add_error_bars_CB.setEnabled(False)
 
     def normalOutputWritten(self,text):
         self.cursor = self.editor.textCursor()
@@ -4470,6 +5128,19 @@ class VLine(QFrame):
         self.setFrameShape(self.VLine | self.Sunken)
 
 
+#  to be removed if called by gui.py
+"""
+if not QApplication.instance():
+    qapp = QApplication(sys.argv)
+else:
+    qapp = QApplication.instance()
+
+mainwindow = TallyDataProcessing('', '')
+mainwindow.show()
+
+# Only call exec() if the event loop hasn't been started yet
+sys.exit(qapp.exec())
+"""
 
 
 

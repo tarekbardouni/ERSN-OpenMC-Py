@@ -331,8 +331,10 @@ DESTINATION=$CONDA_PREFIX
 DESTINATION+="/lib/python3.11/site-packages/openmc/lib"
 # Check if the file exists
 if [ -f "$FILE" ]; then
-    cp $FILE $DESTINATION
-    echo "File $FILE has been copied to $DESTINATION."
+    if [ -d $DESTINATION ]; then
+        cp $FILE $DESTINATION
+        echo "File $FILE has been copied to $DESTINATION."
+    fi
 else
     echo "File $FILE does not exist."
 fi

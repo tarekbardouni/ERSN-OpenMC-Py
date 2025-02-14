@@ -96,7 +96,6 @@ class ExportSettings(QWidget):
         layoutH.addWidget(self.plainTextEdit)
         self.EditorLayout.addLayout(layoutH, 0, 0)
         self.Find_Run_Mode()
-        #self.Run_Mode_CB.setCurrentIndex(1)
         
         sys.stdout = EmittingStream(textWritten=self.normalOutputWritten)
         #sys.stderr = EmittingStream(textWritten=self.normalOutputWritten)
@@ -106,7 +105,6 @@ class ExportSettings(QWidget):
 
     def _initButtons(self):
         self.Run_Mode_CB.currentIndexChanged.connect(self.Widget_Status)
-        #self.Run_Mode_CB.currentIndexChanged.connect(self.Find_Run_Mode)
         self.Photon_CB.stateChanged.connect(self.Widget_Status_1)
         self.Create_Surface_SRC_CB.stateChanged.connect(self.Widget_Status_2)
         self.Volume_Calc_CB.currentIndexChanged.connect(self.Widget_Status_3)
@@ -228,12 +226,9 @@ class ExportSettings(QWidget):
                 self.Label_2.setText('Inactive Batches')
                 self.Label_5.setText('Generations')
                 self.Label_37.setText('Particles')
-                #self.Find_Run_Mode()
-                #self.LineEdit_1.setText('110')
                 self.LineEdit_2.setText(str(self.inactives))
                 self.LineEdit_5.setText(str(self.generations))
                 self.Photon_Cut.setText('1000.0')
-                #self.Particles_Number_LE.setText('10000')
         if self.Run_Mode_CB.currentIndex() in [1, 2]:
             self.Add_Run_Mode_PB.setEnabled(True)
             self.Volume_Calc_CB.hide()
@@ -502,41 +497,57 @@ class ExportSettings(QWidget):
         self.Add_Tracks_PB.setEnabled(True)
 
     def Find_Run_Mode(self):
-        cursor = self.plainTextEdit.textCursor()
         document = self.v_1.toPlainText()
         if 'openmc.Settings' not in document:
-            return
-        lines = [line for line in document.split('\n') if line != '' and line[0] != '#']
-        if '.run_mode' not in document:
-            self.Run_Mode_CB.setCurrentIndex(1)   # by default 'eigenvalue'
+            return        
+        electron_treatment = 'ttb'
+        cursor = self.plainTextEdit.textCursor()
+        doc_lines = [line for line in document.split('\n') if line != '' and line[0] != '#']
+        Settings_Lines = [line for line in doc_lines if self.Sett + '.' in line]
+        Source_Line = [line for line in doc_lines if 'openmc.Source' in line]
+        if Source_Line:
+            for line in Source_Line:
+                line = line[line.find("(") + 1: line.find(")")].split(',')
+                for item in line:
+                    if 'particle' in item:
+                        Particle_type = item.split('=')[1].strip()
+        else:
+            Particle_type = 'neutron'
+        if '.run_mode' in document:
+            for line in Settings_Lines:
+                if self.Sett + '.run_mode' in line: #.split('=')[0].rstrip():
+                    run_mode = line.split('=')[1].strip()
+                    break
+            if 'eigenvalue' in run_mode:
+                self.Run_Mode_CB.setCurrentIndex(1)
+            elif 'fixed source' in run_mode:
+                self.Run_Mode_CB.setCurrentIndex(2)
+            elif 'Volume' in run_mode:
+                self.Run_Mode_CB.setCurrentIndex(3)
+        else:
+            if Particle_type == 'neutron':
+                run_mode = 'eigenvalue'
+                self.Run_Mode_CB.setCurrentIndex(1)   # by default 'eigenvalue'
         
-        for line in lines :
-            if self.Sett + '.run_mode' in line.split('=')[0].rstrip():
-                run_mode = line.split('=')[1].strip()
-                if run_mode == 'eigenvalue':
-                    self.Run_Mode_CB.setCurrentIndex(1)
-                elif run_mode == 'fixed source':
-                    self.Run_Mode_CB.setCurrentIndex(2)
-                elif run_mode == 'Volume':
-                    self.Run_Mode_CB.setCurrentIndex(3)                
-            elif self.Sett + '.particles' in line.replace(" ", "").split('=')[0]:
+        for line in Settings_Lines :
+            if self.Sett + '.particles' in line.replace(" ", "").split('=')[0]:
                 self.particles = line.split('=')[1].strip()
                 #self.Particles_Number_LE.setText(str(self.particles))
-                self.Find_Settings_Parameters(lines, self.Particles_Number_LE, self.particles)
+                self.Find_Settings_Parameters(Settings_Lines, self.Particles_Number_LE, self.particles)
             elif self.Sett + '.inactive' in line.replace(" ", "").split('=')[0]: 
                 self.Inactive_Found = True
                 self.inactives = line.split('=')[1].strip()
                 #self.LineEdit_2.setText(str(self.inactives))
-                self.Find_Settings_Parameters(lines, self.LineEdit_2, self.inactives)
+                self.Find_Settings_Parameters(Settings_Lines, self.LineEdit_2, self.inactives)
             elif self.Sett + '.batches' in line.replace(" ", "").split('=')[0]:                
                 self.batches = line.split('=')[1].strip()
                 #self.LineEdit_1.setText(str(self.batches))
-                self.Find_Settings_Parameters(lines, self.LineEdit_1, self.batches)
+                self.Find_Settings_Parameters(Settings_Lines, self.LineEdit_1, self.batches)
             elif self.Sett + '.generations_per_batch' in line.replace(" ", "").split('=')[0]: 
                 self.Generations_Found = True
                 self.generations = line.split('=')[1].strip()
                 #self.LineEdit_5.setText(str(self.generations))
-                self.Find_Settings_Parameters(lines, self.LineEdit_5, self.generations)
+                self.Find_Settings_Parameters(Settings_Lines, self.LineEdit_5, self.generations)
             elif self.Sett + '.photon_transport' in line.replace(" ", "").split('=')[0]:
                 photon_transport = line.split('=')[1].strip()
                 if 'True' in line: 
@@ -548,16 +559,15 @@ class ExportSettings(QWidget):
             elif self.Sett + '.cutoff' in line.replace(" ", "").split('=')[0]:
                 photon_cutoff = line.split(':')[1].replace('}', '').strip()
                 #self.Photon_Cut.setText(str(photon_cutoff))
-                self.Find_Settings_Parameters(lines, self.Photon_Cut, photon_cutoff)
+                self.Find_Settings_Parameters(Settings_Lines, self.Photon_Cut, photon_cutoff)
             elif self.Sett + '.electron_treatment' in line.replace(" ", "").split('=')[0]:
                 electron_treatment = line.split('=')[1].strip()
-            else:
-                electron_treatment = 'ttb'
-            if 'ttb' in electron_treatment: 
-                self.ttb_RB.setChecked(True)
-            else:
-                self.led_RB.setChecked(True)
-
+                    
+        if 'ttb' in electron_treatment: 
+            self.ttb_RB.setChecked(True)
+        else:
+            self.led_RB.setChecked(True)
+        
         try:
             self.Set_Tracks_ComboBoxes()
         except:
@@ -1190,10 +1200,10 @@ class ExportSettings(QWidget):
                 return
         if self.Source_Geom_CB.currentIndex() == 1:
             ###################################  Point Source ###################################
-            print(self.spatial + '= openmc.stats.Point([ ' + str(self.X_LL.text()) + ', ' + str(self.Y_LL.text()) + ', ' + str(self.Z_LL.text()) + '])')
+            print('\n' + self.spatial + '= openmc.stats.Point([ ' + str(self.X_LL.text()) + ', ' + str(self.Y_LL.text()) + ', ' + str(self.Z_LL.text()) + '])')
         elif self.Source_Geom_CB.currentIndex() == 2:
             ####################################  Box Source ####################################
-            print(self.spatial + ' = openmc.stats.Box([ ' + str(self.X_LL.text()) + ', ' + str(self.Y_LL.text()) + ', ' + str(self.Z_LL.text()) + '], [ '
+            print('\n' + self.spatial + ' = openmc.stats.Box([ ' + str(self.X_LL.text()) + ', ' + str(self.Y_LL.text()) + ', ' + str(self.Z_LL.text()) + '], [ '
                   + str(self.X_UR.text()) + ', ' + str(self.Y_UR.text()) + ', ' + str(self.Z_UR.text()) + ']' + self.Only_Fissionable_String +')')
         elif self.Source_Geom_CB.currentIndex() == 3:
             ############################### Cartesian Independent ###############################
@@ -1264,7 +1274,7 @@ class ExportSettings(QWidget):
                     self.Z_UR.setStyleSheet("QLineEdit{color:red}")
                     self.plainTextEdit.setStyleSheet("QTextEdit{color:red}")
                     print('# Error: The lists in the line above must be the same length !')
-            print(self.spatial + ' = openmc.stats.CartesianIndependent(x_dist, y_dist, z_dist)')
+            print('\n' + self.spatial + ' = openmc.stats.CartesianIndependent(x_dist, y_dist, z_dist)')
         elif self.Source_Geom_CB.currentIndex() == 4:
             ################################## Spherical Independent ################################
             if self.X_Dist_CB.currentIndex() == 0:                      # R Uniform
@@ -1306,7 +1316,7 @@ class ExportSettings(QWidget):
                     self.Z_UR.setStyleSheet("QLineEdit{color:red}")
                     self.plainTextEdit.setStyleSheet("QTextEdit{color:red}")
                     print('# Error: The lists in the line above must be the same length !')
-            print(self.spatial + ' = openmc.stats.SphericalIndependent(r_dist, theta_dist, phi_dist, origin=' + str(self.Origin_LE.text()) + ')')
+            print('\n' + self.spatial + ' = openmc.stats.SphericalIndependent(r_dist, theta_dist, phi_dist, origin=' + str(self.Origin_LE.text()) + ')')
         elif self.Source_Geom_CB.currentIndex() == 5:
             ############################### Cylindrical Independent ###############################
             if self.X_Dist_CB.currentIndex() == 0:                          # R Uniform
@@ -1348,7 +1358,7 @@ class ExportSettings(QWidget):
                     self.Z_UR.setStyleSheet("QLineEdit{color:red}")
                     self.plainTextEdit.setStyleSheet("QTextEdit{color:red}")
                     print('# Error: The lists in the line above must be the same length !')
-            print(self.spatial + ' = openmc.stats.CylindricalIndependent(r_dist, phi_dist, z_dist, origin=' + str(self.Origin_LE.text()) + ')')
+            print('\n' + self.spatial + ' = openmc.stats.CylindricalIndependent(r_dist, phi_dist, z_dist, origin=' + str(self.Origin_LE.text()) + ')')
         if Error != 0:
             self.showDialog('Warning', 'Some lists in spatial distribution must be the same length !')
 
@@ -1513,11 +1523,11 @@ class ExportSettings(QWidget):
                     angle_str = ''
                 else:
                     angle_str = self.angle + ', '
-                print(str(self.Name_LE.text()) + ' = openmc.Source(' + self.spatial + ', ' + angle_str + energy_str + 'strength=' + str(
+                print(str(self.Name_LE.text()) + ' = openmc.IndependentSource(' + self.spatial + ', ' + angle_str + energy_str + 'strength=' + str(
                         self.Strength_LE.text()) + ', particle=' + self.Particle + ')\n')
         elif self.Source_Geom_CB.currentIndex() == 6:
             ############################### File based source (.h5) #################################
-            print(str(self.Name_LE.text()) + " = openmc.Source(filename= '" + self.src_filename +"')")
+            print(str(self.Name_LE.text()) + " = openmc.FileSource(filename= '" + self.src_filename +"')")
         elif self.Source_Geom_CB.currentIndex() == 7:
             ############################### Read Surface source (.h5) #################################
             print(str(self.Name_LE.text()) + " = openmc.surf_source_read(filename= '" + self.src_filename + "')")

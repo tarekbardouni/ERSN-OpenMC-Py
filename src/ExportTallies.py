@@ -111,6 +111,7 @@ class ExportTallies(QWidget):
 
         # define diffrent estimators, filters, meshes, scores, ..
         self.Inicialize_Tallies()
+        self.update_mesh_dim()
 
         for item in [self.Grid_RB, self.MinMax_RB, self.Grid_RB_2, self.MinMax_RB_2, self.Grid_RB_3, self.MinMax_RB_3, 
                      self.MGX_CB, self.label, self.label_8, self.label_10, self.Start_LE, self.End_LE, self.GrpNumber_LE]:
@@ -150,6 +151,8 @@ class ExportTallies(QWidget):
         self.MeshId_LE.textChanged.connect(self.sync_mesh_id)
         self.AddMeshId_CB.stateChanged.connect(self.sync_mesh_id)
         self.MeshName_LE.textChanged.connect(self.sync_mesh_name)
+        self.Mesh_2D.toggled.connect(self.update_mesh_dim)
+        self.Mesh_1D.toggled.connect(self.update_mesh_dim)
 
         self.FilterType_CB.currentIndexChanged.connect(self.Update_Filters)
         self.Filter_Bins_CB.currentIndexChanged.connect(self.Update_Filter_Bins)
@@ -247,7 +250,7 @@ class ExportTallies(QWidget):
         self.Estimator_CB.addItems(ESTIMATOR_TYPES)
         self.PARTICLE_TYPE = ['neutron', 'photon', 'electron', 'positron']
         # Possible filters
-        FILTER_TYPES = ['UniverseFilter', 'MaterialFilter', 'CellFilter', 'CellFromFilter', 'CellbornFilter',
+        FILTER_TYPES = ['UniverseFilter', 'MaterialFilter', 'CellFilter', 'CellFromFilter', 'CellBornFilter',
                         'CellInstanceFilter', 'CollisionFilter', 'SurfaceFilter', 'MeshFilter', 'MeshSurfaceFilter',
                         'EnergyFilter', 'EnergyoutFilter', 'MuFilter', 'PolarFilter', 'AzimuthalFilter',
                         'DistribcellFilter', 'DelayedGroupFilter', 'EnergyFunctionFilter', 'LegendreFilter',
@@ -266,7 +269,7 @@ class ExportTallies(QWidget):
         self.PARTICLE_PRODUCTION_SCORES = ['delayed-nu-fission', 'prompt-nu-fission', 'nu-fission', 'nu-scatter',
                                            'H1-production', 'H2-production', 'H3-production', 'He3-production', 'He4-production']
         self.MISCELLANEOUS_SCORES = ['current', 'events', 'inverse-velocity', 'heating', 'heating-local', 'kappa-fission',
-                                     'fission-q-prompt', 'fission-q-recoverable', 'decay-rate', 'damage-energy']
+                                     'fission-q-prompt', 'fission-q-recoverable', 'decay-rate', 'damage-energy', 'pulse-height']
 
         self.FILTER_SUFFIX = ['Universe_filter', 'Material_filter', 'Cell_filter', 'CellFrom_filter', 'Cellborn_filter',
                         'CellInstance_filter', 'Collision_filter', 'Surface_filter', 'Mesh_filter', 'MeshSurface_filter',
@@ -287,7 +290,7 @@ class ExportTallies(QWidget):
         # instantiate bins lists of filters
         self.Availble_Filters = {'UniverseFilter': self.universe_name_list, 'MaterialFilter': self.materials_name_list,
                               'CellFilter': self.cell_name_list, 'CellFromFilter': self.cell_name_list,
-                              'CellbornFilter': self.cell_name_list, 'CellInstanceFilter': self.cell_name_list,
+                              'CellBornFilter': self.cell_name_list, 'CellInstanceFilter': self.cell_name_list,
                               'SurfaceFilter': self.surface_name_list, 'MeshFilter': self.mesh_name_list,
                               'MeshSurfaceFilter': self.mesh_name_list, 'DistribcellFilter': self.cell_name_list,
                               'CollisionFilter': [],'EnergyFilter': [], 'EnergyoutFilter': [], 'MuFilter': [],
@@ -353,6 +356,20 @@ class ExportTallies(QWidget):
     def sync_mesh_name(self):
         import string
         self.mesh_suffix = self.MeshName_LE.text().rstrip(string.digits)
+    
+    def update_mesh_dim(self):
+        if self.Mesh_1D.isChecked():
+            self.label_2.setText('1 Dimension (Nx)')
+            self.label_3.setText('Lower Left (x)')
+            self.label_4.setText('Upper Right (x)')
+        elif self.Mesh_2D.isChecked():
+            self.label_2.setText('2 Dimensions (Nx,Ny)')
+            self.label_3.setText('Lower Left (x,y)')
+            self.label_4.setText('Upper Right (x,y)')
+        elif self.Mesh_3D.isChecked():
+            self.label_2.setText('3 Dimensions (Nx,Ny,Nz)')
+            self.label_3.setText('Lower Left (x,y,z)')
+            self.label_4.setText('Upper Right (x,y,z)')
 
     def sync_mesh_id(self):
         import string

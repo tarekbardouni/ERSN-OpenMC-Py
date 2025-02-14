@@ -11,6 +11,33 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import QFont, QTextOption
 from src.PyEdit import TextEdit, NumberBar  
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+def global_exception_handler(exc_type, exc_value, exc_traceback):
+    """
+    Custom exception handler to display unhandled exceptions in a dialog.
+    """
+    if issubclass(exc_type, KeyboardInterrupt):
+        # Let the interpreter handle KeyboardInterrupt (e.g., Ctrl+C).
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+
+    # Create an error message dialog
+    error_message = f"Unhandled Exception:\n{exc_value}"
+    QMessageBox.critical(None, "Application Error", error_message)
+
+    # Optionally log the exception
+    with open("error_log.txt", "a") as f:
+        import traceback
+        f.write("".join(traceback.format_exception(exc_type, exc_value, exc_traceback)))
+
+# Assign the custom exception handler
+sys.excepthook = global_exception_handler
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 # The new Stream Object which replaces the default stream associated with sys.stdout
 # This object just puts data in a queue!
 
@@ -103,8 +130,10 @@ class InstallOpenMC(QtWidgets.QMainWindow):
             self.process.finished.connect(lambda: self.tools_conda_lE.setText(''))
         elif tab_index == 2:
             self.process.started.connect(lambda: self.pB_Start.setEnabled(False))
+            self.process.started.connect(lambda: self.Plotter_PB.setEnabled(False))
             self.process.started.connect(lambda: self.pB_Refresh.setEnabled(False))
             self.process.finished.connect(lambda: self.pB_Start.setEnabled(True))
+            self.process.finished.connect(lambda: self.Plotter_PB.setEnabled(True))
             self.process.finished.connect(lambda: self.pB_Refresh.setEnabled(True))
             self.process.started.connect(lambda: self.WORK_DIR.setEnabled(False))
             self.process.started.connect(lambda: self.pB_Browse.setEnabled(False))
@@ -153,6 +182,7 @@ class InstallOpenMC(QtWidgets.QMainWindow):
         self.pB_Start.setStatusTip("Will clone OpenMC and build binaries")
         self.pB_Refresh.setStatusTip("Will set options to default")
         self.pB_Cancel.setStatusTip("Will kill process !")
+        self.Plotter_PB.clicked.connect(self.Install_Plotter)
         # Define pressButtons of Install prerequisites tab
         self.pB_Start_prerequis.clicked.connect(self.Proc_Start)
         self.pB_Cancel_prerequis.clicked.connect(self.kill_process)
@@ -262,21 +292,28 @@ class InstallOpenMC(QtWidgets.QMainWindow):
         # ==========================   DEPLETION  FILES   =======================
         elif library == 'Depletion_Chain':
             DEPLETION_CHAIN_DATA = self.depletion_chain_cB.currentText()
-            if DEPLETION_CHAIN_DATA == 'ENDF-B/VII.1 PWR spectrum v0.11':
+
+            if DEPLETION_CHAIN_DATA == 'ENDF/B-VIII.0 PWR spectrum v0.12+':
+                DEPLETION_CHAIN_DATA = 'ENDF-BVIII.0_PWR_spectrum'
+            elif DEPLETION_CHAIN_DATA == 'ENDF/B-VIII.0 fast spectrum v0.12+':
+                DEPLETION_CHAIN_DATA = 'ENDF-BVIII.0_fast_spectrum'
+
+
+            elif DEPLETION_CHAIN_DATA == 'ENDF-B/VII.1 PWR spectrum v0.11':
                 DEPLETION_CHAIN_DATA = 'ENDF-BVII.1_PWR_spectrum_v0.11'
-            elif DEPLETION_CHAIN_DATA == 'ENDF-B/VII.1 PWR spectrum v0.12':
+            elif DEPLETION_CHAIN_DATA == 'ENDF-B/VII.1 PWR spectrum v0.12+':
                 DEPLETION_CHAIN_DATA = 'ENDF-BVII.1_PWR_spectrum_v0.12'
             elif DEPLETION_CHAIN_DATA == 'ENDF-B/VII.1 fast spectrum v0.11':
                 DEPLETION_CHAIN_DATA = 'ENDF-BVII.1_fast_spectrum_v0.11'
-            elif DEPLETION_CHAIN_DATA == 'ENDF-B/VII.1 fast spectrum v0.12':
+            elif DEPLETION_CHAIN_DATA == 'ENDF-B/VII.1 fast spectrum v0.12+':
                 DEPLETION_CHAIN_DATA = 'ENDF-BVII.1_fast_spectrum_v0.12'
             elif DEPLETION_CHAIN_DATA == 'Simplified chain PWR spectrum v0.11':
                 DEPLETION_CHAIN_DATA = 'Simplified_chain_PWR_spectrum_v0.11'
-            elif DEPLETION_CHAIN_DATA == 'Simplified chain PWR spectrum v0.12':
+            elif DEPLETION_CHAIN_DATA == 'Simplified chain PWR spectrum v0.12+':
                 DEPLETION_CHAIN_DATA = 'Simplified_chain_PWR_spectrum_v0.12'
             elif DEPLETION_CHAIN_DATA == 'Simplified chain fast spectrum v0.11':
                 DEPLETION_CHAIN_DATA = 'Simplified_chain_fast_spectrum_v0.11'
-            elif DEPLETION_CHAIN_DATA == 'Simplified chain fast spectrum v0.12':
+            elif DEPLETION_CHAIN_DATA == 'Simplified chain fast spectrum v0.12+':
                 DEPLETION_CHAIN_DATA = 'Simplified_chain_fast_spectrum_v0.12'
             XS_H5_Library = 'none'
             XS_ACE_Library = 'none'
@@ -325,6 +362,26 @@ class InstallOpenMC(QtWidgets.QMainWindow):
             self.showDialog('conda warning', '   miniconda3 not found, Install miniconda3 first !  ')
             self.print_lines('miniconda3 not found, Install miniconda3 first !')
             self.tools_conda_lE.setText('Installing ' + cmd)
+
+    def Install_Plotter(self):
+        # restore text editor default options
+        self.receiveArea.setStyleSheet("")
+        CONDA = subprocess.run(['which', 'conda'], stdout=subprocess.PIPE, text=True)
+        CONDA = CONDA.stdout.rstrip('\n')
+        # CONDA = script_exec('which conda')
+        self.disable_enable_pB()
+        cmd = self.Plotter_LE.text()
+        if "miniconda3" in CONDA:
+            self.showDialog('conda info', '         miniconda3 found       ')
+            if cmd == '':
+                self.print_lines('Nothing done !')
+            else:
+                self.print_lines('installing openmc-plotter under Miniconda')
+                self.script_exec(cmd)
+        else:
+            self.print_lines("can't continue without miniconda3 installed !")
+            self.showDialog('conda warning', '   miniconda3 not found, Install miniconda3 first !  ')
+            self.print_lines('miniconda3 not found, Install miniconda3 first !')
 
     def set_prerequis_Options_to_default(self):
         # set radioButtons to default
