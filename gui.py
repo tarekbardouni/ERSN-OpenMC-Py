@@ -839,6 +839,7 @@ class Application(QtWidgets.QMainWindow):
     def clear_Lists(self):
         self.materials_id_list = []
         self.Depletable_Mats = []
+        self.Depletable_Cells = []
         self.surface_id_list = ['0']
         self.cell_id_list = ['0']
         self.universe_id_list = []
@@ -1134,6 +1135,7 @@ class Application(QtWidgets.QMainWindow):
         model_elements_lines = []
         model_depletable_lines = []
         model_not_depletable_lines = []
+        Domains_fill_lines = []
         filter_bins_lines = []
         filters_list = []
         bins_list = []
@@ -1310,13 +1312,15 @@ class Application(QtWidgets.QMainWindow):
                     model_depletable_lines.append(line.split('.depletable')[0])
                 elif 'False' in line:
                     model_not_depletable_lines.append(line.split('.depletable')[0])
+            elif 'fill' in line and 'fillet' not in line:
+                Domains_fill_lines.append(line)
             elif 'run_mode' in line:
                 self.Run_Mode = line.split('=')[1].lstrip().rstrip().replace("'", "").replace('"', '')
             else:               # surfaces are detected
                 for key in self.Surfaces_key_list:
                     key = 'openmc.' + key
                     if key in line:
-                        item = line.split('=')[0].replace(' ', '')
+                        item = line.split('=', 1)[0].replace(' ', '')
                         self.surface_name_list.append(item)
                         #ID = len(self.surface_name_list)
                         self.detect_component_id(line, 'surface_id') #, ID)
@@ -1373,6 +1377,19 @@ class Application(QtWidgets.QMainWindow):
             mat = line.lstrip()
             self.Depletable_Mats.append(mat) if mat not in model_not_depletable_lines else None
         self.Depletable_Mats = list(dict.fromkeys(self.Depletable_Mats))
+
+        Domains = {}
+        for line in Domains_fill_lines:
+            if 'fill' in line and '.fill' not in line:
+                Cell = line.split('=', 1)[0].rstrip()
+                Mat = line.split('fill')[1].split(',', 1)[0].replace('=', '').replace(' ', '')
+            elif '.fill' in line:
+                Cell = line.split('.fill')[0]
+                Mat = line.split('=')[1].replace(' ', '')
+            if Mat in self.Depletable_Mats:
+                Domains[Cell] = Mat
+                self.Depletable_Cells.append(Cell)
+                
 
         if self.Model_Elements_List:
             self.Nuclides_In_Element(self.Model_Elements_List)   
@@ -1481,8 +1498,8 @@ class Application(QtWidgets.QMainWindow):
         self.detect_components()
         self.wind9 = ExportDepletion(v_1, self.directory, self.materials_name_list, self.Model_Elements_List, 
                                       self.Model_Nuclides_List, self.cell_name_list, self.Mats, self.Geom, 
-                                      self.Sett, self.Operator, self.Integrator, self.Depletable_Mats, self.Model,
-                                      self.Chain, self.Run_Mode)
+                                      self.Sett, self.Operator, self.Integrator, self.Depletable_Mats, self.Depletable_Cells,
+                                      self.Model, self.Chain, self.Run_Mode)
         self.wind9.show()
         self.SaveFiles()
 

@@ -61,13 +61,14 @@ class ExportDepletion(QWidget):
     from .func import resize_ui
     from .func import showDialog, Exit, Find_string
     def __init__(self, v_1, Directory, Materials, Elements, Nuclides, Cells, Mats, Geom, 
-                Sett, Operator, Integrator, Deplete_Mats, Model, Chain, Run_Mode, parent=None):
+                Sett, Operator, Integrator, Deplete_Mats, Deplete_Cells, Model, Chain, Run_Mode, parent=None):
         super(ExportDepletion, self).__init__(parent)
         uic.loadUi("src/ui/ExportDepletion.ui", self)
         self.v_1 = v_1 
         self.directory = Directory
         self.materials_name_list = Materials
         self.Depletable_Mats = Deplete_Mats
+        self.Depletable_Cells = Deplete_Cells
         self.Model_Elements_List = Elements
         self.Model_Nuclides_List = Nuclides
         self.cell_name_list = Cells
@@ -128,7 +129,7 @@ class ExportDepletion(QWidget):
         for i in range(len(self.Depletable_Mats) + 1):
             self.Depletable_Mat_CB.setItemChecked(i, False)
         # Create checkable combobox of nuclides
-        """self.Nuclides_comboBox = CheckableComboBox()
+        self.Nuclides_comboBox = CheckableComboBox()
         self.Nuclides_GL.addWidget(self.Nuclides_comboBox)
         self.Nuclides_comboBox.addItem('Select nuclides')
         self.Nuclides_comboBox.addItem('All bins')
@@ -136,8 +137,18 @@ class ExportDepletion(QWidget):
         self.Nuclides_comboBox.model().item(0).setCheckState(Qt.Unchecked)
         self.Nuclides_comboBox.addItems(self.Nuclides)
         for i in range(len(self.Nuclides) + 1):
-            self.Nuclides_comboBox.setItemChecked(i, False)"""
-        
+            self.Nuclides_comboBox.setItemChecked(i, False)
+        # Create checkable combobox of depletable domains
+        self.Domains_comboBox = CheckableComboBox()
+        self.Domains_GL.addWidget(self.Domains_comboBox)
+        self.Domains_comboBox.addItem('Select domains')
+        self.Domains_comboBox.addItem('All bins')
+        self.Domains_comboBox.model().item(0).setEnabled(False)
+        self.Domains_comboBox.model().item(0).setCheckState(Qt.Unchecked)
+        self.Domains_comboBox.addItems(self.Depletable_Cells)
+        for i in range(len(self.Depletable_Cells) + 1):
+            self.Domains_comboBox.setItemChecked(i, False) 
+
         self._initButtons()
         sys.stdout = EmittingStream(textWritten=self.normalOutputWritten)
         #sys.stderr = EmittingStream(textWritten=self.normalOutputWritten)
@@ -158,8 +169,10 @@ class ExportDepletion(QWidget):
 
     def _initButtons(self):
         self.CreateDepletion_PB.clicked.connect(self.Add_Depletion)
-        #self.Nuclides_comboBox.currentIndexChanged.connect(self.SelectNuclides)
-        #self.Nuclides_comboBox.model().dataChanged.connect(self.SelectNuclides)
+        self.Nuclides_comboBox.currentIndexChanged.connect(self.SelectNuclides)
+        self.Nuclides_comboBox.model().dataChanged.connect(self.SelectNuclides)
+        self.Domains_comboBox.currentIndexChanged.connect(self.SelectDomains)
+        self.Domains_comboBox.model().dataChanged.connect(self.SelectDomains)
         self.Depletable_Mat_CB.model().dataChanged.connect(self.SelectMaterials)
         self.Depletable_Mat_CB.currentIndexChanged.connect(self.SelectMaterials)
         self.ExportData_PB.clicked.connect(self.Export_to_Main_Window)
@@ -167,10 +180,14 @@ class ExportDepletion(QWidget):
         self.tabWidget.currentChanged.connect(self.Widget_Set)
         self.Integrator_CB.currentIndexChanged.connect(self.Widget_ToolTips)
         self.ReduceChain_CB.toggled.connect(self.Widget_Set1)
+        self.ReduceChain_CB_2.toggled.connect(self.Widget_Set1)
         self.NormMod_CB.currentIndexChanged.connect(self.Widget_Set)
         self.FissYieldMode_CB.currentIndexChanged.connect(self.Widget_Set)
         self.RRMode_CB.currentIndexChanged.connect(self.Widget_Set)
+        self.Get_XS_Flux_CB.toggled.connect(self.Widget_Set)
         self.Flux_Energy_Gr_CB.currentIndexChanged.connect(self.Widget_Set)
+        self.Decay_Only_CB.toggled.connect(self.Widget_Set)
+        self.Load_XS_PB.clicked.connect(self.read_micro_xs)
         self.ClearData_PB.clicked.connect(self.Clear_Output)
         self.Exit_PB.clicked.connect(self.Exit)
         self.Widget_Set()
@@ -192,6 +209,25 @@ class ExportDepletion(QWidget):
             self.Checked_Nuclides = [elm for elm in self.Nuclides if self.Nuclides.index(elm) + 2 in Checked_Nuclides_bins]
             self.Nuclides_LE.clear()
             self.Nuclides_LE.setText(str(self.Checked_Nuclides))
+        except:
+            pass
+
+    def SelectDomains(self):
+        self.Depl_Domains_LE.clear()
+        self.Checked_Domains = []
+        try:
+            if self.Domains_comboBox.currentIndex() == 1:
+                if self.Domains_comboBox.checkedItems():
+                    Checked_Domains_bins = self.Domains_comboBox.checkedItems()
+                else:
+                    Checked_Domains_bins = []
+                if Checked_Domains_bins:
+                    Checked_Domains_bins.pop(0)
+            elif self.Domains_comboBox.currentIndex() > 1:
+                Checked_Domains_bins = self.Domains_comboBox.checkedItems()
+            self.Checked_Domains = [elm for elm in self.Depletable_Cells if self.Depletable_Cells.index(elm) + 2 in Checked_Domains_bins]
+            self.Depl_Domains_LE.clear()
+            self.Depl_Domains_LE.setText(str(self.Checked_Domains))
         except:
             pass
 
@@ -287,101 +323,6 @@ class ExportDepletion(QWidget):
 
         if len(power_values) == 1:
             power = power_values[0]
-        
-        if self.Prev_Res_CB.isChecked():
-            Results_Str = "\nResults = openmc.deplete.Results('depletion_results.h5')"
-            prev_res = ', prev_results=Results'
-        else:
-            Results_Str = ""
-            prev_res = ""
-
-        if self.DiffBurnMats_CB.isChecked():
-            diff_burnable_mats = ', diff_burnable_mats=True'
-        else:
-            diff_burnable_mats = ""
-        
-        if self.ReduceChain_CB.isChecked():
-            reduce_chain = ', reduce_chain=True'
-            if self.RedChainLevel_SP.value() == 0:
-                reduce_chain_level = ', reduce_chain_level=None' 
-            else:
-                reduce_chain_level = ', reduce_chain_level=' + str(self.RedChainLevel_SP.value())
-        else:
-            reduce_chain = ""
-            reduce_chain_level = ""
-            
-        if self.Diff_Vol_Meth_CB.currentIndex() != 0:
-            diff_volume_method = ', diff_volume_method=' + f'"{self.Diff_Vol_Meth_CB.currentText()}"'
-        else:                       
-            diff_volume_method = ""
-
-        if self.FissYieldMode_CB.currentIndex() != 0:
-            Fission_Yield_Mode = ', fission_yield_mode=' + f'"{self.FissYieldMode_CB.currentText()}"'
-        else:                       
-            Fission_Yield_Mode = ""
-
-        if self.NormMod_CB.currentIndex() != 0:
-            normalization_mode = ', normalization_mode=' + f'"{self.NormMod_CB.currentText()}"'
-        else:
-            normalization_mode = ""
-        
-        if self.NormMod_CB.currentText() == 'fission-q':
-            if self.Fission_Q_LE.text() != "":
-                if not self.is_dict_syntax(self.Fission_Q_LE.text()):
-                    alert = "Warning"
-                    msg = 'Fission-Q must be entered as a dictionary of nuclides as keys and their fission-q!' +\
-                          '\n Choose an option!'
-                    response = self.question1(alert, msg, "Modify entry", "Use default data")
-                    if response == 0:
-                        return
-                    elif response == 1:
-                        Fission_Q = ""
-                else:
-                    Fission_Q = ', fission_q=' + self.Fission_Q_LE.text()
-            else:
-                self.Fission_Q_LE.clear()
-                Fission_Q = ""
-        else:
-            Fission_Q = ""
-
-        if self.FissYieldOpts_LE.text() != "":
-            if not self.is_dict_syntax(self.FissYieldOpts_LE.text()):
-                alert = "Warning"
-                msg = 'Options must be entered as a dictionary with "energy" key !' +\
-                    '\nie: fission_yield_opts={"energy":500e3} \n Choose an option!'
-                response = self.question1(alert, msg, "Modify entry", "Use default data")
-                if response == 0:
-                    return
-                elif response == 1:
-                    self.FissYieldOpts_LE.clear()
-                    FissYieldOpts = ""
-            else:
-                FissYieldOpts = ', fission_yield_opts=' + self.FissYieldOpts_LE.text()
-        else:
-            FissYieldOpts = ""
-        
-        if self. RRMode_CB.currentIndex() != 0:
-            Reaction_Rate_Mode = ', reaction_rate_mode=' + f'"{self.RRMode_CB.currentText()}"'
-        else:
-            Reaction_Rate_Mode = ""
-
-        if self.RRMode_CB.currentText() == 'flux':
-            if self.RR_Opts_LE.text() != "":
-                if not self.is_dict_syntax(self.RR_Opts_LE.text()):
-                    alert = "Warning"
-                    msg = 'Reaction rate options must be entered as a dictionary. Energy group boundaries can be set using the “energies” key !' +\
-                          ' ie: reaction_rate_opts={"energies":[1, 500e3]} \n Choose an option!'
-                    response = self.question1(alert, msg, "Modify entry", "Change RR mode")
-                    if response == 0:
-                        return
-                    elif response == 1:
-                        self.RRMode_CB.setCurrentIndex(0)
-                        ReactionRrateOpts = ""
-                        return
-                else:
-                    ReactionRrateOpts = ', reaction_rate_opts=' + self.RR_Opts_LE.text()               
-        else:
-            ReactionRrateOpts = ""
 
         if self.Depletable_Mats_LE.text() == '':
             self.showDialog('Warning', 'Depletable material must be selected!')
@@ -400,17 +341,168 @@ class ExportDepletion(QWidget):
         Volume_Strings = []
         for mat in self.Checked_Depletable_Mats:
             Volume_Strings.append(mat + '.volume = ' + Volumes[self.Checked_Depletable_Mats.index(mat)])
-        
-        self.Insert_Header_Text()
 
+        if self.tabWidget.currentIndex() == 0:   # Coupled operator
+            if self.Prev_Res_CB.isChecked():
+                Results_Str = "\nResults = openmc.deplete.Results('depletion_results.h5')"
+                prev_res = ', prev_results=Results'
+            else:
+                Results_Str = ""
+                prev_res = ""
+            
+            if self.ReduceChain_CB.isChecked():
+                reduce_chain = ', reduce_chain=True'
+                if self.RedChainLevel_SP.value() == 0:
+                    reduce_chain_level = ', reduce_chain_level=None' 
+                else:
+                    reduce_chain_level = ', reduce_chain_level=' + str(self.RedChainLevel_SP.value())
+            else:
+                reduce_chain = ""
+                reduce_chain_level = ""
+                
+            if self.NormMod_CB.currentIndex() != 0:
+                normalization_mode = ', normalization_mode=' + f'"{self.NormMod_CB.currentText()}"'
+            else:
+                normalization_mode = ""
+            
+            if self.NormMod_CB.currentText() == 'fission-q':
+                if self.Fission_Q_LE.text() != "":
+                    if not self.is_dict_syntax(self.Fission_Q_LE.text()):
+                        alert = "Warning"
+                        msg = 'Fission-Q must be entered as a dictionary of nuclides as keys and their fission-q!' +\
+                            '\n Choose an option!'
+                        response = self.question1(alert, msg, "Modify entry", "Use default data")
+                        if response == 0:
+                            return
+                        elif response == 1:
+                            Fission_Q = ""
+                    else:
+                        Fission_Q = ', fission_q=' + self.Fission_Q_LE.text()
+                else:
+                    self.Fission_Q_LE.clear()
+                    Fission_Q = ""
+            else:
+                Fission_Q = ""
+
+            if self.FissYieldOpts_LE.text() != "":
+                if not self.is_dict_syntax(self.FissYieldOpts_LE.text()):
+                    alert = "Warning"
+                    msg = 'Options must be entered as a dictionary with "energy" key !' +\
+                        '\nie: fission_yield_opts={"energy":500e3} \n Choose an option!'
+                    response = self.question1(alert, msg, "Modify entry", "Use default data")
+                    if response == 0:
+                        return
+                    elif response == 1:
+                        self.FissYieldOpts_LE.clear()
+                        FissYieldOpts = ""
+                else:
+                    FissYieldOpts = ', fission_yield_opts=' + self.FissYieldOpts_LE.text()
+            else:
+                FissYieldOpts = ""
+
+            if self.DiffBurnMats_CB.isChecked():
+                diff_burnable_mats = ', diff_burnable_mats=True'
+            else:
+                diff_burnable_mats = ""
+            
+            if self.Diff_Vol_Meth_CB.currentIndex() != 0:
+                diff_volume_method = ', diff_volume_method=' + f'"{self.Diff_Vol_Meth_CB.currentText()}"'
+            else:                       
+                diff_volume_method = ""
+
+            if self.FissYieldMode_CB.currentIndex() != 0:
+                Fission_Yield_Mode = ', fission_yield_mode=' + f'"{self.FissYieldMode_CB.currentText()}"'
+            else:                       
+                Fission_Yield_Mode = ""
+
+            if self. RRMode_CB.currentIndex() != 0:
+                Reaction_Rate_Mode = ', reaction_rate_mode=' + f'"{self.RRMode_CB.currentText()}"'
+            else:
+                Reaction_Rate_Mode = ""
+
+            if self.RRMode_CB.currentText() == 'flux':
+                if self.RR_Opts_LE.text() != "":
+                    if not self.is_dict_syntax(self.RR_Opts_LE.text()):
+                        alert = "Warning"
+                        msg = 'Reaction rate options must be entered as a dictionary. Energy group boundaries can be set using the “energies” key !' +\
+                            ' ie: reaction_rate_opts={"energies":[1, 500e3]} \n Choose an option!'
+                        response = self.question1(alert, msg, "Modify entry", "Change RR mode")
+                        if response == 0:
+                            return
+                        elif response == 1:
+                            self.RRMode_CB.setCurrentIndex(0)
+                            ReactionRrateOpts = ""
+                            return
+                    else:
+                        ReactionRrateOpts = ', reaction_rate_opts=' + self.RR_Opts_LE.text()               
+            else:
+                ReactionRrateOpts = ""
+        elif self.tabWidget.currentIndex() == 1:   # Independent operator:
+            if self.Prev_Res_CB_2.isChecked():
+                Results_Str = "\nResults = openmc.deplete.Results('depletion_results.h5')"
+                prev_res = ', prev_results=Results'
+            else:
+                Results_Str = ""
+                prev_res = ""
+            
+            if self.ReduceChain_CB_2.isChecked():
+                reduce_chain = ', reduce_chain=True'
+                if self.RedChainLevel_SP_2.value() == 0:
+                    reduce_chain_level = ', reduce_chain_level=None' 
+                else:
+                    reduce_chain_level = ', reduce_chain_level=' + str(self.RedChainLevel_SP_2.value())
+            else:
+                reduce_chain = ""
+                reduce_chain_level = ""
+                
+            if self.NormMod_CB_2.currentIndex() != 0:
+                normalization_mode = ', normalization_mode=' + f'"{self.NormMod_CB_2.currentText()}"'
+            else:
+                normalization_mode = ""
+            
+            if self.NormMod_CB_2.currentText() == 'fission-q':
+                if self.Fission_Q_LE_2.text() != "":
+                    if not self.is_dict_syntax(self.Fission_Q_LE_2.text()):
+                        alert = "Warning"
+                        msg = 'Fission-Q must be entered as a dictionary of nuclides as keys and their fission-q!' +\
+                            '\n Choose an option!'
+                        response = self.question1(alert, msg, "Modify entry", "Use default data")
+                        if response == 0:
+                            return
+                        elif response == 1:
+                            Fission_Q = ""
+                    else:
+                        Fission_Q = ', fission_q=' + self.Fission_Q_LE_2.text()
+                else:
+                    self.Fission_Q_LE_2.clear()
+                    Fission_Q = ""
+            else:
+                Fission_Q = ""
+
+            if self.FissYieldOpts_LE_2.text() != "":
+                if not self.is_dict_syntax(self.FissYieldOpts_LE_2.text()):
+                    alert = "Warning"
+                    msg = 'Options must be entered as a dictionary with "energy" key !' +\
+                        '\nie: fission_yield_opts={"energy":500e3} \n Choose an option!'
+                    response = self.question1(alert, msg, "Modify entry", "Use default data")
+                    if response == 0:
+                        return
+                    elif response == 1:
+                        self.FissYieldOpts_LE_2.clear()
+                        FissYieldOpts = ""
+                else:
+                    FissYieldOpts = ', fission_yield_opts=' + self.FissYieldOpts_LE_2.text()
+            else:
+                FissYieldOpts = ""
+
+        # add Operator parameters
+        self.Insert_Header_Text()
         # add depletion settings to model input script
         print ("\n"+ self.Model_LE.text() + " = openmc.Model(geometry=" + self.Geom_LE.text() + ", materials=" + \
                                                     self.Mats_LE.text()  + ", settings=" + self.Sett_LE.text() + ")\n")
         for vol_str in Volume_Strings:  
             print(vol_str + '\n')
         print("\n# Create depletion operator")
-        
-        # add Operator parameters
         print(Results_Str)
         if self.tabWidget.currentIndex() == 0:
             print("\n" + self.Operator_LE.text() + " = openmc.deplete." + self.tabWidget.currentTabText() + "(" + \
@@ -419,11 +511,17 @@ class ExportDepletion(QWidget):
                                          Fission_Yield_Mode + FissYieldOpts + Reaction_Rate_Mode + ReactionRrateOpts + \
                                          reduce_chain + reduce_chain_level + ")" )
         elif self.tabWidget.currentIndex() == 1:
-            print('fluxes = ' + self.Fluxes_LE.text())
+            print("openmc.config['chain_file'] = " + self.Chain_File)
+            print('Materials = openmc.Materials(' + self.Depletable_Mats_LE.text() + ')')
+            if self.Get_XS_Flux_CB.isChecked():
+                print('flux_in_each_group, micro_xs = openmc.deplete.get_microxs_and_flux( model=' + self.Model_LE.text() +',\
+                 domains=' + self.Depl_Domains_LE.text() + ', ' + 'energies=' + self.Fluxes_LE.text())
+            else:
+                print('flux_in_each_group = ' + self.LE_to_List(self.Fluxes_LE.text()))
             #print('micros = ' + self.MicroXS_LE.text())
             print("\n" + self.Operator_LE.text() + " = openmc.deplete." + self.tabWidget.currentTabText() + "(" + \
-                                         self.Mats_LE.text() + ", fluxes, micros, '" + self.Chain_File + "'" + prev_res + \
-                                         normalization_mode + Fission_Q + ")" )
+                                         Materials + ", fluxes=flux_in_each_group, micros=micro_xs, '" + self.Chain_File + "'" + prev_res + \
+                                         normalization_mode + Fission_Q + FissYieldOpts + ")" )
 
         print("\n# Perform simulation using the predictor algorithm")
         print("\ntime_steps = " + str(time_steps) + "     # in days")
@@ -544,6 +642,13 @@ class ExportDepletion(QWidget):
                                         ' object is empty, a decay-only calculation will be run.')
             self.Keff_LE.setToolTip('keff (2-tuple of float, optional) - keff eigenvalue and uncertainty from transport '+ \
                                     'calculation. Default is None.')
+    
+    def read_micro_xs(self):
+        micro_xs_file = QtWidgets.QFileDialog.getOpenFileName(self, "Select csv file", self.directory, "micro_xs file (*.csv)")[0]
+        if os.path.isfile(micro_xs_file):
+            self.micro_XS_string = 'micro_XS = MicroXS.from_csv(' + micro_xs_file + ')'
+        else:
+            self.micro_XS_string = ''
 
     def Widget_Set(self):
         if self.tabWidget.currentIndex() == 0:
@@ -552,32 +657,52 @@ class ExportDepletion(QWidget):
             else:
                 self.FissYieldOpts_LE.setEnabled(False)
         elif self.tabWidget.currentIndex() == 1:
-            self.Fluxes_LE.setEnabled(False)
-            self.Fluxes_LE.clear()
             self.NormMod_CB_2.model().item(1).setEnabled(False)
-            for i in [2, 3]:
+            for i in [1, 2]:
                 self.NormMod_CB_2.model().item(i).setEnabled(True)
+
             MGX_GROUP_STRUCTURES_LIST = ['Select Structure', 'enter custom list', 'CASMO-2', 'CASMO-4', 'CASMO-8', 'CASMO-16', 'CASMO-25', 'CASMO-40', 'VITAMIN-J-42', 'CASMO-70',
                                 'XMAS-172', 'VITAMIN-J-175', 'TRIPOLI-315,', 'SHEM-361', 'CCFE-709', 'UKAEA-1102']
             self.Flux_Energy_Gr_CB.addItems(MGX_GROUP_STRUCTURES_LIST)
-        
-        if self.NormMod_CB_2.currentIndex() == 2:
-            self.Fission_Q_LE_2.setEnabled(True)
-        else:
-            self.Fission_Q_LE_2.setEnabled(False)
+            Widgets = [self.label_19, self.label_29, self.label_31, self.Flux_Energy_Gr_CB, self.Depl_Domains_LE,
+                       self.Nuclides_LE, self.Domains_comboBox, self.Nuclides_comboBox]
 
-        if self.Flux_Energy_Gr_CB.currentIndex() == 1:
-            self.Fluxes_LE.setEnabled(True)
-            self.Fluxes_LE.clear()
-        else:
-            self.Fluxes_LE.setEnabled(False)
-            self.Fluxes_LE.setText(self.Flux_Energy_Gr_CB.currentText())
+            if self.Get_XS_Flux_CB.isChecked():
+                for W in Widgets:
+                    W.setEnabled(True)
+                
+                if self.Flux_Energy_Gr_CB.currentIndex() == 0:
+                    self.label_24.setText('Fluxes in [n-cm/src]')
+                    self.Fluxes_LE.clear()
+                    self.showDialog('Warning', 'Select an enrgy group structure or enter energy group boundaries in [eV]!')
+                    return
+                elif self.Flux_Energy_Gr_CB.currentIndex() == 1:
+                    self.label_24.setText('Energies in [eV]')
+                    self.Fluxes_LE.setEnabled(True)
+                else:
+                    self.label_24.setText('Group structure')
+                    self.Fluxes_LE.setText(self.Flux_Energy_Gr_CB.currentText())
+                    self.Fluxes_LE.setEnabled(False)
+            else:
+                for W in Widgets:
+                    W.setEnabled(False)
+        
+            if self.NormMod_CB_2.currentIndex() == 2:
+                self.Fission_Q_LE_2.setEnabled(True)
+            else:
+                self.Fission_Q_LE_2.setEnabled(False)
 
     def Widget_Set1(self, checked):
-        if checked:
-            self.RedChainLevel_SP.setEnabled(True)
-        else:
-            self.RedChainLevel_SP.setEnabled(False)
+        if self.tabWidget.currentIndex() == 0:
+            if checked:
+                self.RedChainLevel_SP.setEnabled(True)
+            else:
+                self.RedChainLevel_SP.setEnabled(False)
+        if self.tabWidget.currentIndex() == 1:
+            if checked:
+                self.RedChainLevel_SP_2.setEnabled(True)
+            else:
+                self.RedChainLevel_SP_2.setEnabled(False)
 
     def is_dict_syntax(self, s):
         try:
