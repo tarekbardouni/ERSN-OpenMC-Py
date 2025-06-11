@@ -1165,7 +1165,7 @@
                   </item>
                   <item>
                    <property name="text">
-                    <string>v.0.15.2</string>
+                    <string>v0.15.2</string>
                    </property>
                   </item>
                   <item>
@@ -2444,8 +2444,8 @@
  <connections/>
  <buttongroups>
   <buttongroup name="buttonGroup"/>
+  <buttongroup name="buttonGroup_4"/>
   <buttongroup name="buttonGroup_2"/>
   <buttongroup name="buttonGroup_3"/>
-  <buttongroup name="buttonGroup_4"/>
  </buttongroups>
 </ui>
