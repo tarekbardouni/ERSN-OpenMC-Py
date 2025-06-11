@@ -3,10 +3,12 @@ The ERSN-OpenMC-Py is a graphical user interface specifically designed to stream
 Our paper: ERSN-OpenMC-Py: A python-based open-source software for OpenMC Monte Carlo code. https://doi.org/10.1016/j.cpc.2024.109121
 
 How to use the GUI to install openmc and prerequisistes under miniconda3
-This tutorial is tested for ubuntu 23.04, miniconda3 and python 3.7 3.9 and 3.11
-The new version 1.3 of ERSN-OpenMC-Py allows to post-process tallies created by combining up to 6 filters.
+This tutorial is tested for ubuntu 24.04, miniconda3 and python 3.7 3.9 3.11 and 3.12
+The version 1.3 of ERSN-OpenMC-Py allows to post-process tallies created by combining up to 6 filters.
 The version 1.3 of ERSN-OpenMC-Py allows to normalize tallies to cell volume, core power, unit lethargy and bin width.
 Up to 5 filters are combined with MeshFilter.
+The new release 1.4 introduces support for performing depletion calculations.
+Depletion results analysis tools are currently under development (planned for future updates).
 
 Prof. Tarek El Bardouni and Doctor Mohamed Lahdour, University Abdelmalek Essaadi, Radiations and Nuclear Systems Team, Tetouan, Morocco
 
