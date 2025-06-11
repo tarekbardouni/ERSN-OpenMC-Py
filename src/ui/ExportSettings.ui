@@ -113,7 +113,7 @@
       </size>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="tab">
       <attribute name="title">
@@ -1476,29 +1476,10 @@
              <layout class="QVBoxLayout" name="verticalLayout">
               <item>
                <layout class="QGridLayout" name="gridLayout_11">
-                <item row="1" column="2">
-                 <widget class="QRadioButton" name="Array_Sources_RB">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <property name="layoutDirection">
-                   <enum>Qt::LeftToRight</enum>
-                  </property>
-                  <property name="text">
-                   <string>Array of </string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="0" column="2">
-                 <widget class="QRadioButton" name="One_Source_RB">
-                  <property name="text">
-                   <string>Unique source</string>
-                  </property>
-                  <property name="checked">
-                   <bool>true</bool>
+                <item row="0" column="5" rowspan="2">
+                 <widget class="Line" name="line_8">
+                  <property name="orientation">
+                   <enum>Qt::Vertical</enum>
                   </property>
                  </widget>
                 </item>
@@ -1509,17 +1490,35 @@
                   </property>
                  </widget>
                 </item>
-                <item row="0" column="5" rowspan="2">
-                 <widget class="Line" name="line_8">
-                  <property name="orientation">
-                   <enum>Qt::Vertical</enum>
+                <item row="1" column="8">
+                 <widget class="QLineEdit" name="Strength_LE">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>100</width>
+                    <height>20</height>
+                   </size>
                   </property>
                  </widget>
                 </item>
-                <item row="1" column="4">
-                 <widget class="QLabel" name="Num_of_Srcs_Label">
+                <item row="0" column="2">
+                 <widget class="QRadioButton" name="One_Source_RB">
                   <property name="text">
-                   <string>Sources</string>
+                   <string>Unique source</string>
+                  </property>
+                  <property name="checked">
+                   <bool>true</bool>
                   </property>
                  </widget>
                 </item>
@@ -1545,14 +1544,8 @@
                   </property>
                  </widget>
                 </item>
-                <item row="1" column="6">
-                 <widget class="QLineEdit" name="Name_LE">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
+                <item row="0" column="10">
+                 <widget class="QLabel" name="label_19">
                   <property name="minimumSize">
                    <size>
                     <width>0</width>
@@ -1561,9 +1554,12 @@
                   </property>
                   <property name="maximumSize">
                    <size>
-                    <width>100</width>
+                    <width>16777215</width>
                     <height>20</height>
                    </size>
+                  </property>
+                  <property name="text">
+                   <string>Particle</string>
                   </property>
                  </widget>
                 </item>
@@ -1603,13 +1599,27 @@
                   </item>
                  </widget>
                 </item>
-                <item row="0" column="10">
-                 <widget class="QLabel" name="label_19">
-                  <property name="minimumSize">
-                   <size>
-                    <width>0</width>
-                    <height>20</height>
-                   </size>
+                <item row="0" column="7">
+                 <widget class="QLabel" name="label_7">
+                  <property name="text">
+                   <string>id</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="4">
+                 <widget class="QLabel" name="Num_of_Srcs_Label">
+                  <property name="text">
+                   <string>Sources</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="7">
+                 <widget class="QLineEdit" name="Source_ID_LE">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
                   </property>
                   <property name="maximumSize">
                    <size>
@@ -1617,8 +1627,27 @@
                     <height>20</height>
                    </size>
                   </property>
-                  <property name="text">
-                   <string>Particle</string>
+                 </widget>
+                </item>
+                <item row="1" column="6">
+                 <widget class="QLineEdit" name="Name_LE">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="minimumSize">
+                   <size>
+                    <width>98</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>100</width>
+                    <height>20</height>
+                   </size>
                   </property>
                  </widget>
                 </item>
@@ -1644,37 +1673,28 @@
                   </property>
                  </widget>
                 </item>
-                <item row="1" column="8">
-                 <widget class="QLineEdit" name="Strength_LE">
+                <item row="0" column="3" colspan="2">
+                 <widget class="QRadioButton" name="Array_Sources_RB">
                   <property name="sizePolicy">
-                   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                   <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                     <horstretch>0</horstretch>
                     <verstretch>0</verstretch>
                    </sizepolicy>
                   </property>
-                  <property name="minimumSize">
-                   <size>
-                    <width>0</width>
-                    <height>20</height>
-                   </size>
+                  <property name="layoutDirection">
+                   <enum>Qt::LeftToRight</enum>
                   </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>100</width>
-                    <height>20</height>
-                   </size>
-                  </property>
-                 </widget>
-                </item>
-                <item row="0" column="7">
-                 <widget class="QLabel" name="label_7">
                   <property name="text">
-                   <string>id</string>
+                   <string>Array of </string>
                   </property>
                  </widget>
                 </item>
-                <item row="1" column="7">
-                 <widget class="QLineEdit" name="Source_ID_LE"/>
+                <item row="1" column="2">
+                 <widget class="QCheckBox" name="Unifor_Sampling_CB">
+                  <property name="text">
+                   <string>Uniform sampling</string>
+                  </property>
+                 </widget>
                 </item>
                </layout>
               </item>
@@ -3030,7 +3050,6 @@
   <tabstop>Clear_PB</tabstop>
   <tabstop>Exit_PB</tabstop>
   <tabstop>One_Source_RB</tabstop>
-  <tabstop>Array_Sources_RB</tabstop>
   <tabstop>Number_of_Sources</tabstop>
   <tabstop>Name_LE</tabstop>
   <tabstop>Strength_LE</tabstop>

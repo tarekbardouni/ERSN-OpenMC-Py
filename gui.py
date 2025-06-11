@@ -1120,6 +1120,7 @@ class Application(QtWidgets.QMainWindow):
         for item in Lists:
             item.clear()
         self.StatePoint = ''
+        self.Depletion_file = ''
         self.materials_id_list = []
         self.cell_id_list = []
         self.surface_id_list = []
@@ -1175,6 +1176,7 @@ class Application(QtWidgets.QMainWindow):
         if Components_lines["openmc.Model"]:
             self.Model = Components_lines["openmc.Model"][0].split('=')[0].replace(' ', '')
         if Components_lines["openmc.deplete"]:  
+            self.Depletion_file = self.directory + '/depletion_results.h5'
             for line in Components_lines["openmc.deplete"]:
                 if 'Operator' in line:
                     self.Operator = line.split('=')[0].replace(' ', '')    
@@ -1214,7 +1216,8 @@ class Application(QtWidgets.QMainWindow):
                     for Value in Values:
                         if 'fill' in Value:
                             Cells[item]['fill'] = Value.split('=')[1].replace(' ', '')
-                        elif 'region' in Value:
+                            Domains_fill_lines.append(line)
+                        if 'region' in Value:
                             Cells[item]['region'] = Value.split('=')[1]
             elif 'openmc.Universe' in line and 'Filter' not in line:
                 item = line.split('=')[0].replace(' ', '')
@@ -1379,17 +1382,18 @@ class Application(QtWidgets.QMainWindow):
         self.Depletable_Mats = list(dict.fromkeys(self.Depletable_Mats))
 
         Domains = {}
+        
         for line in Domains_fill_lines:
             if 'fill' in line and '.fill' not in line:
                 Cell = line.split('=', 1)[0].rstrip()
                 Mat = line.split('fill')[1].split(',', 1)[0].replace('=', '').replace(' ', '')
             elif '.fill' in line:
-                Cell = line.split('.fill')[0]
-                Mat = line.split('=')[1].replace(' ', '')
+                if 'to_csv' not in line:
+                    Cell = line.split('.fill')[0]
+                    Mat = line.split('=')[1].replace(' ', '')
             if Mat in self.Depletable_Mats:
                 Domains[Cell] = Mat
-                self.Depletable_Cells.append(Cell)
-                
+                self.Depletable_Cells.append(Cell)                
 
         if self.Model_Elements_List:
             self.Nuclides_In_Element(self.Model_Elements_List)   
@@ -1459,14 +1463,11 @@ class Application(QtWidgets.QMainWindow):
         v_1 = self.plainTextEdit_7
         self.detect_components()
         if self.available_xs:
-            self.wind6 = ExportTallies(v_1, self.Tallies, self.available_xs, self.tally_name_list, self.tally_id_list,
-                                       self.filter_name_list, self.filter_id_list,
-                                       self.score_name_list, self.score_id_list, self.surface_name_list,
-                                       self.surface_id_list,
-                                       self.cell_name_list, self.cell_id_list, self.universe_name_list,
-                                       self.materials_name_list,
-                                       self.Model_Elements_List, self.Model_Nuclides_List, self.mesh_name_list,
-                                       self.mesh_id_list)
+            self.wind6 = ExportTallies(v_1, self.Geom, self.Tallies, self.available_xs, self.tally_name_list, self.tally_id_list,
+                                       self.filter_name_list, self.filter_id_list,self.score_name_list, self.score_id_list, 
+                                       self.surface_name_list, self.surface_id_list, self.cell_name_list, self.cell_id_list, 
+                                       self.universe_name_list, self.materials_name_list, self.Model_Elements_List,
+                                       self.Model_Nuclides_List, self.mesh_name_list, self.mesh_id_list)
         else:
             self.showDialog('Warning', 'Cross secions files not defined !')
 
@@ -1484,10 +1485,11 @@ class Application(QtWidgets.QMainWindow):
         self.SaveFiles()
 
     def Python_TallyDataProcessing(self):
-        #self.inst = TallyDataProcessing(self.shellWin)
         self.StatePoint = ''
+        self.Depletion_file = ''
+        self.Chain = ''
         self.detect_components()
-        self.interface = TallyDataProcessing(self.directory, self.StatePoint)
+        self.interface = TallyDataProcessing(self.directory, self.StatePoint, self.Depletion_file, self.Chain)
         self.interface.show()
 
     def Python_Depletion(self): 
@@ -1614,6 +1616,7 @@ class Application(QtWidgets.QMainWindow):
         run_openmc = False
         plot_openmc = False
         run_deplete = False
+        run_get_XS = False
         self.Process()
         os.environ["PATH"] += os.pathsep + os.pathsep.join([self.app_dir])
         if self.radioButton.isChecked():     #   xml scripts
@@ -1662,12 +1665,14 @@ class Application(QtWidgets.QMainWindow):
                         if 'integrate()' in line:
                             run_deplete = True
                             cmd = 'python3'
+                        if 'openmc.deplete.get_microxs_and_flux' in line and line[0] != '#':
+                            run_get_XS = True
 
                     self.readData(cmd, self.process)
                     os.chdir(self.app_dir)
                     if 'export_to_xml()' in self.plainTextEdit_7.toPlainText():
                         self.ViewXML(self.plainTextEdit_8)
-                        if not run_openmc and not plot_openmc and not run_deplete :
+                        if not run_openmc and not plot_openmc and not run_deplete and not run_get_XS:
                             self.showDialog('Warning', 'No simulation neither plot will be processed.\n Only xml files will be created !')
                 else:
                     msg = 'Select your project python script or save it first !'
@@ -1678,6 +1683,7 @@ class Application(QtWidgets.QMainWindow):
         run_openmc = False
         plot_openmc = False
         run_deplete = False
+        run_get_XS = False
         for line in self.plainTextEdit_7.toPlainText().split():
             if self.openmc_version >= 141:
                 if 'rectangular_prism' in line:
@@ -1743,9 +1749,11 @@ class Application(QtWidgets.QMainWindow):
                     self.ViewXML(self.shellWin)
                     if 'openmc.run()' in Text and '#openmc.run()' not in Text.strip():
                         run_openmc = True
-                    if 'openmc.plot_geometry()' in self.plainTextEdit_7.toPlainText() and '#openmc.plot_geometry()' not in Text.strip():
+                    if 'openmc.plot_geometry()' in Text and '#openmc.plot_geometry()' not in Text.strip():
                         plot_openmc = True
-                    if not run_openmc and not plot_openmc and not run_deplete:
+                    if 'openmc.deplete.get_microxs_and_flux' in Text and '#openmc.deplete.get_microxs_and_flux' not in Text.strip():
+                            run_get_XS = True
+                    if not run_openmc and not plot_openmc and not run_deplete and not run_get_XS:
                         self.showDialog('Warning',
                                         'No simulation neither plot will be processed.\n Only xml files will be created !')
             else:
@@ -2061,7 +2069,6 @@ class Application(QtWidgets.QMainWindow):
         self.textSize(float(self.comboSize.currentText()))
 
     def SaveFiles(self):
-        #self.comboSize.setCurrentIndex(4)
         if self.tabWidget.currentWidget().objectName() == 'tab_xml':
             if self.new_File:
                 self.directory = self.wind.directory
@@ -2103,7 +2110,6 @@ class Application(QtWidgets.QMainWindow):
             else:
                 self.showDialog('Warning', 'No directory has been selected !')
                 return
-
         elif self.tabWidget.currentWidget().objectName() == 'tab_python':
             lines = self.plainTextEdit_7.toPlainText().split('\n')
             self.cursor = self.plainTextEdit_7.textCursor()
@@ -2270,7 +2276,7 @@ class Application(QtWidgets.QMainWindow):
         title = "About ERSN-OpenMC-Py"
         message = """
                     <span style='color: #3465a4; font-size: 20pt;font-weight: bold;'>
-                    ERSN-OpenMC-Py v 1.3 </strong></span></p><h3>
+                    ERSN-OpenMC-Py v 1.4 </strong></span></p><h3>
 
                     <span style='color: #000000; font-size: 14pt;'>
                     created by M. Lahdour & T. El Bardouni
@@ -2280,7 +2286,7 @@ class Application(QtWidgets.QMainWindow):
                     <a title='' href='https://doi.org/10.1016/j.cpc.2024.109121' target='_blank'>https://doi.org/10.1016/j.cpc.2024.109121 </a> <br><br>
                     </strong></span></p><h3>
 
-                    ©2024 M. Lahdour & T. El Bardouni </strong></span></p>
+                    ©2025 M. Lahdour & T. El Bardouni </strong></span></p>
                         """
         QMessageBox(QMessageBox.Information, title, message, QMessageBox.NoButton, self,
                     Qt.Dialog | Qt.NoDropShadowWindowHint).show()
@@ -2297,7 +2303,7 @@ class Application(QtWidgets.QMainWindow):
         title = "How to use ERSN-OpenMC-Py"
         message = """
                     <span style='color: #3465a4; font-size: 20pt;font-weight: bold;'>
-                    ERSN-OpenMC-Py v 1.3 </strong></span></p><h3>
+                    ERSN-OpenMC-Py v 1.4 </strong></span></p><h3>
 
                     <span style='color: #000000; font-size: 14pt;'>
                     contact us <br>
@@ -2317,7 +2323,7 @@ class Application(QtWidgets.QMainWindow):
                     <a title='' href='https://github.com/mohamedlahdour/ERSN-OpenMC-Py' target='_blank'>Dr. M. Lahdour </strong></span></p><h3> </a>
                     <a title='' href='https://github.com/tarekbardouni/ERSN-OpenMC-Py' target='_blank'>Pr. T. El Bardouni  </strong></span></p><h3></a>
 
-                    <br>©2024 M. Lahdour & T. El Bardouni 
+                    <br>©2025 M. Lahdour & T. El Bardouni 
                         """
         QMessageBox(QMessageBox.Information, title, message, QMessageBox.NoButton, self,
                     Qt.Dialog | Qt.NoDropShadowWindowHint).show()
@@ -3111,7 +3117,7 @@ class VLine(QFrame):
 
 
 
-version = '1.3.4'
+version = '1.4.0'
 qapp = QApplication(sys.argv)  
 app  = Application(u'ERSN-OpenMC-Py')
 qapp.setStyleSheet("QPushButton { background-color: palegoldenrod; border-width: 2px; border-color: darkkhaki}"

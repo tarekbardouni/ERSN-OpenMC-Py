@@ -29,6 +29,7 @@ class ExportSettings(QWidget):
         uic.loadUi("src/ui/ExportSettings.ui", self)
         import re
         self.v_1 = v_1
+        self.Unifor_Sampling_CB.setEnabled(False)
         self.text_inserted = False
         self._initButtons()
         self.Insert_Header = True
@@ -876,9 +877,11 @@ class ExportSettings(QWidget):
         if self.One_Source_RB.isChecked():
             self.Num_of_Srcs_Label.setEnabled(False)
             self.Number_of_Sources.setEnabled(False)
+            self.Unifor_Sampling_CB.setEnabled(False)
         else:
             self.Num_of_Srcs_Label.setEnabled(True)
             self.Number_of_Sources.setEnabled(True)
+            self.Unifor_Sampling_CB.setEnabled(True)
 
         #self.Name_LE.setText(''.join([i for i in self.Name_LE.text() if not i.isdigit()]) + str(self.Source_id + 1))
         self.spatial = 'spatial' + self.Source_ID_LE.text()
@@ -1186,7 +1189,10 @@ class ExportSettings(QWidget):
         self.ErrorSP = 0
         #  //////////////////////////////// Spatial distribution ////////////////////////////////
         if self.Source_Geom_CB.currentIndex() == 0:
-            self.showDialog('Warning', 'Choose option first !')
+            if self.Number_of_Sources.value() > 1:
+                self.showDialog('Warning', 'Choose option first for source' + str(int(self.Source_ID_LE.text()) + 1) + ' !')
+            else: 
+                self.showDialog('Warning', 'Choose option first !')
             return
         if self.Source_Geom_CB.currentIndex() in [1, 2, 3, 4, 5]:
             if self.X_LL.text() == '' or self.Y_LL.text() == '' or self.Z_LL.text() == '':
@@ -1502,12 +1508,35 @@ class ExportSettings(QWidget):
                 self.Only_Fissionable_String = ', only_fissionable=True'
             else:
                 self.Only_Fissionable_String = ''
+            
+            energy_str = ''; angle_str = ''
             if self.Array_Sources_RB.isChecked():
                 self.Num_of_Srcs_Label.show()
                 self.Number_of_Sources.show()
                 if float(self.Strength_LE.text()) >= 1.:
                     self.showDialog('Warning', 'Strength must be smaller than 1. !.')
+                Number_of_Sources = int(self.Number_of_Sources.value())
+                for Is in range(Number_of_Sources - 1):
+                    self.Source_Spatial_Distribution()
+                    if self.ErrorSP != 0:
+                        return
+                    self.Source_Energy_Distribution()
+                    if self.ErrorEn != 0:
+                        return
+                    self.Source_Angle_Distribution()
+                    if self.Energy_Dist_CB.currentIndex() != 0:
+                        energy_str = self.energy + ', '
+                    if self.Direction_Dist_CB.currentIndex() != 0:
+                        angle_str = self.angle + ', '
+                    if Is == Number_of_Sources - 1: 
+                        break
+                    self.Source_Geom_CB.setCurrentIndex(0)
+                    self.Energy_Dist_CB.setCurrentIndex(0)
+                    self.Direction_Dist_CB.setCurrentIndex(0)
+                print(str(self.Name_LE.text()) + ' = openmc.IndependentSource(' + self.spatial + ', ' + angle_str + energy_str + 'strength=' + str(
+                        self.Strength_LE.text()) + ', particle=' + self.Particle + ')\n')
             else:
+                Number_of_Sources = 1
                 self.Source_Spatial_Distribution()
                 if self.ErrorSP != 0:
                     return
@@ -1515,14 +1544,14 @@ class ExportSettings(QWidget):
                 if self.ErrorEn != 0:
                     return
                 self.Source_Angle_Distribution()
-                if self.Energy_Dist_CB.currentIndex() == 0:
-                    energy_str = ''
-                else:
+                if self.Energy_Dist_CB.currentIndex() != 0:
                     energy_str = self.energy + ', '
-                if self.Direction_Dist_CB.currentIndex() == 0:
-                    angle_str = ''
-                else:
+                if self.Direction_Dist_CB.currentIndex() != 0:
                     angle_str = self.angle + ', '
+                
+                """self.Source_Geom_CB.setCurrentIndex(0)
+                self.Energy_Dist_CB.setCurrentIndex(0)
+                self.Direction_Dist_CB.setCurrentIndex(0)"""
                 print(str(self.Name_LE.text()) + ' = openmc.IndependentSource(' + self.spatial + ', ' + angle_str + energy_str + 'strength=' + str(
                         self.Strength_LE.text()) + ', particle=' + self.Particle + ')\n')
         elif self.Source_Geom_CB.currentIndex() == 6:
@@ -1549,6 +1578,9 @@ class ExportSettings(QWidget):
 
         strg = self.Sett + '.source = ' + str(self.Source_name_list).replace("'", "")
         print(strg)
+        if self.Unifor_Sampling_CB.isChecked():
+            print(self.Sett + '.uniform_source_sampling = True')
+
         self.v_1.clear()
         cursor = self.v_1.textCursor()
         cursor.insertText(document)

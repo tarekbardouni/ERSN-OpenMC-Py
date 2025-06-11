@@ -9,6 +9,27 @@ from PyQt5 import uic
 from src.syntax_py import Highlighter
 from src.PyEdit import TextEdit, NumberBar  
 
+def global_exception_handler(exc_type, exc_value, exc_traceback):
+    """
+    Custom exception handler to display unhandled exceptions in a dialog.
+    """
+    if issubclass(exc_type, KeyboardInterrupt):
+        # Let the interpreter handle KeyboardInterrupt (e.g., Ctrl+C).
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+
+    # Create an error message dialog
+    error_message = f"Unhandled Exception:\n{exc_value}"
+    QMessageBox.critical(None, "Application Error", error_message)
+
+    # Optionally log the exception
+    with open("error_log.txt", "a") as f:
+        import traceback
+        f.write("".join(traceback.format_exception(exc_type, exc_value, exc_traceback)))
+
+# Assign the custom exception handler
+sys.excepthook = global_exception_handler
+
 class EmittingStream(QtCore.QObject):
     textWritten = QtCore.pyqtSignal(str)
     def write(self,text):
@@ -20,8 +41,10 @@ class EmittingStream(QtCore.QObject):
 
 class ExportTallies(QWidget):
     from .func import resize_ui, showDialog, Exit, Move_Commands_to_End 
-    def __init__(self,v_1, Tallies, available_xs, Tally, Tally_ID, Filter, Filter_ID, Scores, Scores_ID, Surf_list, Surf_Id_list, Cells_list,
-                 Cell_Id_list, univ, mat, elements, nuclides, mesh, mesh_ID, parent=None):
+    
+    def __init__(self,v_1, Geom, Tallies, available_xs, Tally, Tally_ID, Filter, Filter_ID, Scores, 
+                 Scores_ID, Surf_list, Surf_Id_list, Cells_list, Cell_Id_list, 
+                 univ, mat, elements, nuclides, mesh, mesh_ID, parent=None):
         super(ExportTallies, self).__init__(parent)
         #sys.stdout = EmittingStream(textWritten=self.normalOutputWritten)
         #sys.stderr = EmittingStream(textWritten=self.normalOutputWritten)
@@ -42,10 +65,10 @@ class ExportTallies(QWidget):
             LineEd.setValidator(self.validator)
             LineEd.setToolTip("Only float number is accepted")
 
-
         for LineEd in [self.Mesh_LE_2, self.Mesh_LE_3]:
             LineEd.setValidator(self.float_validator_list)
             LineEd.setToolTip("Only float numbers separated by ,;: are accepted")
+            LineEd.setEnabled(True)
 
         self.tally = ''
         self.available_xs = available_xs
@@ -66,12 +89,13 @@ class ExportTallies(QWidget):
         self.mesh_name_list = mesh
         self.mesh_id_list = mesh_ID
         self.Tallies = Tallies
+        self.Geom = Geom
         self.Filter_Bins_CB.setEnabled(False)
         self.text_inserted = False
 
-        self.list_of_cells = []
+        """self.list_of_cells = []
         self.list_of_surfaces = []
-        self.list_of_surfaces_ids = []
+        self.list_of_surfaces_ids = []"""
         self.universe_name_list = univ
         self.materials_name_list = mat
         self.Model_Elements_List = [elm for elm in elements]
@@ -114,9 +138,14 @@ class ExportTallies(QWidget):
         self.update_mesh_dim()
 
         for item in [self.Grid_RB, self.MinMax_RB, self.Grid_RB_2, self.MinMax_RB_2, self.Grid_RB_3, self.MinMax_RB_3, 
-                     self.MGX_CB, self.label, self.label_8, self.label_10, self.Start_LE, self.End_LE, self.GrpNumber_LE]:
+                     self.MGX_CB, self.label, self.label_8, self.label_10, self.Start_LE, self.End_LE, 
+                      self.GrpNumber_LE]: 
             item.hide()
-
+        
+        # from_domain widgets
+        self.From_Domain_Frame.hide()
+        self.From_Domain_CB.setChecked(False)
+        self.From_Domain_CB.setEnabled(False)
         # add new editor
         self.plainTextEdit = TextEdit()
         self.plainTextEdit.setWordWrapMode(QTextOption.NoWrap)
@@ -126,7 +155,7 @@ class ExportTallies(QWidget):
         layoutH.addWidget(self.numbers)
         layoutH.addWidget(self.plainTextEdit)
         self.EditorLayout.addLayout(layoutH, 0, 0)
-        
+
         sys.stdout = EmittingStream(textWritten=self.normalOutputWritten)
         # sys.stderr = EmittingStream(textWritten=self.normalOutputWritten)
         # to show window at the middle of the screen and resize it to the screen size
@@ -135,6 +164,9 @@ class ExportTallies(QWidget):
     def _initButtons(self):
         self.AddTally_PB.clicked.connect(self.Add_Tallies)
         self.CreateMesh_PB.clicked.connect(self.Create_Mesh)
+        self.From_Domain_CB.stateChanged.connect(self.From_Domain)
+        self.From_Domain_ComboBox.currentIndexChanged.connect(self.Set_From_Domain)
+        self.Domain_ComboBox.currentIndexChanged.connect(self.Set_Domain_LE)
         self.MeshType_CB.currentIndexChanged.connect(self.Def_Mesh)
         self.CreateFilter_PB.clicked.connect(self.Create_Filters)
         self.Filter_Bins_CB.currentIndexChanged.connect(self.Show_Hide_Widgets)
@@ -143,43 +175,33 @@ class ExportTallies(QWidget):
         self.TallyId_LE.textChanged.connect(self.sync_id)
         self.AddTallyId_CB.stateChanged.connect(self.sync_id)
         self.Tally_LE.textChanged.connect(self.sync_name)
-
         self.FilterId_LE.textChanged.connect(self.sync_filter_id)
         self.AddFilterId_CB.stateChanged.connect(self.sync_filter_id)
         self.FilterName_LE.textChanged.connect(self.sync_filter_name)
-
         self.MeshId_LE.textChanged.connect(self.sync_mesh_id)
         self.AddMeshId_CB.stateChanged.connect(self.sync_mesh_id)
         self.MeshName_LE.textChanged.connect(self.sync_mesh_name)
         self.Mesh_2D.toggled.connect(self.update_mesh_dim)
         self.Mesh_1D.toggled.connect(self.update_mesh_dim)
-
         self.FilterType_CB.currentIndexChanged.connect(self.Update_Filters)
         self.Filter_Bins_CB.currentIndexChanged.connect(self.Update_Filter_Bins)
-
         self.Filters_List_CB.currentIndexChanged.connect(self.Def_Filters_Bins_To_Tally)
         self.Nuclides_CB.currentIndexChanged.connect(self.Add_Nuclides_Bins_To_Tally)
         self.FluxScores_CB.currentIndexChanged.connect(self.DEF_FluxScores)
         self.RxnRates_CB.currentIndexChanged.connect(self.DEF_RxnRates)
         self.PartProduction_CB.currentIndexChanged.connect(self.DEF_PartProduction)
         self.MiscScores_CB.currentIndexChanged.connect(self.DEF_MiscScores)
-
         self.Undo_PB.clicked.connect(lambda: self.Undo(self.Filter_Bins_List, self.Filter_Bins_List_LE))
         self.Reset_PB.clicked.connect(lambda: self.Reset(self.Filter_Bins_List, self.Filter_Bins_List_LE))
-
         self.UndoFilter_PB.clicked.connect(lambda: self.Undo(self.Filters_List, self.Filters_List_LE))
         self.ResetFilter_PB.clicked.connect(lambda: self.Reset(self.Filters_List, self.Filters_List_LE))
-
         self.UndoNucl_PB.clicked.connect(lambda: self.Undo(self.Nuclides_Bins_List, self.Nuclides_Bins_List_LE))
         self.ResetNucl_PB.clicked.connect(lambda: self.Reset(self.Nuclides_Bins_List, self.Nuclides_Bins_List_LE))
-
         self.UndoScores_PB.clicked.connect(lambda: self.Undo(self.Scores_List, self.ScoresList_LE))
         self.ResetScores_PB.clicked.connect(lambda: self.Reset(self.Scores_List, self.ScoresList_LE))
-
         self.AddFilters_PB.clicked.connect(self.Add_Filters_Bins_To_Tally)
         self.AddNuclides_PB.clicked.connect(self.Add_Nuclides)
         self.AddScore_PB.clicked.connect(self.Add_Scores)
-
         self.ExportData_PB.clicked.connect(self.Export_to_Main_Window)
         self.ClearData_PB.clicked.connect(self.clear_text)
         self.Exit_PB.clicked.connect(self.Exit)
@@ -208,6 +230,7 @@ class ExportTallies(QWidget):
 
     def Define_Tips(self):
         # define Tips of each button  
+        self.From_Domain_CB.setToolTip('Create mesh where the corners of the mesh are being set automatically to surround the geometry.')
         self.FluxScores_CB.setToolTip('Flux scores: Total flux, units are particle-cm per source particle.')
         self.FluxScores_CB.setItemData(1,'Total Flux.', QtCore.Qt.ToolTipRole)
         self.MiscScores_CB.setToolTip('Miscellaneous scores: units are indicated for each.')
@@ -418,19 +441,91 @@ class ExportTallies(QWidget):
             self.Tally_LE.setText(self.tally_suffix + str(self.TallyId_LE.text()))
         else:
             self.Tally_LE.setText(self.tally_suffix)
+        self.Reset(self.Scores_List, self.ScoresList_LE)
+        self.Reset(self.Nuclides_Bins_List, self.Nuclides_Bins_List_LE)
+        self.Reset(self.Filters_List, self.Filters_List_LE)
+
+    def Set_From_Domain(self):
+        self.From_Domain_LE.clear()
+        self.Domain_ComboBox.clear()
+        if self.From_Domain_ComboBox.currentIndex() == 0:
+            pass
+        elif self.From_Domain_ComboBox.currentText() == 'openmc.Cell':
+            self.Domain_ComboBox.addItem('select cell')
+            self.Domain_ComboBox.addItems(self.cell_name_list)
+        elif self.From_Domain_ComboBox.currentText() == 'openmc.Region':
+            self.Domain_ComboBox.addItem('provide region')
+        elif self.From_Domain_ComboBox.currentText() == 'openmc.Universe':
+            self.Domain_ComboBox.addItem('select universe')
+            self.Domain_ComboBox.addItems(self.universe_name_list)
+        elif self.From_Domain_ComboBox.currentText() == 'openmc.Geometry':
+            self.Domain_ComboBox.addItem(self.Geom)
+            self.From_Domain_LE.setText(self.Geom)
+
+    def Set_Domain_LE(self):
+        if self.From_Domain_ComboBox.currentText() in ['openmc.Cell', 'openmc.Universe']:
+            self.From_Domain_LE.setText(self.Domain_ComboBox.currentText())
+
+    def From_Domain(self):
+        radios = [self.Grid_RB, self.MinMax_RB, self.Grid_RB_2, self.MinMax_RB_2, self.Grid_RB_3, self.MinMax_RB_3]
+        if self.From_Domain_CB.isChecked():
+            self.From_Domain_Frame.show()
+            self.From_Domain_ComboBox.addItems(['openmc.Cell', 'openmc.Region', 'openmc.Universe', 'openmc.Geometry'])
+            if 'openmc.Universe' not in self.v_1.toPlainText():
+                self.From_Domain_ComboBox.model().item(self.From_Domain_ComboBox.findText('openmc.Universe')).setEnabled(False)
+            for radio in radios:
+                radio.hide()
+            if self.MeshType_CB.currentIndex() == 1:   # Regular mesh
+                self.From_Domain_ComboBox.setToolTip('domain ({openmc.Cell, openmc.Region, openmc.Universe, openmc.Geometry}) – \
+                                                      \nThe object passed in will be used as a template for this mesh. \
+                                                      \nThe bounding box of the property of the object passed will be used \
+                                                      \nto set the lower_left and upper_right and of the mesh instance')
+                self.Mesh_LE_1.setToolTip('dimension (Iterable of int) – The number of mesh cells in each direction (x, y, z).')
+                self.Mesh_LE_2.setEnabled(False)
+                self.Mesh_LE_3.setEnabled(False)
+            elif self.MeshType_CB.currentIndex() == 3:      # Cylindrical mesh
+                self.From_Domain_CB.setToolTip('domain (openmc.Cell or openmc.Region or openmc.Universe or openmc.Geometry) – \
+                                                \nThe object passed in will be used as a template for this mesh. The bounding box \
+                                                \nof the property of the object passed will be used to set the r_grid, z_grid ranges.')
+                self.label_2.setText('Dimensions')
+                self.Mesh_LE_1.setToolTip('dimension (Iterable of int) – The number of equally spaced mesh cells in each direction (r_grid, phi_grid, z_grid)')
+                self.Mesh_LE_2.setEnabled(True)
+                self.Mesh_LE_3.setEnabled(False)
+                self.Mesh_LE_1.setValidator(self.dim_validator)
+        else:
+            self.From_Domain_Frame.hide()
+            if self.MeshType_CB.currentIndex() == 1:   # Regular mesh
+                self.Mesh_LE_2.setEnabled(True)
+                self.Mesh_LE_3.setEnabled(True)
+                self.From_Domain_ComboBox.clear()
+                self.From_Domain_ComboBox.addItem('select domain')
+            elif self.MeshType_CB.currentIndex() == 3:      # Cylindrical mesh
+                self.label_2.setText('r_grid (min, max, dim)')
+                self.Mesh_LE_1.setValidator(self.float_validator_list_positif)
+                self.Mesh_LE_3.setEnabled(True)
+                for radio in radios:
+                    radio.show()
+                self.From_Domain_ComboBox.clear()
+                self.From_Domain_ComboBox.addItem('select domain')
 
     def Def_Mesh(self):
+        self.From_Domain_CB.setChecked(False)
+        self.From_Domain_ComboBox.clear()
+        self.From_Domain_ComboBox.addItem('select domain')
+        radios = [self.Grid_RB, self.MinMax_RB, self.Grid_RB_2, self.MinMax_RB_2, self.Grid_RB_3, self.MinMax_RB_3]
         if self.MeshType_CB.currentIndex() == 0:
-            for radio in [self.Grid_RB, self.MinMax_RB, self.Grid_RB_2, self.MinMax_RB_2, self.Grid_RB_3, self.MinMax_RB_3]:
+            for radio in radios:
                 radio.hide()
             self.MinMax_RB.hide()
+            self.From_Domain_CB.setEnabled(False)
         elif self.MeshType_CB.currentIndex() == 1:                  # RegularMesh
+            self.From_Domain_CB.setEnabled(True)
             self.Mesh_1D.setEnabled(True)
             self.Mesh_2D.setEnabled(True)
             self.Mesh_3D.setEnabled(True)
             self.Mesh_1D.setChecked(True)
             self.Mesh_3D.setChecked(False)
-            for radio in [self.Grid_RB, self.MinMax_RB, self.Grid_RB_2, self.MinMax_RB_2, self.Grid_RB_3, self.MinMax_RB_3]:
+            for radio in radios:
                 radio.hide()
             self.label_2.setText('Dimensions')
             self.label_3.setText('Lower Left (x,y,z)')
@@ -439,49 +534,54 @@ class ExportTallies(QWidget):
             self.Mesh_LE_2.setValidator(self.float_validator_list)
             self.Mesh_LE_3.setValidator(self.float_validator_list)
         elif self.MeshType_CB.currentIndex() == 2:                  # RectiLinearMesh
+            self.From_Domain_CB.setEnabled(False)
             self.Mesh_1D.setEnabled(False)
             self.Mesh_2D.setEnabled(False)
             self.Mesh_3D.setEnabled(True)
             self.Mesh_1D.setChecked(False)
             self.Mesh_3D.setChecked(True)
-            for radio in [self.Grid_RB, self.MinMax_RB, self.Grid_RB_2, self.MinMax_RB_2, self.Grid_RB_3, self.MinMax_RB_3]:
+            for radio in radios:
                 radio.show()
-            self.label_2.setText('x_grid (min, max, dim)')
-            self.label_3.setText('y_grid (min, max, dim)')
-            self.label_4.setText('z_grid (min, max, dim)')
+            self.label_2.setText('x_grid | (min, max, dim)')
+            self.label_3.setText('y_grid | (min, max, dim)')
+            self.label_4.setText('z_grid | (min, max, dim)')
             self.Mesh_LE_1.setValidator(self.float_validator_list)
             self.Mesh_LE_2.setValidator(self.float_validator_list)
             self.Mesh_LE_3.setValidator(self.float_validator_list)
         elif self.MeshType_CB.currentIndex() == 3:                     # CylindricalMesh
+            self.From_Domain_CB.setEnabled(True)
             self.Mesh_1D.setEnabled(False)
             self.Mesh_2D.setEnabled(False)
             self.Mesh_3D.setEnabled(True)
             self.Mesh_1D.setChecked(False)
             self.Mesh_3D.setChecked(True)
-            for radio in [self.Grid_RB, self.MinMax_RB, self.Grid_RB_2, self.MinMax_RB_2, self.Grid_RB_3, self.MinMax_RB_3]:
+            for radio in radios:
                 radio.show()
-            self.label_2.setText('r_grid (min, max, dim)')
-            self.label_3.setText('phi_grid (min, max, dim)')
-            self.label_4.setText('z_grid (min, max, dim)')
+            
+            self.label_2.setText('r_grid | (min, max, dim)')
+            self.label_3.setText('phi_grid | (min, max, dim)')
+            self.label_4.setText('z_grid | (min, max, dim)')
             self.Mesh_LE_1.setValidator(self.float_validator_list_positif)
             self.Mesh_LE_2.setValidator(self.float_validator_list_pi)
             self.Mesh_LE_3.setValidator(self.float_validator_list)
         elif self.MeshType_CB.currentIndex() == 4:                     # SphericalMesh
+            self.From_Domain_CB.setEnabled(False)
             self.Mesh_1D.setEnabled(False)
             self.Mesh_2D.setEnabled(False)
             self.Mesh_3D.setEnabled(True)
             self.Mesh_1D.setChecked(False)
             self.Mesh_3D.setChecked(True)
-            for radio in [self.Grid_RB, self.MinMax_RB, self.Grid_RB_2, self.MinMax_RB_2, self.Grid_RB_3, self.MinMax_RB_3]:
+            for radio in radios:
                 radio.show()
-            self.label_2.setText('r_grid (min, max, dim)')
-            self.label_3.setText('theta_grid (min, max, dim)')
-            self.label_4.setText('phi_grid (min, max, dim)')
+            self.label_2.setText('r_grid | (min, max, dim)')
+            self.label_3.setText('theta_grid | (min, max, dim)')
+            self.label_4.setText('phi_grid | (min, max, dim)')
             self.Mesh_LE_1.setValidator(self.float_validator_list_positif)
             self.Mesh_LE_2.setValidator(self.float_validator_list_pi)
             self.Mesh_LE_3.setValidator(self.float_validator_list_pi)
         elif self.MeshType_CB.currentIndex() == 4:                     # UnstructuredMesh
-            for radio in [self.Grid_RB, self.MinMax_RB, self.Grid_RB_2, self.MinMax_RB_2, self.Grid_RB_3, self.MinMax_RB_3]:
+            self.From_Domain_CB.setEnabled(False)
+            for radio in radios:
                 radio.hide()
             self.showDialog('Warning', 'Not coded yet !')
         else:
@@ -490,40 +590,40 @@ class ExportTallies(QWidget):
 
     def Create_Mesh(self):
         self.Def_Tallies()
-
         if self.MeshType_CB.currentIndex() == 0:
             self.showDialog('Warning', 'Select Mesh type first !')
             self.sync_mesh_id()
             return
-        elif self.MeshType_CB.currentIndex() in [1, 2, 3, 4, 5]:
-            if self.MeshName_LE.text() == '':
-                self.showDialog('Warning', 'Cannot create mesh, select name first !')
+        if self.MeshName_LE.text() == '':
+            self.showDialog('Warning', 'Cannot create mesh, select name first !')
+            return
+        if self.MeshId_LE.text() == '':
+            self.showDialog('Warning', 'Cannot create mesh, select id first !')
+            return
+        if self.MeshName_LE.text() in self.mesh_name_list:
+            self.showDialog('Warning', 'Mesh name already used, select new name !')
+            return
+        if int(self.MeshId_LE.text()) in self.mesh_id_list:
+            self.showDialog('Warning', 'Mesh id already used, select new id !')
+            return
+        if self.Mesh_LE_1.text() == '':
+            self.showDialog('Warning', 'Mesh data are missing ! Complete the form !')
+            return
+        if not self.From_Domain_CB.isChecked():
+            if self.Mesh_LE_2.text() == '' or self.Mesh_LE_3.text() == '':
+                self.showDialog('Warning', 'Mesh data are missing ! Complete the form !')
                 return
-            elif self.MeshId_LE.text() == '':
-                self.showDialog('Warning', 'Cannot create mesh, select id first !')
-                return
-            else:
-                if self.MeshName_LE.text() in self.mesh_name_list:
-                    self.showDialog('Warning', 'Mesh name already used, select new name !')
-                    return
-                elif int(self.MeshId_LE.text()) in self.mesh_id_list:
-                    self.showDialog('Warning', 'Mesh id already used, select new id !')
-                    return
-                else:
-                    if self.Mesh_LE_1.text() == '' or self.Mesh_LE_2.text() == '' or self.Mesh_LE_3.text() == '':
-                        self.showDialog('Warning', 'Mesh data are missing ! Complete the form !')
-                        return
-                    else:
-                        if self.MeshType_CB.currentIndex() == 1:
-                            self.RegularMesh()
-                        elif self.MeshType_CB.currentIndex() == 2:
-                            self.RectiLinearMesh()
-                        elif self.MeshType_CB.currentIndex() == 3:
-                            self.CylindricalMesh()
-                        elif self.MeshType_CB.currentIndex() == 4:
-                            self.SphericalMesh()           
-                        elif self.MeshType_CB.currentIndex() == 5:
-                            self.UnstructuredMesh()
+
+        if self.MeshType_CB.currentIndex() == 1:
+            self.RegularMesh()
+        elif self.MeshType_CB.currentIndex() == 2:
+            self.RectiLinearMesh()
+        elif self.MeshType_CB.currentIndex() == 3:
+            self.CylindricalMesh()
+        elif self.MeshType_CB.currentIndex() == 4:
+            self.SphericalMesh()           
+        elif self.MeshType_CB.currentIndex() == 5:
+            self.UnstructuredMesh()
         if self.No_Error:
             self.mesh_name_list.append(self.MeshName_LE.text())
             self.mesh_id_list.append(self.MeshId_LE.text())
@@ -541,51 +641,62 @@ class ExportTallies(QWidget):
             self.MeshType_CB.setCurrentIndex(0)
             self.FilterType_CB.setCurrentIndex(0)
             self.Filter_Bins_List_LE.clear()
+            self.From_Domain_ComboBox.setCurrentIndex(0)
+            self.From_Domain_LE.clear()
 
     def RegularMesh(self):
         self.No_Error = True
         self.LE_to_List(self.Mesh_LE_1)
         dimension = list(map(int, self.List))
-        self.LE_to_List(self.Mesh_LE_2)
-        LL = list(map(float, self.List))
-        self.LE_to_List(self.Mesh_LE_3)
-        UR = list(map(float, self.List))
-        if LL > UR:
-            self.showDialog('Warning', 'Upper_right must be greater than Lower_left !')
-            self.No_Error = False
-            return
+        if not self.From_Domain_CB.isChecked():
+            self.LE_to_List(self.Mesh_LE_2)
+            LL = list(map(float, self.List))
+            self.LE_to_List(self.Mesh_LE_3)
+            UR = list(map(float, self.List))
+            if LL > UR:
+                self.showDialog('Warning', 'Upper_right must be greater than Lower_left !')
+                self.No_Error = False
+                return
         if self.Mesh_1D.isChecked():
             if len(dimension) != 1:
                 self.showDialog('Warning', 'Length of dimension list is not compatible with 1D mesh !')
                 self.No_Error = False
                 return
-            if len(LL) != 1 or len(UR) != 1:
-                self.showDialog('Warning', 'Lower_left and Upper_right coordinates number must be equal to 1 !')
-                self.No_Error = False
-                return
+            if not self.From_Domain_CB.isChecked():
+                if len(LL) != 1 or len(UR) != 1:
+                    self.showDialog('Warning', 'Lower_left and Upper_right coordinates number must be equal to 1 !')
+                    self.No_Error = False
+                    return
         if self.Mesh_2D.isChecked():
             if len(dimension) != 2:
                 self.showDialog('Warning', 'Length of dimension list is not compatible with 2D mesh !')
                 self.No_Error = False
                 return
-            if len(LL) != 2 or len(UR) != 2:
-                self.showDialog('Warning', 'Lower_left and Upper_right coordinates number must be equal to 2 !')
-                self.No_Error = False
-                return
+            if not self.From_Domain_CB.isChecked():
+                if len(LL) != 2 or len(UR) != 2:
+                    self.showDialog('Warning', 'Lower_left and Upper_right coordinates number must be equal to 2 !')
+                    self.No_Error = False
+                    return
         elif self.Mesh_3D.isChecked():
             if len(dimension) != 3:
                 self.showDialog('Warning', 'Length of dimension list is not compatible with 3D mesh !')
                 self.No_Error = False
                 return
-            if len(LL) != 3 or len(UR) != 3:
-                self.showDialog('Warning', 'Lower_left or Upper_right coordinates number must be equal to 3 !')
-                self.No_Error = False
-                return
-        print(
-            self.MeshName_LE.text() + ' = openmc.' + self.MeshType_CB.currentText() + '(mesh_id=' + self.MeshId_LE.text() + ')\n')
-        print(self.MeshName_LE.text() + '.dimension = ' + str(dimension))
-        print(self.MeshName_LE.text() + '.lower_left = ' + str(LL))
-        print(self.MeshName_LE.text() + '.upper_right = ' + str(UR))
+            if not self.From_Domain_CB.isChecked():
+                if len(LL) != 3 or len(UR) != 3:
+                    self.showDialog('Warning', 'Lower_left or Upper_right coordinates number must be equal to 3 !')
+                    self.No_Error = False
+                    return
+        
+        if self.From_Domain_CB.isChecked():   # the corners of the mesh are being set automatically to surround the geometry
+            print(self.MeshName_LE.text() + ' = openmc.RegularMesh().from_domain(' + self.From_Domain_LE.text() + ', dimension=' + str(dimension),
+                 ', mesh_id=' + self.MeshId_LE.text() + ", name='" + self.MeshName_LE.text() + "')\n")
+        else:
+            print(self.MeshName_LE.text() + ' = openmc.' + self.MeshType_CB.currentText() + 
+                 '(mesh_id=' + self.MeshId_LE.text() + ", name='" + self.MeshName_LE.text() + "')\n")
+            print(self.MeshName_LE.text() + '.dimension = ' + str(dimension))
+            print(self.MeshName_LE.text() + '.lower_left = ' + str(LL))
+            print(self.MeshName_LE.text() + '.upper_right = ' + str(UR))
 
     def RectiLinearMesh(self):
         self.No_Error = True
@@ -663,9 +774,9 @@ class ExportTallies(QWidget):
                 self.showDialog('Warning', 'Upper limit must be greater than Lower limit !')
                 self.No_Error = False
                 return
-            msg_r = self.MeshName_LE.text() + '.r_grid = ' + 'np.linspace' + str((r_Lower, r_Upper, r_Dim,))
+            msg_r = 'r_grid = ' + 'np.linspace' + str((r_Lower, r_Upper, r_Dim,))
         else:
-            msg_r = self.MeshName_LE.text() + '.r_grid = ' + str(self.List).replace("'", "")
+            msg_r = 'r_grid = ' + str(self.List).replace("'", "")
         
         self.LE_to_List(self.Mesh_LE_2)
         if self.MinMax_RB_2.isChecked():
@@ -687,9 +798,9 @@ class ExportTallies(QWidget):
                     self.showDialog('Warning', 'Upper limit must be greater than Lower limit !')
                     self.No_Error = False
                     return
-            msg_phi = self.MeshName_LE.text() + '.phi_grid = ' + 'np.linspace' + str((phi_Lower, phi_Upper, phi_Dim,)).replace("'", "")
+            msg_phi = 'phi_grid = ' + 'np.linspace' + str((phi_Lower, phi_Upper, phi_Dim,)).replace("'", "")
         else:
-            msg_phi = self.MeshName_LE.text() + '.phi_grid = ' + str(self.List).replace('pi', 'np.pi').replace("'", "")
+            msg_phi = 'phi_grid = ' + str(self.List).replace('pi', 'np.pi').replace("'", "")
         
         self.LE_to_List(self.Mesh_LE_3)
         if self.MinMax_RB_3.isChecked():
@@ -704,20 +815,20 @@ class ExportTallies(QWidget):
                 self.showDialog('Warning', 'Upper limit must be greater than Lower limit !')
                 self.No_Error = False
                 return
-            msg_z = self.MeshName_LE.text() + '.z_grid = ' + 'np.linspace' + str((z_Lower, z_Upper, z_Dim,))
+            msg_z = 'z_grid = ' + 'np.linspace' + str((z_Lower, z_Upper, z_Dim,))
         else:
-            msg_z = self.MeshName_LE.text() + '.z_grid = ' + str(self.List).replace("'", "")
+            msg_z = 'z_grid = ' + str(self.List).replace("'", "")
 
         self.Find_string(self.plainTextEdit, "import numpy")
         if self.Insert_Header:
             self.Find_string(self.v_1, "import numpy")
             if self.Insert_Header:
                 print('import numpy as np')
-
-        print(self.MeshName_LE.text() + ' = openmc.' + self.MeshType_CB.currentText() + '(mesh_id=' + self.MeshId_LE.text() + ')\n')
-        print(msg_r)
-        print(msg_phi)
-        print(msg_z)
+        msg_mesh_id = 'mesh_id=' + self.MeshId_LE.text()
+        print(self.MeshName_LE.text() + ' = openmc.' + self.MeshType_CB.currentText() + '(' + msg_mesh_id + ')\n')
+        print(self.MeshName_LE.text() + '.' + msg_r)
+        print(self.MeshName_LE.text() + '.' + msg_phi)
+        print(self.MeshName_LE.text() + '.' + msg_z)
 
     def SphericalMesh(self):
         self.No_Error = True
@@ -1277,15 +1388,12 @@ class ExportTallies(QWidget):
                     return
 
             if self.tally_name_list:
-                document = self.plainTextEdit.toPlainText()
-                lines = document.split('\n')
-                for line in lines:
-                    if (self.tally_name_list[-1] + ".filters" in line):
-                        lines.remove(line)
-                        document = self.plainTextEdit.toPlainText().replace(line,"")
-                self.plainTextEdit.clear()
-                self.plainTextEdit.insertPlainText(document)
-                print(self.tally_name_list[-1] + '.filters = ' + self.Filters_List_LE.text().replace("'", ""))
+                text = self.tally_name_list[-1] + ".filters"
+                if text in self.plainTextEdit.toPlainText(): self.Update_Document(text)
+                print('\n' + text + ' = ' + self.Filters_List_LE.text().replace("'", ""))
+                text = self.Tallies + '.append(' + self.tally_name_list[-1] + ')'
+                if text in self.plainTextEdit.toPlainText(): self.Update_Document(text)
+                print('\n' + text)
             else:
                 self.showDialog('Warning', 'Add tally first !')
         else:
@@ -1293,7 +1401,7 @@ class ExportTallies(QWidget):
             return
         self.Filters_List_CB.setCurrentIndex(0)
         self.Filters_List_LE.clear()
-        self.Reset(self.Filters_List, self.Filters_List_LE)
+        #self.Reset(self.Filters_List, self.Filters_List_LE)
 
     def LE_to_List(self, LineEdit):
         self.List = []
@@ -1318,24 +1426,21 @@ class ExportTallies(QWidget):
         nuclides_list = Nuclides[Nuclides.find("[") + 1: Nuclides.find("]")].replace("'","").replace(" ","").split(',')
         
         if self.tally_name_list:
-            document = self.plainTextEdit.toPlainText()
-            lines = document.split('\n')
-            for line in lines:
-                if (".nuclides" in line):
-                    lines.remove(line)
-                    document = self.plainTextEdit.toPlainText().replace(line,"")
-            self.plainTextEdit.clear()
-            self.plainTextEdit.insertPlainText(document)
+            text = self.tally_name_list[-1] + '.nuclides'
+            if text in self.plainTextEdit.toPlainText(): self.Update_Document(text)
             for item in nuclides_list:
                 if item not in self.Model_Nuclides_List:
                     self.showDialog('Warning', item + ' not in list of nuclides in the model!')
                     return
-            print(self.tally_name_list[-1] + '.nuclides = ' + Nuclides)
+            print('\n' + text + ' = ' + Nuclides)
+            text = self.Tallies + '.append(' + self.tally_name_list[-1] + ')'
+            if text in self.plainTextEdit.toPlainText(): self.Update_Document(text)
+            print('\n' + text)
             self.Nuclides_Bins_List_LE.clear()
         else:
             self.showDialog('Warning', 'Add tally first !')
             return
-        self.Reset(self.Nuclides_Bins_List, self.Nuclides_Bins_List_LE)
+        #self.Reset(self.Nuclides_Bins_List, self.Nuclides_Bins_List_LE)
 
     def Add_Scores(self):
         if self.ScoresList_LE.text() == '':
@@ -1349,23 +1454,14 @@ class ExportTallies(QWidget):
 
         scores = self.ScoresList_LE.text()
         if self.tally_name_list:
-            document = self.plainTextEdit.toPlainText()
-            document0 = document
-            lines = document.split('\n')
-            for line in lines:
-                if (".scores" in line):
-                    lines.remove(line)
-                    document = self.plainTextEdit.toPlainText().replace(line,"")
-            self.plainTextEdit.clear()
-            self.plainTextEdit.insertPlainText(document)
-            """if ".scores" in document0:
-                for score in scores:
-                    print(self.tally_name_list[-1] + '.scores.append(' + score +')')
-            else:
-                print(self.tally_name_list[-1] + '.scores = ' + scores )"""
-            print(self.tally_name_list[-1] + '.scores = ' + scores )
+            text = self.tally_name_list[-1] + '.scores = '
+            if text in self.plainTextEdit.toPlainText(): self.Update_Document(text)
+            print('\n' + text + scores )
             if self.Estimator_CB.currentIndex()!= 0:
                 print(self.tally_name_list[-1] + '.estimator = ' + "'" + str(self.Estimator_CB.currentText() + "'"))
+            text = self.Tallies + '.append(' + self.tally_name_list[-1] + ')'
+            if text in self.plainTextEdit.toPlainText(): self.Update_Document(text)
+            print('\n' + text)
             self.ScoresList_LE.clear()
             self.FluxScores_CB.setCurrentIndex(0)
             self.RxnRates_CB.setCurrentIndex(0)
@@ -1374,7 +1470,22 @@ class ExportTallies(QWidget):
         else:
             self.showDialog('Warning', 'Add tally first !')
             return
-        self.Reset(self.Scores_List, self.ScoresList_LE)
+        #self.Reset(self.Scores_List, self.ScoresList_LE)
+
+    def Update_Document(self, text):
+        document = self.plainTextEdit.toPlainText()
+        lines = document.splitlines()
+        for line in lines:
+            if (text in line):
+                lines.remove(line)
+                document = self.plainTextEdit.toPlainText().replace(line,"")
+        self.plainTextEdit.clear()
+        self.plainTextEdit.insertPlainText(document)
+
+        lines = document.splitlines()
+        self.plainTextEdit.clear()
+        doc = [x for x in lines if x.strip() != ""]   # reduces empty lines to ''
+        self.plainTextEdit.insertPlainText('\n'.join(doc))
 
     def DEF_FluxScores(self):
         self.Use_AllItems = False
@@ -1455,8 +1566,8 @@ class ExportTallies(QWidget):
         if 'import numpy' in self.plainTextEdit.toPlainText():
             self.Suppress_Line('import numpy', self.plainTextEdit)
         self.v_1.moveCursor(QTextCursor.End)
-        if self.Tallies_Tab.currentIndex() == 1:
-            print('\n' + self.Tallies + '.append(' + self.tally + ')')
+        #if self.Tallies_Tab.currentIndex() == 1:
+        #    print('\n' + self.Tallies + '.append(' + self.tally + ')')
         string_to_find = self.Tallies + ".export_to_xml()"
         self.Find_string(self.v_1, string_to_find)
 

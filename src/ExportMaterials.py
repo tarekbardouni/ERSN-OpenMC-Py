@@ -1183,8 +1183,12 @@ class ExportMaterials(QWidget):
                     else:
                         print(str(self.lineEdit.text()) + ".add_element('" + element + "',", str(fraction) + ",", "'" + self.Fraction_Type + "'" + ")")
             else:
-                print('\n' + str(self.lineEdit.text()), "= openmc.Material(" + MAT_ID_NEW +
+                if self.lineEdit_3.text() != '':
+                    print('\n' + str(self.lineEdit.text()), "= openmc.Material(" + MAT_ID_NEW +
                       "name='" + self.lineEdit.text() + "',", "temperature=" + str(self.lineEdit_3.text()) + ')')
+                else:
+                    print('\n' + str(self.lineEdit.text()), "= openmc.Material(" + MAT_ID_NEW +
+                      "name='" + self.lineEdit.text() + "')")
             if self.comboBox.currentText() == 'sum':
                 print(str(self.lineEdit.text()) + ".set_density('sum')")
             elif self.comboBox.currentText() == 'macro':

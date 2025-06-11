@@ -64,6 +64,8 @@ class ExportDepletion(QWidget):
                 Sett, Operator, Integrator, Deplete_Mats, Deplete_Cells, Model, Chain, Run_Mode, parent=None):
         super(ExportDepletion, self).__init__(parent)
         uic.loadUi("src/ui/ExportDepletion.ui", self)
+        sys.stdout = EmittingStream(textWritten=self.normalOutputWritten)
+        #sys.stderr = EmittingStream(textWritten=self.normalOutputWritten)
         self.v_1 = v_1 
         self.directory = Directory
         self.materials_name_list = Materials
@@ -138,6 +140,9 @@ class ExportDepletion(QWidget):
         self.Nuclides_comboBox.addItems(self.Nuclides)
         for i in range(len(self.Nuclides) + 1):
             self.Nuclides_comboBox.setItemChecked(i, False)
+        # Create checkable combobox of reactions
+        self.Reactions_comboBox = CheckableComboBox()
+        self.Reactions_GL.addWidget(self.Reactions_comboBox)
         # Create checkable combobox of depletable domains
         self.Domains_comboBox = CheckableComboBox()
         self.Domains_GL.addWidget(self.Domains_comboBox)
@@ -148,10 +153,39 @@ class ExportDepletion(QWidget):
         self.Domains_comboBox.addItems(self.Depletable_Cells)
         for i in range(len(self.Depletable_Cells) + 1):
             self.Domains_comboBox.setItemChecked(i, False) 
-
+        # Create checkable combobox of nuclides_2
+        self.Nuclides_comboBox_2 = CheckableComboBox()
+        self.Nuclides_GL_2.addWidget(self.Nuclides_comboBox_2)
+        self.Nuclides_comboBox_2.addItem('Select nuclides')
+        self.Nuclides_comboBox_2.addItem('All bins')
+        self.Nuclides_comboBox_2.model().item(0).setEnabled(False)
+        self.Nuclides_comboBox_2.model().item(0).setCheckState(Qt.Unchecked)
+        self.Nuclides_comboBox_2.addItems(self.Nuclides)
+        for i in range(len(self.Nuclides) + 1):
+            self.Nuclides_comboBox_2.setItemChecked(i, False)
+        # Create checkable combobox of reactions
+        self.Reactions_comboBox_2 = CheckableComboBox()
+        self.Reactions_GL_2.addWidget(self.Reactions_comboBox_2)
+        # Create checkable combobox of depletable domains_2
+        self.Domains_comboBox_2 = CheckableComboBox()
+        self.Domains_GL_2.addWidget(self.Domains_comboBox_2)
+        self.Domains_comboBox_2.addItem('Select domains')
+        self.Domains_comboBox_2.addItem('All bins')
+        self.Domains_comboBox_2.model().item(0).setEnabled(False)
+        self.Domains_comboBox_2.model().item(0).setCheckState(Qt.Unchecked)
+        self.Domains_comboBox_2.addItems(self.Depletable_Cells)
+        for i in range(len(self.Depletable_Cells) + 1):
+            self.Domains_comboBox_2.setItemChecked(i, False) 
+        self.Nuclides_LE.clear()
+        self.Checked_Nuclides = []
+        MGX_GROUP_STRUCTURES_LIST = ['Select Structure', 'enter custom list', 'CASMO-2', 'CASMO-4', 'CASMO-8', 'CASMO-16', 'CASMO-25', 'CASMO-40', 'VITAMIN-J-42', 'CASMO-70',
+                                'XMAS-172', 'VITAMIN-J-175', 'TRIPOLI-315,', 'SHEM-361', 'CCFE-709', 'UKAEA-1102']
+        for CB in [self.Flux_Energy_Gr_CB, self.Flux_Energy_Gr_CB_2]:
+            CB.clear()
+            CB.addItems(MGX_GROUP_STRUCTURES_LIST)
+        
         self._initButtons()
-        sys.stdout = EmittingStream(textWritten=self.normalOutputWritten)
-        #sys.stderr = EmittingStream(textWritten=self.normalOutputWritten)
+
         # to show window at the middle of the screen and resize it to the screen size
         self.resize_ui(1, 0.6)
     
@@ -169,11 +203,14 @@ class ExportDepletion(QWidget):
 
     def _initButtons(self):
         self.CreateDepletion_PB.clicked.connect(self.Add_Depletion)
+        self.Reset_PB.clicked.connect(self.Reset_Fields)
+        self.Undo_Reset_PB.clicked.connect(self.Undo_Reset)
         self.Nuclides_comboBox.currentIndexChanged.connect(self.SelectNuclides)
-        self.Nuclides_comboBox.model().dataChanged.connect(self.SelectNuclides)
+        self.Nuclides_comboBox_2.currentIndexChanged.connect(self.SelectNuclides)
+        self.Reactions_comboBox.currentIndexChanged.connect(self.SelectReactions)
+        self.Reactions_comboBox_2.currentIndexChanged.connect(self.SelectReactions)
         self.Domains_comboBox.currentIndexChanged.connect(self.SelectDomains)
-        self.Domains_comboBox.model().dataChanged.connect(self.SelectDomains)
-        self.Depletable_Mat_CB.model().dataChanged.connect(self.SelectMaterials)
+        self.Domains_comboBox_2.currentIndexChanged.connect(self.SelectDomains)
         self.Depletable_Mat_CB.currentIndexChanged.connect(self.SelectMaterials)
         self.ExportData_PB.clicked.connect(self.Export_to_Main_Window)
         self.tabWidget.currentChanged.connect(self.Widget_ToolTips)
@@ -182,10 +219,12 @@ class ExportDepletion(QWidget):
         self.ReduceChain_CB.toggled.connect(self.Widget_Set1)
         self.ReduceChain_CB_2.toggled.connect(self.Widget_Set1)
         self.NormMod_CB.currentIndexChanged.connect(self.Widget_Set)
+        self.NormMod_CB_2.currentIndexChanged.connect(self.Widget_Set)
         self.FissYieldMode_CB.currentIndexChanged.connect(self.Widget_Set)
         self.RRMode_CB.currentIndexChanged.connect(self.Widget_Set)
         self.Get_XS_Flux_CB.toggled.connect(self.Widget_Set)
         self.Flux_Energy_Gr_CB.currentIndexChanged.connect(self.Widget_Set)
+        self.Flux_Energy_Gr_CB_2.currentIndexChanged.connect(self.Widget_Set)
         self.Decay_Only_CB.toggled.connect(self.Widget_Set)
         self.Load_XS_PB.clicked.connect(self.read_micro_xs)
         self.ClearData_PB.clicked.connect(self.Clear_Output)
@@ -194,46 +233,177 @@ class ExportDepletion(QWidget):
         self.Widget_ToolTips()
 
     def SelectNuclides(self):
-        self.Nuclides_LE.clear()
-        self.Checked_Nuclides = []
-        try:
-            if self.Nuclides_comboBox.currentIndex() == 1:
-                if self.Nuclides_comboBox.checkedItems():
+        if self.tabWidget.currentIndex() == 1:
+            Chain = self.directory + '/' + self.Chain_CB_2.currentText()
+            if not os.path.isfile(Chain):
+                self.showDialog('Warning', 'File ' + self.Chain_CB_2.currentText() + " doesn't exist!" )
+                for i in range(len(self.Nuclides_comboBox)):
+                    self.Nuclides_comboBox.setItemChecked(i, False)
+                    self.Nuclides_comboBox.setCurrentIndex(0)
+                return
+            try:
+                if self.Nuclides_comboBox.currentIndex() == 1:
+                    if self.Nuclides_comboBox.checkedItems():
+                        Checked_Nuclides_bins = self.Nuclides_comboBox.checkedItems()
+                    else:
+                        Checked_Nuclides_bins = []
+                    if Checked_Nuclides_bins:
+                        Checked_Nuclides_bins.pop(0)
+                elif self.Nuclides_comboBox.currentIndex() > 1:
                     Checked_Nuclides_bins = self.Nuclides_comboBox.checkedItems()
-                else:
-                    Checked_Nuclides_bins = []
-                if Checked_Nuclides_bins:
-                    Checked_Nuclides_bins.pop(0)
-            elif self.Nuclides_comboBox.currentIndex() > 1:
-                Checked_Nuclides_bins = self.Nuclides_comboBox.checkedItems()
-            self.Checked_Nuclides = [elm for elm in self.Nuclides if self.Nuclides.index(elm) + 2 in Checked_Nuclides_bins]
-            self.Nuclides_LE.clear()
-            self.Nuclides_LE.setText(str(self.Checked_Nuclides))
-        except:
-            pass
+                self.Checked_Nuclides = [elm for elm in self.Nuclides if self.Nuclides.index(elm) + 2 in Checked_Nuclides_bins]
+                self.Nuclides_LE.setText(str(self.Checked_Nuclides))   #.replace("'", ""))
+                Nuclides = [nc for nc in self.Checked_Nuclides]
+                self.Reactions = self.Extract_Reactions_From_Depletion_Chain(Chain, Nuclides)
+                self.Reactions_comboBox.clear()
+                if 'Select reactions' not in self.Reactions:
+                    self.Reactions.insert(0, 'Select reactions')
+                if 'All bins' not in self.Reactions:
+                    self.Reactions.insert(1, 'All bins')
+                self.Reactions_comboBox.addItems(self.Reactions)
+                if self.Reactions_comboBox.model().item(0):
+                    self.Reactions_comboBox.model().item(0).setEnabled(False)
+                    self.Reactions_comboBox.model().item(0).setCheckState(Qt.Unchecked)
+                for i in range(len(self.Reactions) + 1):
+                    self.Reactions_comboBox.setItemChecked(i, False)
+            except:
+                pass
+            self.Nuclides_comboBox.setCurrentIndex(0)
+        elif self.tabWidget.currentIndex() == 2:
+            Chain = self.directory + '/' + self.Chain_CB_3.currentText()
+            if not os.path.isfile(Chain):
+                self.showDialog('Warning', 'File ' + self.Chain_CB_3.currentText() + " doesn't exist!" )
+                for i in range(len(self.Nuclides_comboBox_2)):
+                    self.Nuclides_comboBox_2.setItemChecked(i, False)
+                    self.Nuclides_comboBox_2.setCurrentIndex(0)
+                return
+            try:
+                if self.Nuclides_comboBox_2.currentIndex() == 1:
+                    if self.Nuclides_comboBox_2.checkedItems():
+                        Checked_Nuclides_bins = self.Nuclides_comboBox_2.checkedItems()
+                    else:
+                        Checked_Nuclides_bins = []
+                    if Checked_Nuclides_bins:
+                        Checked_Nuclides_bins.pop(0)
+                elif self.Nuclides_comboBox_2.currentIndex() > 1:
+                    Checked_Nuclides_bins = self.Nuclides_comboBox_2.checkedItems()
+                self.Checked_Nuclides_2 = [elm for elm in self.Nuclides if self.Nuclides.index(elm) + 2 in Checked_Nuclides_bins]
+                self.Nuclides_LE_2.setText(str(self.Checked_Nuclides_2))   #.replace("'", ""))
+                Nuclides = [nc for nc in self.Checked_Nuclides_2]
+                self.Reactions = self.Extract_Reactions_From_Depletion_Chain(Chain, Nuclides)
+                self.Reactions_comboBox_2.clear()
+                if 'Select reactions' not in self.Reactions:
+                    self.Reactions.insert(0, 'Select reactions')
+                if 'All bins' not in self.Reactions:
+                    self.Reactions.insert(1, 'All bins')
+                self.Reactions_comboBox_2.addItems(self.Reactions)
+                if self.Reactions_comboBox_2.model().item(0):
+                    self.Reactions_comboBox_2.model().item(0).setEnabled(False)
+                    self.Reactions_comboBox_2.model().item(0).setCheckState(Qt.Unchecked)
+                for i in range(len(self.Reactions) + 1):
+                    self.Reactions_comboBox_2.setItemChecked(i, False)
+            except:
+                pass
+            self.Nuclides_comboBox_2.setCurrentIndex(0)
+
+    def Extract_Reactions_From_Depletion_Chain(self, Chain, Nuclides):
+        import xml.etree.ElementTree as ET
+        # Load the depletion chain XML
+        tree = ET.parse(Chain)
+        root = tree.getroot()
+        # Find the nuclide element
+        reaction_types = {}
+        reactions = set()  # Using a set to avoid duplicates
+        for NC in Nuclides:
+            reaction_types[NC] = []
+            for nuclide in root.findall("nuclide"):
+                if nuclide.get("name") == NC:
+                    #print(f"Reactions for {NC}:")
+                    for reaction in nuclide.findall("reaction"):
+                        rx_type = reaction.get("type")
+                        target = reaction.get("target")
+                        q_val = reaction.get("Q")
+                        #print(f"  Type: {rx_type}, Target: {target}, Q: {q_val}")
+                        reaction_types[NC].append(rx_type)
+                        reactions.add(rx_type)
+                    break
+        return sorted(reactions)
+
+    def SelectReactions(self):
+        if self.tabWidget.currentIndex() == 1:
+            try:
+                if self.Reactions_comboBox.currentIndex() == 1:
+                    if self.Reactions_comboBox.checkedItems():
+                        Checked_Reactions_bins = self.Reactions_comboBox.checkedItems()
+                    else:
+                        Checked_Reactions_bins = []
+                    if Checked_Reactions_bins:
+                        Checked_Reactions_bins.pop(0)
+                elif self.Reactions_comboBox.currentIndex() > 1:
+                    Checked_Reactions_bins = self.Reactions_comboBox.checkedItems()
+                self.Checked_Reactions = [elm for elm in self.Reactions[2:] if self.Reactions.index(elm) in Checked_Reactions_bins]
+                self.Reactions_LE.setText(str(self.Checked_Reactions))   #.replace("'", ""))
+            except:
+                pass
+            self.Reactions_comboBox.setCurrentIndex(0)
+        elif self.tabWidget.currentIndex() == 2:
+            try:
+                if self.Reactions_comboBox_2.currentIndex() == 1:
+                    if self.Reactions_comboBox_2.checkedItems():
+                        Checked_Reactions_bins = self.Reactions_comboBox_2.checkedItems()
+                    else:
+                        Checked_Reactions_bins = []
+                    if Checked_Reactions_bins:
+                        Checked_Reactions_bins.pop(0)
+                elif self.Reactions_comboBox_2.currentIndex() > 1:
+                    Checked_Reactions_bins = self.Reactions_comboBox_2.checkedItems()
+                self.Checked_Reactions_2 = [elm for elm in self.Reactions[2:] if self.Reactions.index(elm)  in Checked_Reactions_bins]
+                self.Reactions_LE_2.setText(str(self.Checked_Reactions_2))  #.replace("'", ""))
+            except:
+                pass
+            self.Reactions_comboBox_2.setCurrentIndex(0)
 
     def SelectDomains(self):
-        self.Depl_Domains_LE.clear()
-        self.Checked_Domains = []
-        try:
-            if self.Domains_comboBox.currentIndex() == 1:
-                if self.Domains_comboBox.checkedItems():
+        if self.tabWidget.currentIndex() == 1:
+            #self.Checked_Domains = []
+            try:
+                if self.Domains_comboBox.currentIndex() == 1:
+                    if self.Domains_comboBox.checkedItems():
+                        Checked_Domains_bins = self.Domains_comboBox.checkedItems()
+                    else:
+                        Checked_Domains_bins = []
+                    if Checked_Domains_bins:
+                        Checked_Domains_bins.pop(0)
+                elif self.Domains_comboBox.currentIndex() > 1:
                     Checked_Domains_bins = self.Domains_comboBox.checkedItems()
-                else:
-                    Checked_Domains_bins = []
-                if Checked_Domains_bins:
-                    Checked_Domains_bins.pop(0)
-            elif self.Domains_comboBox.currentIndex() > 1:
-                Checked_Domains_bins = self.Domains_comboBox.checkedItems()
-            self.Checked_Domains = [elm for elm in self.Depletable_Cells if self.Depletable_Cells.index(elm) + 2 in Checked_Domains_bins]
-            self.Depl_Domains_LE.clear()
-            self.Depl_Domains_LE.setText(str(self.Checked_Domains))
-        except:
-            pass
+                self.Checked_Domains = [elm for elm in self.Depletable_Cells if self.Depletable_Cells.index(elm) + 2 in Checked_Domains_bins]
+                self.Depl_Domains_LE.clear()
+                self.Depl_Domains_LE.setText(str(self.Checked_Domains).replace("'", ""))
+            except:
+                pass
+            self.Domains_comboBox.setCurrentIndex(0)
+        elif self.tabWidget.currentIndex() == 2:
+            #self.Checked_Domains_2 = []
+            try:
+                if self.Domains_comboBox_2.currentIndex() == 1:
+                    if self.Domains_comboBox_2.checkedItems():
+                        Checked_Domains_bins = self.Domains_comboBox_2.checkedItems()
+                    else:
+                        Checked_Domains_bins = []
+                    if Checked_Domains_bins:
+                        Checked_Domains_bins.pop(0)
+                elif self.Domains_comboBox_2.currentIndex() > 1:
+                    Checked_Domains_bins = self.Domains_comboBox_2.checkedItems()
+                self.Checked_Domains_2 = [elm for elm in self.Depletable_Cells if self.Depletable_Cells.index(elm) + 2 in Checked_Domains_bins]
+                self.Depl_Domains_LE_2.clear()
+                self.Depl_Domains_LE_2.setText(str(self.Checked_Domains_2).replace("'", ""))
+            except:
+                pass
+            self.Domains_comboBox_2.setCurrentIndex(0)
 
     def SelectMaterials(self):
-        self.Depletable_Mats_LE.clear()
-        self.Checked_Depletable_Mats = []
+        #self.Depletable_Mats_LE.clear()
+        #self.Checked_Depletable_Mats = []
         try:
             if self.Depletable_Mat_CB.currentIndex() == 1:
                 if self.Depletable_Mat_CB.checkedItems():
@@ -246,9 +416,10 @@ class ExportDepletion(QWidget):
                 Checked_Depletable_Mats_Bins = self.Depletable_Mat_CB.checkedItems()
             self.Checked_Depletable_Mats = [elm for elm in self.Depletable_Mats if self.Depletable_Mats.index(elm) + 2 in Checked_Depletable_Mats_Bins]
             self.Depletable_Mats_LE.clear()
-            self.Depletable_Mats_LE.setText(str(self.Checked_Depletable_Mats))
+            self.Depletable_Mats_LE.setText(str(self.Checked_Depletable_Mats).replace("'", ""))
         except:
             pass
+        self.Depletable_Mat_CB.setCurrentIndex(0)
 
     def Insert_Header_Text(self):
         self.Find_string(self.plainTextEdit, "import openmc")
@@ -270,6 +441,130 @@ class ExportDepletion(QWidget):
                 self.v_1.insertPlainText('###############################################################################\n')
         self.Insert_Header = False
 
+    def Reset_Fields(self):
+        from PyQt5.QtCore import QSettings
+        self.checkboxes = {}; self.checkboxes_2 = {}; self.checkboxes_3 = {}; self.comboboxes = {}
+        self.comboboxes_2 = {}; self.comboboxes_3 = {}; self.LineEdits = {}; self.LineEdits_2 = {}
+        self.LineEdits_3 = {}
+        settings = QSettings("OpenMC", "ERSN")
+        if self.tabWidget.currentIndex() == 0:
+            CBs = [self.ReduceChain_CB, self.Prev_Res_CB, self.DiffBurnMats_CB]
+            ComboBs = [self.Chain_CB, self.NormMod_CB, self.FissYieldMode_CB, self.Diff_Vol_Meth_CB, self.RRMode_CB]
+            LEs = [self.Fission_Q_LE, self.FissYieldOpts_LE, self.RR_Opts_LE]
+            for CB in CBs:
+                name = CB.objectName()
+                self.checkboxes[name] = CB
+                settings.setValue(name, CB.isChecked())
+            for CB in ComboBs:
+                name = CB.objectName()
+                self.comboboxes[name] = CB
+                settings.setValue(name, CB.currentIndex())
+            for LE in LEs:
+                name = LE.objectName()
+                self.LineEdits[name] = LE
+                settings.setValue(name, LE.text())
+            settings.setValue(self.RedChainLevel_SP.objectName(), self.RedChainLevel_SP.value())
+        elif self.tabWidget.currentIndex() == 1:
+            CBs = [self.Decay_Only_CB, self.ReduceChain_CB_2, self.Prev_Res_CB_2, self.Get_XS_Flux_CB]
+            LEs = [self.Fission_Q_LE_2, self.FissYieldOpts_LE_2, self.Depl_Domains_LE, self.Nuclides_LE, self.Fluxes_LE, self.Reactions_LE]
+            ComboBs = [self.Chain_CB_2, self.NormMod_CB_2, self.Flux_Energy_Gr_CB, self.Nuclides_comboBox, self.Domains_comboBox, self.Reactions_comboBox]
+            for CB in CBs:
+                name = CB.objectName()
+                self.checkboxes_2[name] = CB
+                settings.setValue(name, CB.isChecked())
+            for CB in ComboBs:
+                name = CB.objectName()
+                self.comboboxes_2[name] = CB
+                settings.setValue(name, CB.currentIndex())
+            for LE in LEs:
+                name = LE.objectName()
+                self.LineEdits_2[name] = LE
+                settings.setValue(name, LE.text())
+            for i in range(len(self.Nuclides_comboBox)):
+                self.Nuclides_comboBox.setItemChecked(i, False)
+                self.Nuclides_comboBox.setCurrentIndex(0)
+            for CB in CBs:
+                CB.setChecked(False)
+            for LE in LEs:
+                LE.clear()
+            for CB in ComboBs:
+                CB.setCurrentIndex(0)
+            settings.setValue(self.RedChainLevel_SP_2.objectName(), self.RedChainLevel_SP_2.value())
+        elif self.tabWidget.currentIndex() == 2:
+            CBs = [self.Save_Flux_CB, self.Save_XS_CB]
+            ComboBs = [self.Chain_CB_3, self.Flux_Energy_Gr_CB_2, self.Domains_comboBox_2, self.Nuclides_comboBox_2, self.Reactions_comboBox_2]
+            LEs = [self.Depl_Domains_LE_2, self.Nuclides_LE_2, self.Reactions_LE_2, self.Energies_LE]
+            for CB in CBs:
+                name = CB.objectName()
+                self.checkboxes_3[name] = CB
+                settings.setValue(name, CB.isChecked())
+            for CB in ComboBs:
+                name = CB.objectName()
+                self.comboboxes_3[name] = CB
+                settings.setValue(name, CB.currentIndex())
+            for LE in LEs:
+                name = LE.objectName()
+                self.LineEdits_3[name] = LE
+                settings.setValue(name, LE.text()) 
+
+        if self.tabWidget.currentIndex() == 0:
+            for CB in CBs:
+                CB.setChecked(False)
+            for LE in LEs:
+                LE.clear()
+            for CB in ComboBs:
+                CB.setCurrentIndex(0)
+            self.RedChainLevel_SP.setValue(0)
+        if self.tabWidget.currentIndex() == 1:
+            for CB in CBs:
+                CB.setChecked(False)
+            for LE in LEs:
+                LE.clear()
+            for CB in ComboBs:
+                CB.setCurrentIndex(0)
+            self.RedChainLevel_SP_2.setValue(0)
+            self.Reactions_comboBox.clear()
+        elif self.tabWidget.currentIndex() == 2:   
+            for CB in CBs:
+                CB.setChecked(False) 
+            for LE in LEs:
+                LE.clear()
+            for CB in ComboBs:
+                CB.setCurrentIndex(0)  
+            self.Reactions_comboBox_2.clear()          
+
+    def Undo_Reset(self):
+        settings = QSettings("OpenMC", "ERSN")
+        if self.tabWidget.currentIndex() == 0:
+            for name, CB in self.checkboxes.items():
+                CB.setChecked(settings.value(name, False, type=bool))
+            for name, CB in self.comboboxes.items():
+                saved_index = settings.value(name, 0, type=int)
+                CB.setCurrentIndex(saved_index)
+            for name, LE in self.LineEdits.items():
+                saved_text = settings.value(name, 0, type=str)
+                LE.setText(saved_text)
+            self.RedChainLevel_SP.setValue(settings.value(self.RedChainLevel_SP.objectName(), 0, type=int))
+        elif self.tabWidget.currentIndex() == 1:
+            for name, CB in self.checkboxes_2.items():
+                CB.setChecked(settings.value(name, False, type=bool))
+            for name, CB in self.comboboxes_2.items():
+                saved_index = settings.value(name, 0, type=int)
+                CB.setCurrentIndex(saved_index)
+            for name, LE in self.LineEdits_2.items():
+                saved_text = settings.value(name, 0, type=str)
+                LE.setText(saved_text)
+            self.RedChainLevel_SP_2.setValue(settings.value(self.RedChainLevel_SP_2.objectName(), 0, type=int))
+        elif self.tabWidget.currentIndex() == 2:
+            for name, CB in self.checkboxes_3.items():
+                CB.setChecked(settings.value(name, False, type=bool))
+            for name, CB in self.comboboxes_3.items():
+                saved_index = settings.value(name, 0, type=int)
+                CB.setCurrentIndex(saved_index)
+            for name, LE in self.LineEdits_3.items():
+                saved_text = settings.value(name, 0, type=str)
+                LE.setText(saved_text)
+
     def Add_Depletion(self):
         if self.Geom_LE.text() == '':
             self.showDialog('Warning', 'Cannot create a model, enter Geometry name first !')
@@ -281,66 +576,75 @@ class ExportDepletion(QWidget):
             self.showDialog('Warning', 'Cannot create a model, enter Materials name first !')
             return
         
-        if not self.TimeSteps_LE.text():
-            self.showDialog('Warning', 'Make sure the time steps are entered!' )
-            return
-        if not self.Power_LE.text():
-            self.showDialog('Warning', 'Make sure the power value is entered!' )
-            return
+        if self.tabWidget.currentIndex() in [0, 1]:  # Coupled and Independent Operators only    
+            if not self.TimeSteps_LE.text():
+                self.showDialog('Warning', 'Make sure the time steps are entered!' )
+                return
+            if not self.Power_LE.text():
+                self.showDialog('Warning', 'Make sure the power value is entered!' )
+                return
 
-        time_steps = self.LE_to_List(self.TimeSteps_LE)
-        power_values = self.LE_to_List(self.Power_LE)
-        if len(time_steps) != len(power_values) and len(power_values) != 1:
-            self.showDialog('Warning', 'Make sure the time steps and power values \nlists have the same length!' )
-            return
+            time_steps = self.LE_to_List(self.TimeSteps_LE)
+            power_values = self.LE_to_List(self.Power_LE)
+            if len(time_steps) != len(power_values) and len(power_values) != 1:
+                self.showDialog('Warning', 'Make sure the time steps and power values \nlists have the same length!' )
+                return
+
+            if self.TimeUnit_CB.currentText() == 'd':
+                T_Fact = 1.
+            elif self.TimeUnit_CB.currentText() == 'h':
+                T_Fact = 1./24.
+            elif self.TimeUnit_CB.currentText() == 'min':
+                T_Fact = 1./24./60.
+            elif self.TimeUnit_CB.currentText() == 's':
+                T_Fact = 1./24./3600.
+
+            if self.Power_Unit_CB.currentText() == 'W':
+                P_Fact = 1.
+            elif self.Power_Unit_CB.currentText() == 'KW':
+                P_Fact = 1.E3
+            elif self.Power_Unit_CB.currentText() == 'MW':
+                P_Fact = 1.E6
+
+            try:
+                time_steps = [float(time) * T_Fact for time in time_steps]
+            except:
+                self.showDialog('Warning', 'Make sure the time steps are digits!' )       
+
+            try:
+                power = [float(p) * P_Fact for p in power_values]
+            except:
+                self.showDialog('Warning', 'Make sure the Power value is valid!' )
+
+            if len(power_values) == 1:
+                power = power_values[0]
+
+            if self.Depletable_Mats_LE.text() == '':
+                self.showDialog('Warning', 'Depletable material must be selected!')
+                return        
+            
+            if self.Volume_LE.text() != "":
+                Volumes = self.LE_to_List(self.Volume_LE)
+            else:
+                self.showDialog('Warning', 'Volume must be given!')
+                return
+
+            if len(Volumes) != len(self.Checked_Depletable_Mats):
+                self.showDialog('Warning', str(len(self.Checked_Depletable_Mats)) + ' volumes must be given!')
+                return
+
+            if self.Get_XS_Flux_CB.isChecked() and self.Flux_Energy_Gr_CB.currentIndex() == 0:
+                self.showDialog('Warning', 'Select an energy group structure or enter energy group boundaries in [eV]!')
+                return
+
+            Volume_Strings = []
+            Doc = self.v_1.toPlainText()
+            for mat in self.Checked_Depletable_Mats:
+                Vol_Prefix = mat + '.volume'
+                if Vol_Prefix not in Doc or '#' + Vol_Prefix in Doc:
+                    Volume_Strings.append(mat + '.volume = ' + Volumes[self.Checked_Depletable_Mats.index(mat)])
 
         self.Chain_File = self.Chain_CB.currentText()
-        if self.TimeUnit_CB.currentText() == 'd':
-            T_Fact = 1.
-        elif self.TimeUnit_CB.currentText() == 'h':
-            T_Fact = 1./24.
-        elif self.TimeUnit_CB.currentText() == 'min':
-            T_Fact = 1./24./60.
-        elif self.TimeUnit_CB.currentText() == 's':
-            T_Fact = 1./24./3600.
-
-        if self.Power_Unit_CB.currentText() == 'W':
-            P_Fact = 1.
-        elif self.Power_Unit_CB.currentText() == 'KW':
-            P_Fact = 1.E3
-        elif self.Power_Unit_CB.currentText() == 'MW':
-            P_Fact = 1.E6
-
-        try:
-            time_steps = [float(time) * T_Fact for time in time_steps]
-        except:
-            self.showDialog('Warning', 'Make sure the time steps are digits!' )       
-
-        try:
-            power = [float(p) * P_Fact for p in power_values]
-        except:
-            self.showDialog('Warning', 'Make sure the Power value is valid!' )
-
-        if len(power_values) == 1:
-            power = power_values[0]
-
-        if self.Depletable_Mats_LE.text() == '':
-            self.showDialog('Warning', 'Depletable material must be selected!')
-            return        
-        
-        if self.Volume_LE.text() != "":
-            Volumes = self.LE_to_List(self.Volume_LE)
-        else:
-            self.showDialog('Warning', 'Volume must be given!')
-            return
-
-        if len(Volumes) != len(self.Checked_Depletable_Mats):
-            self.showDialog('Warning', str(len(self.Checked_Depletable_Mats)) + ' volumes must be given!')
-            return
-
-        Volume_Strings = []
-        for mat in self.Checked_Depletable_Mats:
-            Volume_Strings.append(mat + '.volume = ' + Volumes[self.Checked_Depletable_Mats.index(mat)])
 
         if self.tabWidget.currentIndex() == 0:   # Coupled operator
             if self.Prev_Res_CB.isChecked():
@@ -494,34 +798,88 @@ class ExportDepletion(QWidget):
                     FissYieldOpts = ', fission_yield_opts=' + self.FissYieldOpts_LE_2.text()
             else:
                 FissYieldOpts = ""
+        elif self.tabWidget.currentIndex() == 2:   # get flux and XS
+            if self.Energies_LE.text() == "":
+                self.showDialog('Warning', 'Energy group boundaries in [eV] or the name of the group structure must be given!')
+                return
 
         # add Operator parameters
         self.Insert_Header_Text()
         # add depletion settings to model input script
         print ("\n"+ self.Model_LE.text() + " = openmc.Model(geometry=" + self.Geom_LE.text() + ", materials=" + \
                                                     self.Mats_LE.text()  + ", settings=" + self.Sett_LE.text() + ")\n")
-        for vol_str in Volume_Strings:  
-            print(vol_str + '\n')
-        print("\n# Create depletion operator")
-        print(Results_Str)
-        if self.tabWidget.currentIndex() == 0:
-            print("\n" + self.Operator_LE.text() + " = openmc.deplete." + self.tabWidget.currentTabText() + "(" + \
+        
+        if self.tabWidget.currentIndex() == 0:     # CoupledOperator
+            for vol_str in Volume_Strings:  
+                print(vol_str + '\n')
+            print("\n# Create depletion operator")
+            print("\n" + self.Operator_LE.text() + " = openmc.deplete." + self.tabWidget.tabText(self.tabWidget.currentIndex()) + "(" + \
                                          self.Model_LE.text() + ", '" + self.Chain_File + "'" + prev_res + \
                                          diff_burnable_mats + diff_volume_method + normalization_mode + Fission_Q + \
                                          Fission_Yield_Mode + FissYieldOpts + Reaction_Rate_Mode + ReactionRrateOpts + \
                                          reduce_chain + reduce_chain_level + ")" )
-        elif self.tabWidget.currentIndex() == 1:
+        elif self.tabWidget.currentIndex() == 1:   # IndependentOperator
+            for vol_str in Volume_Strings:  
+                print(vol_str + '\n')
+            print("\n# Create depletion operator")
             print("openmc.config['chain_file'] = " + self.Chain_File)
             print('Materials = openmc.Materials(' + self.Depletable_Mats_LE.text() + ')')
+
             if self.Get_XS_Flux_CB.isChecked():
-                print('flux_in_each_group, micro_xs = openmc.deplete.get_microxs_and_flux( model=' + self.Model_LE.text() +',\
-                 domains=' + self.Depl_Domains_LE.text() + ', ' + 'energies=' + self.Fluxes_LE.text())
+                En = self.LE_to_List(self.Fluxes_LE)
+                if all(self.is_number(E) for E in En):
+                    print('energies = ' + str([float(E) for E in En]))
+                else:
+                    print('energies = ' + f'"{self.Fluxes_LE.text()}"')
+                print('nuclides = ' + f'{self.Nuclides_LE.text()}')
+                print('flux_in_each_group, micro_xs = openmc.deplete.get_microxs_and_flux(model=' + self.Model_LE.text() + \
+                  ', domains=' + self.Depl_Domains_LE.text() + ', nuclides=nuclides' + ', energies=energies' + ')')
+            else:                  
+                flux = [float(f) for f in self.LE_to_List(self.Fluxes_LE)]
+                print('flux_in_each_group = ' + str(flux))
+                if self.micro_XS_string != '':
+                    print('micro_xs = ' + f'"{self.micro_XS_string}"')
+                else:
+                    print('micro_xs = ""')
+            print("\n" + self.Operator_LE.text() + " = openmc.deplete." + self.tabWidget.tabText(self.tabWidget.currentIndex()) + "(" + \
+                                         "Materials, fluxes=flux_in_each_group, micros=micro_xs" + ', ' +\
+                                         "'" + self.Chain_File + "'" + prev_res + normalization_mode + Fission_Q + FissYieldOpts + ")" )
+        elif self.tabWidget.currentIndex() == 2:   # Get microXS and Flux only
+            print("\n# Generate a microscopic cross sections and flux from a Model")
+            print("openmc.config['chain_file'] = '" + self.Chain_File + "'")
+            En = self.LE_to_List(self.Energies_LE)
+            if self.Depl_Domains_LE_2.text() != '[]' and self.Depl_Domains_LE_2.text() != "":
+                print('domains = ' + f'{self.Depl_Domains_LE_2.text()}')
+                Domains_String = ', domains=domains' 
+            else: 
+                Domains_String = ''
+            if self.Nuclides_LE_2.text() != '[]' and self.Nuclides_LE_2.text() != "":
+                print('nuclides = ' + f'{self.Nuclides_LE_2.text()}')
+                Nuclides_String = ', nuclides=nuclides'
             else:
-                print('flux_in_each_group = ' + self.LE_to_List(self.Fluxes_LE.text()))
-            #print('micros = ' + self.MicroXS_LE.text())
-            print("\n" + self.Operator_LE.text() + " = openmc.deplete." + self.tabWidget.currentTabText() + "(" + \
-                                         Materials + ", fluxes=flux_in_each_group, micros=micro_xs, '" + self.Chain_File + "'" + prev_res + \
-                                         normalization_mode + Fission_Q + FissYieldOpts + ")" )
+                Nuclides_String = ''
+            if self.Reactions_LE_2.text() != '[]' and self.Reactions_LE_2.text() != "":
+                print('reactions = ' + f'{self.Reactions_LE_2.text()}')
+                Reactions_String = ', reactions=reactions'
+            else:
+                Reactions_String = ''
+            if all(self.is_number(E) for E in En):
+                print('energies = ' + str([float(E) for E in En]))
+            else:
+                print("energies = openmc.mgxs.GROUP_STRUCTURES[" + f'"{self.Energies_LE.text()}"' + "][:-1]")
+            print('flux_in_each_group, micro_xs = openmc.deplete.get_microxs_and_flux(model=' + self.Model_LE.text() + \
+                Domains_String + Nuclides_String + Reactions_String + ', energies=energies' + ')')
+            if self.Save_XS_CB.isChecked():
+                print('# will export XS to csv file')
+                print("for cell in domains:\n \tmicro_xs[domains.index(cell)].to_csv(f'XS_{cell.fill.name}.csv')")
+            if self.Save_Flux_CB.isChecked():
+                print('# will export Flux to csv file')
+                print('for cell in domains:')
+                print('\theader = f"Energy [eV]\tFlux in {cell.fill.name} [n-cm/src)"')
+                print('\tformatted_Flux = np.column_stack((energies[:-1], flux_in_each_group[domains.index(cell)])).astype(float)')
+                print("\tnp.savetxt(f'Flux_in_{cell.fill.name}.csv', formatted_Flux, delimiter=',', header=header)")
+
+            return
 
         print("\n# Perform simulation using the predictor algorithm")
         print("\ntime_steps = " + str(time_steps) + "     # in days")
@@ -536,13 +894,20 @@ class ExportDepletion(QWidget):
                                            "(op, time_steps, power, timestep_units='d')") # + self.TimeUnit_CB.currentText() + ")")
         print("\nintegrator.integrate()")
 
+    def is_number(self, s):
+        try:
+            float(s)
+            return True
+        except ValueError:
+            return False
+
     def Export_to_Main_Window(self):
         document = self.plainTextEdit.toPlainText()
         cursor = self.v_1.textCursor()
         cursor.insertText(document)
         self.text_inserted = True
         self.plainTextEdit.clear()
-        if not os.path.isfile(self.directory + '/' + self.Chain_File): #.replace("'", "")):
+        if not os.path.isfile(self.directory + '/' + self.Chain_File): 
             self.showDialog('Warning', 'Make sure the file ' + self.Chain_File + ' exists!' )
 
         document = self.v_1.toPlainText()
@@ -567,8 +932,11 @@ class ExportDepletion(QWidget):
         cursor.insertText(document)
 
     def LE_to_List(self, LineEdit):
-        List = []
-        text = LineEdit.text().replace('(', '').replace(')', '')
+        text = LineEdit.text()
+        if '(' in text or ')' in text:
+            text = text.strip('(').strip(')')
+        if '[' in text or ']' in text:
+            text = text.strip('[').strip(']')
         for separator in [',', ';', ':', ' ']:
             if separator in text:
                 text = str(' '.join(text.replace(separator, ' ').split()))
@@ -640,30 +1008,34 @@ class ExportDepletion(QWidget):
             self.Fluxes_LE.setToolTip('fluxes (list of numpy.ndarray) - Flux in each group in [n-cm/src] for each domain')
             self.Load_XS_PB.setToolTip('Load micros file .csv (list of MicroXS) - Cross sections in [b] for each domain. If the MicroXS' +\
                                         ' object is empty, a decay-only calculation will be run.')
-            self.Keff_LE.setToolTip('keff (2-tuple of float, optional) - keff eigenvalue and uncertainty from transport '+ \
-                                    'calculation. Default is None.')
     
     def read_micro_xs(self):
         micro_xs_file = QtWidgets.QFileDialog.getOpenFileName(self, "Select csv file", self.directory, "micro_xs file (*.csv)")[0]
         if os.path.isfile(micro_xs_file):
-            self.micro_XS_string = 'micro_XS = MicroXS.from_csv(' + micro_xs_file + ')'
+            micro_xs_file = os.path.basename(micro_xs_file)
+            self.micro_XS_string = 'MicroXS.from_csv(' + micro_xs_file + ')'
         else:
             self.micro_XS_string = ''
 
     def Widget_Set(self):
         if self.tabWidget.currentIndex() == 0:
+            if self.NormMod_CB.currentIndex() == 2:
+                self.Fission_Q_LE.setEnabled(True)
+            else:
+                self.Fission_Q_LE.setEnabled(False)
             if self.FissYieldMode_CB.currentIndex() != 0:
                 self.FissYieldOpts_LE.setEnabled(True)
             else:
                 self.FissYieldOpts_LE.setEnabled(False)
         elif self.tabWidget.currentIndex() == 1:
+            if self.NormMod_CB_2.currentIndex() == 1:
+                self.Fission_Q_LE_2.setEnabled(True)
+            else:
+                self.Fission_Q_LE_2.setEnabled(False)
             self.NormMod_CB_2.model().item(1).setEnabled(False)
             for i in [1, 2]:
                 self.NormMod_CB_2.model().item(i).setEnabled(True)
 
-            MGX_GROUP_STRUCTURES_LIST = ['Select Structure', 'enter custom list', 'CASMO-2', 'CASMO-4', 'CASMO-8', 'CASMO-16', 'CASMO-25', 'CASMO-40', 'VITAMIN-J-42', 'CASMO-70',
-                                'XMAS-172', 'VITAMIN-J-175', 'TRIPOLI-315,', 'SHEM-361', 'CCFE-709', 'UKAEA-1102']
-            self.Flux_Energy_Gr_CB.addItems(MGX_GROUP_STRUCTURES_LIST)
             Widgets = [self.label_19, self.label_29, self.label_31, self.Flux_Energy_Gr_CB, self.Depl_Domains_LE,
                        self.Nuclides_LE, self.Domains_comboBox, self.Nuclides_comboBox]
 
@@ -674,8 +1046,6 @@ class ExportDepletion(QWidget):
                 if self.Flux_Energy_Gr_CB.currentIndex() == 0:
                     self.label_24.setText('Fluxes in [n-cm/src]')
                     self.Fluxes_LE.clear()
-                    self.showDialog('Warning', 'Select an enrgy group structure or enter energy group boundaries in [eV]!')
-                    return
                 elif self.Flux_Energy_Gr_CB.currentIndex() == 1:
                     self.label_24.setText('Energies in [eV]')
                     self.Fluxes_LE.setEnabled(True)
@@ -686,11 +1056,12 @@ class ExportDepletion(QWidget):
             else:
                 for W in Widgets:
                     W.setEnabled(False)
-        
-            if self.NormMod_CB_2.currentIndex() == 2:
-                self.Fission_Q_LE_2.setEnabled(True)
-            else:
-                self.Fission_Q_LE_2.setEnabled(False)
+        elif self.tabWidget.currentIndex() == 2:
+            if self.Flux_Energy_Gr_CB_2.currentIndex() == 1:
+                self.label_35.setText('Energies in [eV]')
+            elif self.Flux_Energy_Gr_CB_2.currentIndex() > 1:
+                self.label_35.setText('Group structure')
+                self.Energies_LE.setText(self.Flux_Energy_Gr_CB_2.currentText())
 
     def Widget_Set1(self, checked):
         if self.tabWidget.currentIndex() == 0:
@@ -734,9 +1105,7 @@ class ExportDepletion(QWidget):
 
         msg_box.addButton(yes_button, QMessageBox.YesRole)
         msg_box.addButton(no_button, QMessageBox.NoRole)
-
         response = msg_box.exec_()
-
         return response
 
     def Clear_Output(self):

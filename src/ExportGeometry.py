@@ -79,6 +79,11 @@ class ExportGeometry(QWidget):
                                              "in version 0.14.1 of OpenMC.", QtCore.Qt.ToolTipRole)
         self.comboBox.setItemData(18,"The hexagonal_prism(...) function has been replaced by the HexagonalPrism(...) class "
                                              "in version 0.14.1 of OpenMC.", QtCore.Qt.ToolTipRole)
+        if self.comboBox_4.currentIndex() == 0:    
+            self.lineEdit_22.setToolTip('lower_left_x = -0.5 * nx * pitch_x')
+            self.lineEdit_23.setToolTip('lower_left_y = -0.5 * ny * pitch_y')
+            self.lineEdit_24.setToolTip('lower_left_z = -0.5 * nz * pitch_z')
+
         # to show window at the middle of the screen
         self.resize_ui()
 
@@ -547,6 +552,14 @@ class ExportGeometry(QWidget):
             self.XY_CB.show()
             self.spinBox_2.hide()
             self.Add_Lat_PB.setText("Add HexLattice >> ")
+        if self.comboBox_4.currentIndex() == 0:    
+            self.lineEdit_22.setToolTip('lower_left_x = 0.5 * nx * pitch_x')
+            self.lineEdit_23.setToolTip('lower_left_y = 0.5 * ny * pitch_y')
+            self.lineEdit_24.setToolTip('lower_left_z = 0.5 * nz * pitch_z')
+        else:
+            self.lineEdit_22.setToolTip('x cordinate of the lattice center')
+            self.lineEdit_23.setToolTip('y cordinate of the lattice center')
+            self.lineEdit_24.setToolTip('z cordinate of the lattice center')
 
     def Pick_Universe(self):
         if self.comboBox_6.currentIndex() > 0:
@@ -754,11 +767,11 @@ class ExportGeometry(QWidget):
                         else:
                             print(self.lineEdit_17.text() + " = openmc.RectLattice(" + "lattice_id=" + self.lineEdit_18.text() + ")")
                             if self.RB_2D.isChecked():
-                                print(self.lineEdit_17.text() + ".lower_left = [" + self.lineEdit_22.text() + ',' + self.lineEdit_23.text() + "]")
                                 print(self.lineEdit_17.text() + ".pitch = [" + self.lineEdit_21.text() + ',' + self.lineEdit_20.text() + "]")
+                                print(self.lineEdit_17.text() + ".lower_left = [" + self.lineEdit_22.text() + ',' + self.lineEdit_23.text() + "]")
                             else:
-                                print(self.lineEdit_17.text() + ".lower_left = [" + self.lineEdit_22.text() + ',' + self.lineEdit_23.text() + ',' + self.lineEdit_24.text() + "]")
                                 print(self.lineEdit_17.text() + ".pitch = [" + self.lineEdit_21.text() + ',' + self.lineEdit_20.text() + ',' + self.lineEdit_19.text() + "]")
+                                print(self.lineEdit_17.text() + ".lower_left = [" + self.lineEdit_22.text() + ',' + self.lineEdit_23.text() + ',' + self.lineEdit_24.text() + "]")
                             print(self.lineEdit_17.text() + ".universes = " + document1)
                             if self.comboBox_7.currentIndex() != 0:
                                 print(self.lineEdit_17.text() + ".outer = " + self.comboBox_7.currentText())
@@ -831,13 +844,13 @@ class ExportGeometry(QWidget):
                         #if self.Insert_Header:
                         print(self.lineEdit_17.text() + "= openmc.HexLattice(" + "lattice_id=" + self.lineEdit_18.text() + ")")
                         if self.RB_2D.isChecked():
-                            print(self.lineEdit_17.text() + ".center = [" + self.lineEdit_22.text() + ',' + self.lineEdit_23.text() + "]")
                             print(self.lineEdit_17.text() + ".pitch = [" + self.lineEdit_21.text() + "]")
+                            print(self.lineEdit_17.text() + ".center = [" + self.lineEdit_22.text() + ',' + self.lineEdit_23.text() + "]")
                         else:
                             print(
-                                self.lineEdit_17.text() + ".center = [" + self.lineEdit_22.text() + ',' + self.lineEdit_23.text() + ',' + self.lineEdit_24.text() + "]")
-                            print(
                                 self.lineEdit_17.text() + ".pitch = [" + self.lineEdit_21.text() + ',' + self.lineEdit_19.text() + "]")
+                            print(
+                                self.lineEdit_17.text() + ".center = [" + self.lineEdit_22.text() + ',' + self.lineEdit_23.text() + ',' + self.lineEdit_24.text() + "]")
                         if self.comboBox_7.currentIndex() != 0:
                             print(self.lineEdit_17.text() + ".outer = " + self.comboBox_7.currentText())
                         # ///////////////////////////////////////////////////////////////////////////////////////
