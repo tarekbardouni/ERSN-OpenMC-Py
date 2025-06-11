@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>ERSN-OpenMC-Py verssion 1.3.4</string>
+   <string>ERSN-OpenMC-Py verssion 1.4</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_2">
@@ -48,7 +48,7 @@
           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; color:#008000;&quot;&gt;IMPORTANTE : For changes to take effect, after miniconda installation,close and re-open your current shell and the GUI !&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
          </property>
          <property name="currentIndex">
-          <number>0</number>
+          <number>2</number>
          </property>
          <widget class="QWidget" name="tab_in_miniconda">
           <attribute name="title">
@@ -1161,6 +1161,11 @@
                   <item>
                    <property name="text">
                     <string>latest</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>v.0.15.2</string>
                    </property>
                   </item>
                   <item>
@@ -2439,8 +2444,8 @@
  <connections/>
  <buttongroups>
   <buttongroup name="buttonGroup"/>
+  <buttongroup name="buttonGroup_2"/>
   <buttongroup name="buttonGroup_3"/>
   <buttongroup name="buttonGroup_4"/>
-  <buttongroup name="buttonGroup_2"/>
  </buttongroups>
 </ui>
