@@ -99,7 +99,8 @@ class Application(QtWidgets.QMainWindow):
             import openmc
             from openmc import __version__
             self.openmc_Ver = __version__
-            self.openmc_version = int(''.join(__version__.split('.')[:3]))
+            #self.openmc_version = int(''.join(__version__.split('.')[:3]))
+            self.openmc_version = int(''.join(self.openmc_Ver.split('.')[:3]))
         except:
             self.openmc_version = 0
             
@@ -245,7 +246,7 @@ class Application(QtWidgets.QMainWindow):
         self.actionExit.triggered.connect(self.Exit)
         self.actionHelp.triggered.connect(self.Help)
         self.actionAbout.triggered.connect(self.About)
-        self.actionOpenMC_Version.triggered.connect(self.OpenMC_Ver)
+        self.actionOpenMC_Version.triggered.connect(self.OpenMC_Ver1)
         self.actionClose_Project.triggered.connect(self.Close_Project)
         self.actionClose_Img.triggered.connect(self.Close_Img)
         self.pB_Clear_OW_2.clicked.connect(self.clear_text)
@@ -1638,17 +1639,17 @@ class Application(QtWidgets.QMainWindow):
                         if self.openmc_version >= 141:
                             if 'rectangular_prism' in line:
                                 self.showDialog('Warning', 'rectangular_prism must be replaced by RectangularPrism!')
-                                return
+                                #return
                             if 'hexagonal_prism' in line:
                                 self.showDialog('Warning', 'hexagonal_prism must be replaced by HexagonalPrism!')
-                                return
+                                #return
                         else:
                             if 'RectangularPrism' in line:
                                 self.showDialog('Warning', 'RectangularPrism must be replaced by rectangular_prism!')
-                                return
+                                #return
                             if 'HexagonalPrism' in line:
                                 self.showDialog('Warning', 'HexagonalPrism must be replaced by hexagonal_prism!')
-                                return
+                                #return
 
                         if 'openmc.run()' in line and '#openmc.run()' not in line.strip():
                             run_openmc = True
@@ -1688,17 +1689,17 @@ class Application(QtWidgets.QMainWindow):
             if self.openmc_version >= 141:
                 if 'rectangular_prism' in line:
                     self.showDialog('Warning', 'rectangular_prism must be replaced by RectangularPrism!')
-                    return
+                    #return
                 if 'hexagonal_prism' in line:
                     self.showDialog('Warning', 'hexagonal_prism must be replaced by HexagonalPrism!')
-                    return        
+                    #return        
             else:
                 if 'RectangularPrism' in line:
                     self.showDialog('Warning', 'RectangularPrism must be replaced by rectangular_prism!')
-                    return
+                    #return
                 if 'HexagonalPrism' in line:
                     self.showDialog('Warning', 'HexagonalPrism must be replaced by hexagonal_prism!')
-                    return
+                    #return
                                 
         # remove statepoint and summary h5 files
         Summary_H5file = self.directory + '/summary.h5'
@@ -2291,7 +2292,7 @@ class Application(QtWidgets.QMainWindow):
         QMessageBox(QMessageBox.Information, title, message, QMessageBox.NoButton, self,
                     Qt.Dialog | Qt.NoDropShadowWindowHint).show()
 
-    def OpenMC_Ver(self):
+    def OpenMC_Ver1(self):
         try:
             import openmc
             self.showDialog('', 'openmc version ' + openmc.__version__ + ' found')
