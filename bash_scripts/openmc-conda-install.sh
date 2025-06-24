@@ -305,6 +305,9 @@ if [[ $INSTALL_OPENMC == yes ]]; then
     fi
     popd
 
+    # Install endf package
+    conda install -c conda-forge endf
+    
     # Install Python API
     if [[ $INSTALL_EDITABLE == yes ]]; then
         pip install --no-dependencies --no-build-isolation -e .
@@ -328,7 +331,7 @@ fi
 FILE=$CONDA_PREFIX
 FILE+="/lib/libopenmc.so"
 DESTINATION=$CONDA_PREFIX
-DESTINATION+="/lib/python3.11/site-packages/openmc/lib"
+DESTINATION+="/lib/python$PYTHON_VERSION/site-packages/openmc/lib"
 # Check if the file exists
 if [ -f "$FILE" ]; then
     if [ -d $DESTINATION ]; then
