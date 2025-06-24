@@ -52,7 +52,7 @@
          </property>
          <widget class="QWidget" name="tab_in_miniconda">
           <attribute name="title">
-           <string>Install Miniconda</string>
+           <string>Install Conda</string>
           </attribute>
           <layout class="QGridLayout" name="gridLayout_8">
            <item row="6" column="0">
@@ -2290,7 +2290,7 @@
      <x>0</x>
      <y>0</y>
      <width>1226</width>
-     <height>30</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -2482,11 +2482,11 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="buttonGroup_5"/>
+  <buttongroup name="buttonGroup_4"/>
+  <buttongroup name="buttonGroup_2"/>
   <buttongroup name="buttonGroup"/>
   <buttongroup name="buttonGroup_3"/>
-  <buttongroup name="buttonGroup_4"/>
   <buttongroup name="buttonGroup_6"/>
-  <buttongroup name="buttonGroup_2"/>
+  <buttongroup name="buttonGroup_5"/>
  </buttongroups>
 </ui>
