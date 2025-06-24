@@ -305,9 +305,6 @@ if [[ $INSTALL_OPENMC == yes ]]; then
     fi
     popd
 
-    # Install endf package
-    conda install -c conda-forge endf
-    
     # Install Python API
     if [[ $INSTALL_EDITABLE == yes ]]; then
         pip install --no-dependencies --no-build-isolation -e .
@@ -328,6 +325,19 @@ if [[ $INSTALL_OPENMC == yes ]]; then
         popd
     fi
 fi
+
+# Install endf package
+# Use the appropriate Python executable (e.g., python, python3, or a conda env)
+PYTHON_EXEC=python3
+
+if ! $PYTHON_EXEC -c "import endf" >/dev/null 2>&1; then
+    echo "❌ Python module 'endf' is NOT installed. Installing..."
+    $PYTHON_EXEC -m pip install --upgrade pip
+    $PYTHON_EXEC -m pip install endf
+else
+    echo "✅ Python module 'endf' is already installed."
+fi
+
 FILE=$CONDA_PREFIX
 FILE+="/lib/libopenmc.so"
 DESTINATION=$CONDA_PREFIX
