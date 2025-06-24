@@ -598,8 +598,8 @@ class InstallOpenMC(QtWidgets.QMainWindow):
             return
 
         OPTIONS = ' '
-        if tab_index == 2:
-            if "miniconda3" in CONDA:
+        if "miniconda3" in CONDA:
+            if tab_index == 2:
                 self.make_dir(WORK_DIR)                          # create WORK_DIR if doesn't exist
                 if OPENMC_RELEASE == 'latest':
                     subdir = '/openmc'
@@ -615,18 +615,18 @@ class InstallOpenMC(QtWidgets.QMainWindow):
                 else:
                     self.print_lines('OpenMC installation is canceled ! ')
                     return
-                # Options of installation
-                OPTIONS_LIST = [INSTALL_MINICONDA, DOWNLOAD_MINICONDA, "none", "none", "none", UPDATE_CONDA,
-                                "none", INSTALL_PREREQUISITES, WITH_MPI, INSTALL_IN_CONDA, INSTALL_EDITABLE,
-                                DELETE_SOURCES, UPDATE_ENV, PYTHON_VERSION, ENV_NAME, WORK_DIR,
-                                INSTALL_PREFIX, CONDA, CONDA_DIR, INSTALL_OPENMC, OPENMC_RELEASE, DOWNLOAD_OPENMC,
-                                OPENMC_DIR, INSTALL_PYQT]
-                OPTIONS = OPTIONS.join(OPTIONS_LIST)
-                self.print_lines("will install openmc and/or the preriquisites")
-                self.script_exec('bash bash_scripts/openmc-conda-install.sh ' + OPTIONS)
-            else:
-                self.print_lines("can't continue without Anaconda or miniconda3 installed !")
-                return
+            # Options of installation
+            OPTIONS_LIST = [INSTALL_MINICONDA, DOWNLOAD_MINICONDA, "none", "none", "none", UPDATE_CONDA,
+                            "none", INSTALL_PREREQUISITES, WITH_MPI, INSTALL_IN_CONDA, INSTALL_EDITABLE,
+                            DELETE_SOURCES, UPDATE_ENV, PYTHON_VERSION, ENV_NAME, WORK_DIR,
+                            INSTALL_PREFIX, CONDA, CONDA_DIR, INSTALL_OPENMC, OPENMC_RELEASE, DOWNLOAD_OPENMC,
+                            OPENMC_DIR, INSTALL_PYQT]
+            OPTIONS = OPTIONS.join(OPTIONS_LIST)
+            self.print_lines("will install openmc and/or the preriquisites")
+            self.script_exec('bash bash_scripts/openmc-conda-install.sh ' + OPTIONS)
+        else:
+            self.print_lines("can't continue without Anaconda or miniconda3 installed !")
+            return
         
     def Proc_Start_forge(self):  
         INSTALL_MINICONDA = "no"
