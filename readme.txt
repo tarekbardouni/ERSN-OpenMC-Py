@@ -122,7 +122,7 @@ G/ Installing on Linux with Conda
 	You are now in a conda environment called openmc-env that has OpenMC installed.
 
 	To run ERSN-OpenMC-Py you need to have pyqt5 installed on your environment. Install pyqt by runing:
-		conda install pyqt
+		pip install pyqt5
 
 	You need also to export OPENMC_CROSS_SECTIONS environment variable to point nuclear data directory:
 		export OPENMC_CROSS_SECTIONS=$HOME/Your_Path_To_Data/data/endfb80_hdf5/cross_sections.xml
