@@ -64,10 +64,10 @@ tab = chr(9)
 eof = "\n"
 iconsize = QSize(24, 24)
 
-# look if miniconda3 is installed
+# look if conda3 is installed
 CONDA = subprocess.run(['which', 'conda'], stdout=subprocess.PIPE, text=True)
 CONDA = CONDA.stdout.rstrip('\n')
-if "miniconda3" in CONDA:
+if "conda3" in CONDA:
     try:
         from src.TallyDataProcessing import TallyDataProcessing
     except:
@@ -81,6 +81,18 @@ class Application(QtWidgets.QMainWindow):
     from src.func import Surf,Cell,Hex_Lat,Rec_Lat,Comment,Mat,Settings,Tally
     from src.func import Filter,Mesh,Ass_Sep,CMDF,Plot_S,Plot_V
     from src.func import showDialog, CursorPosition
+
+    def get_openmc_version(self):
+        import re
+        try:
+            # Run 'openmc --version' and capture output
+            output = subprocess.check_output(["openmc", "--version"], text=True)
+            # Extract version (e.g., "OpenMC version 0.15.3-dev55" → "0.15.3-dev55")
+            version = re.search(r"OpenMC version (.+)", output).group(1)
+            return version.strip()
+        except Exception as e:
+            print(f"Error getting OpenMC version: {e}")
+            return "0.0.0"  # Fallback
 
     def __init__(self, title= "Py_ERSN_OpenMC", parent=None):
         super(Application, self).__init__(parent)
@@ -98,7 +110,8 @@ class Application(QtWidgets.QMainWindow):
         try:
             import openmc
             from openmc import __version__
-            self.openmc_Ver = __version__
+            #self.openmc_Ver = __version__d
+            self.openmc_Ver = self.get_openmc_version()
             #self.openmc_version = int(''.join(__version__.split('.')[:3]))
             self.openmc_version = int(''.join(self.openmc_Ver.split('.')[:3]))
         except:
