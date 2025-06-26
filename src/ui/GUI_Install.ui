@@ -846,37 +846,43 @@
                <layout class="QGridLayout" name="gridLayout_45">
                 <item row="0" column="0">
                  <layout class="QGridLayout" name="gridLayout_16">
-                  <item row="1" column="0">
-                   <widget class="QRadioButton" name="rB_py39_prerequis">
-                    <property name="enabled">
-                     <bool>false</bool>
-                    </property>
-                    <property name="text">
-                     <string>3.9</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="0" column="0">
-                   <widget class="QRadioButton" name="rB_py37_prerequis">
-                    <property name="enabled">
-                     <bool>false</bool>
-                    </property>
-                    <property name="text">
-                     <string>3.7</string>
-                    </property>
-                   </widget>
-                  </item>
                   <item row="0" column="1">
-                   <widget class="QRadioButton" name="rB_py311_prerequis">
+                   <widget class="QRadioButton" name="rB_py313_prerequis">
+                    <property name="enabled">
+                     <bool>false</bool>
+                    </property>
                     <property name="text">
-                     <string>3.11</string>
+                     <string>3.13</string>
                     </property>
                    </widget>
                   </item>
                   <item row="1" column="1">
+                   <widget class="QRadioButton" name="rB_py314_prerequis">
+                    <property name="enabled">
+                     <bool>false</bool>
+                    </property>
+                    <property name="text">
+                     <string>3.14</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="0">
+                   <widget class="QRadioButton" name="rB_py311_prerequis">
+                    <property name="text">
+                     <string>3.11</string>
+                    </property>
+                    <property name="checked">
+                     <bool>false</bool>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="0">
                    <widget class="QRadioButton" name="rB_py312_prerequis">
                     <property name="text">
                      <string>3.12</string>
+                    </property>
+                    <property name="checked">
+                     <bool>true</bool>
                     </property>
                    </widget>
                   </item>
@@ -1254,33 +1260,33 @@
                <layout class="QGridLayout" name="gridLayout_46">
                 <item row="0" column="0">
                  <layout class="QGridLayout" name="gridLayout_31">
-                  <item row="0" column="0" rowspan="2" colspan="2">
-                   <widget class="QRadioButton" name="rB_py37">
+                  <item row="0" column="1" rowspan="2" colspan="2">
+                   <widget class="QRadioButton" name="rB_py313">
                     <property name="enabled">
                      <bool>false</bool>
                     </property>
                     <property name="text">
-                     <string>3.7 </string>
+                     <string>3.13</string>
                     </property>
                     <attribute name="buttonGroup">
                      <string notr="true">buttonGroup</string>
                     </attribute>
                    </widget>
                   </item>
-                  <item row="2" column="0" colspan="2">
-                   <widget class="QRadioButton" name="rB_py39">
+                  <item row="2" column="1" colspan="2">
+                   <widget class="QRadioButton" name="rB_py314">
                     <property name="enabled">
                      <bool>false</bool>
                     </property>
                     <property name="text">
-                     <string>3.9</string>
+                     <string>3.14</string>
                     </property>
                     <attribute name="buttonGroup">
                      <string notr="true">buttonGroup</string>
                     </attribute>
                    </widget>
                   </item>
-                  <item row="1" column="2">
+                  <item row="0" column="0">
                    <widget class="QRadioButton" name="rB_py311">
                     <property name="text">
                      <string>3.11</string>
@@ -1290,7 +1296,7 @@
                     </attribute>
                    </widget>
                   </item>
-                  <item row="2" column="2">
+                  <item row="2" column="0">
                    <widget class="QRadioButton" name="rB_py312">
                     <property name="text">
                      <string>3.12</string>
@@ -2418,8 +2424,8 @@
   <tabstop>rB_no_del_src</tabstop>
   <tabstop>rB_yes_update_env</tabstop>
   <tabstop>rB_no_update_env</tabstop>
-  <tabstop>rB_py37</tabstop>
-  <tabstop>rB_py39</tabstop>
+  <tabstop>rB_py313</tabstop>
+  <tabstop>rB_py314</tabstop>
   <tabstop>lineEdit_Env_Name</tabstop>
   <tabstop>OpenMC_Release_cB</tabstop>
   <tabstop>WORK_DIR</tabstop>
@@ -2455,8 +2461,8 @@
   <tabstop>pB_Cancel_conda</tabstop>
   <tabstop>pB_Clear_Text</tabstop>
   <tabstop>pB_exit</tabstop>
-  <tabstop>rB_py37_prerequis</tabstop>
-  <tabstop>rB_py39_prerequis</tabstop>
+  <tabstop>rB_py313_prerequis</tabstop>
+  <tabstop>rB_py314_prerequis</tabstop>
   <tabstop>lineEdit_Env_Name_prerequis</tabstop>
   <tabstop>rB_yes_update_env_prerequis</tabstop>
   <tabstop>rB_no_update_env_prerequis</tabstop>
@@ -2482,11 +2488,11 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="buttonGroup_4"/>
-  <buttongroup name="buttonGroup_2"/>
-  <buttongroup name="buttonGroup"/>
-  <buttongroup name="buttonGroup_3"/>
-  <buttongroup name="buttonGroup_6"/>
   <buttongroup name="buttonGroup_5"/>
+  <buttongroup name="buttonGroup_3"/>
+  <buttongroup name="buttonGroup_2"/>
+  <buttongroup name="buttonGroup_6"/>
+  <buttongroup name="buttonGroup_4"/>
+  <buttongroup name="buttonGroup"/>
  </buttongroups>
 </ui>
