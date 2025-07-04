@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>1602</width>
-    <height>1077</height>
+    <height>1111</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -621,17 +621,23 @@
                       <item row="0" column="1">
                        <layout class="QGridLayout" name="gridLayout_Norm"/>
                       </item>
+                      <item row="0" column="3">
+                       <spacer name="horizontalSpacer_2">
+                        <property name="orientation">
+                         <enum>Qt::Horizontal</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>40</width>
+                          <height>20</height>
+                         </size>
+                        </property>
+                       </spacer>
+                      </item>
                       <item row="0" column="0">
                        <widget class="QLabel" name="label_37">
                         <property name="text">
                          <string>Normalize to</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="0" column="7">
-                       <widget class="QLineEdit" name="S_Strength_LE">
-                        <property name="text">
-                         <string>1.</string>
                         </property>
                        </widget>
                       </item>
@@ -657,14 +663,10 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="4">
-                       <widget class="QCheckBox" name="Norm_to_UnitLethargy_CB">
-                        <property name="toolTip">
-                         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Cannot be checked if &amp;quot;energy bin width&amp;quot; is checked&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
-Lethargy_Factor = 1. / log10(E[i] / E[i-1])</string>
-                        </property>
+                      <item row="0" column="7">
+                       <widget class="QLineEdit" name="S_Strength_LE">
                         <property name="text">
-                         <string>unit of lethargy</string>
+                         <string>1.</string>
                         </property>
                        </widget>
                       </item>
@@ -675,18 +677,16 @@ Lethargy_Factor = 1. / log10(E[i] / E[i-1])</string>
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="3">
-                       <spacer name="horizontalSpacer_2">
-                        <property name="orientation">
-                         <enum>Qt::Horizontal</enum>
+                      <item row="0" column="4">
+                       <widget class="QCheckBox" name="Norm_to_UnitLethargy_CB">
+                        <property name="toolTip">
+                         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Cannot be checked if &amp;quot;energy bin width&amp;quot; is checked&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
+Lethargy_Factor = 1. / log10(E[i] / E[i-1])</string>
                         </property>
-                        <property name="sizeHint" stdset="0">
-                         <size>
-                          <width>40</width>
-                          <height>20</height>
-                         </size>
+                        <property name="text">
+                         <string>unit of lethargy</string>
                         </property>
-                       </spacer>
+                       </widget>
                       </item>
                       <item row="0" column="5">
                        <spacer name="horizontalSpacer_3">
@@ -712,83 +712,6 @@ Lethargy_Factor = 1. / log10(E[i] / E[i-1])</string>
                     </item>
                     <item row="2" column="0">
                      <layout class="QGridLayout" name="gridLayout_28">
-                      <item row="3" column="0" colspan="2">
-                       <widget class="QLabel" name="label_17">
-                        <property name="text">
-                         <string>Calculated Power Norm. factor (1/s)</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="3" column="2" colspan="2">
-                       <widget class="QLineEdit" name="Factor_LE">
-                        <property name="minimumSize">
-                         <size>
-                          <width>0</width>
-                          <height>20</height>
-                         </size>
-                        </property>
-                        <property name="maximumSize">
-                         <size>
-                          <width>220</width>
-                          <height>20</height>
-                         </size>
-                        </property>
-                        <property name="toolTip">
-                         <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
-&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
-p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Sans Serif'; font-size:9pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Droid Sans Mono,monospace,monospace'; font-size:14px; color:#000000;&quot;&gt;Power_Factor = Power * Nu / Q / Keff&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="2" column="1">
-                       <widget class="QCheckBox" name="Norm_to_Heating_CB">
-                        <property name="toolTip">
-                         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Check to calculate power factor based on Heating. If Heating was scored in the simulation it will be picked and put in the corresponding LineEdit; otherwise it maust be entered manualy. More exact Heating value needs to transporte both neutrons and photons.&lt;/p&gt;&lt;p&gt;Power value is also needed to calculate the normalizing factor f.&lt;/p&gt;&lt;p&gt;f = Power (MW) / Heating (eV)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                        </property>
-                        <property name="text">
-                         <string>Heating /eV</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="2" column="5">
-                       <widget class="QLabel" name="label_22">
-                        <property name="text">
-                         <string>Q/MeV</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="3" column="6">
-                       <widget class="QLineEdit" name="Keff_LE">
-                        <property name="enabled">
-                         <bool>false</bool>
-                        </property>
-                        <property name="maximumSize">
-                         <size>
-                          <width>16777215</width>
-                          <height>20</height>
-                         </size>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="0" column="0">
-                       <widget class="QLabel" name="label_19">
-                        <property name="text">
-                         <string>Normalize to</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="2" column="2" colspan="2">
-                       <widget class="QLineEdit" name="Heating_LE">
-                        <property name="maximumSize">
-                         <size>
-                          <width>220</width>
-                          <height>20</height>
-                         </size>
-                        </property>
-                       </widget>
-                      </item>
                       <item row="0" column="2" colspan="2">
                        <widget class="QLineEdit" name="Vol_List_LE">
                         <property name="minimumSize">
@@ -811,45 +734,60 @@ p, li { white-space: pre-wrap; }
                         </property>
                        </widget>
                       </item>
-                      <item row="1" column="2" colspan="2">
-                       <widget class="QLineEdit" name="Power_LE">
-                        <property name="minimumSize">
-                         <size>
-                          <width>120</width>
-                          <height>21</height>
-                         </size>
+                      <item row="3" column="5">
+                       <widget class="QLabel" name="label_22">
+                        <property name="text">
+                         <string>Q/MeV</string>
                         </property>
-                        <property name="maximumSize">
-                         <size>
-                          <width>220</width>
-                          <height>20</height>
-                         </size>
-                        </property>
-                        <property name="toolTip">
-                         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Insert reactor power in MW&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                        </property>
+                       </widget>
+                      </item>
+                      <item row="0" column="6">
+                       <widget class="QLineEdit" name="Aver_LE">
                         <property name="text">
                          <string>1.</string>
                         </property>
                        </widget>
                       </item>
-                      <item row="2" column="6">
-                       <widget class="QLineEdit" name="Q_LE">
-                        <property name="maximumSize">
+                      <item row="4" column="4">
+                       <spacer name="horizontalSpacer">
+                        <property name="orientation">
+                         <enum>Qt::Horizontal</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
                          <size>
-                          <width>16777215</width>
+                          <width>40</width>
                           <height>20</height>
                          </size>
                         </property>
-                        <property name="toolTip">
-                         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;Could be modified&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                        </property>
+                       </spacer>
+                      </item>
+                      <item row="4" column="0" colspan="2">
+                       <widget class="QLabel" name="label_17">
                         <property name="text">
-                         <string>193</string>
+                         <string>Calculated Power Norm. factor (1/s)</string>
                         </property>
                        </widget>
                       </item>
-                      <item row="1" column="6">
+                      <item row="2" column="5">
+                       <widget class="QLabel" name="label_21">
+                        <property name="text">
+                         <string>Nu</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="0" column="1">
+                       <widget class="QCheckBox" name="Norm_to_Vol_CB">
+                        <property name="toolTip">
+                         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Arial,sans-serif'; color:#000000;&quot;&gt;in a collision estimator tally, OpenMC accumulates 1/Sigma_t which has units of cm, and similarly for a tracklength tally, OpenMC accumulates the tracklength in cm. When you divide by volume, you get [neutrons/cm^2-source]&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
+
+Before checking you need to enter volumes in cc of checked cells.</string>
+                        </property>
+                        <property name="text">
+                         <string>cell volume /cc</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="2" column="6">
                        <widget class="QLineEdit" name="Nu_LE">
                         <property name="maximumSize">
                          <size>
@@ -871,10 +809,90 @@ p, li { white-space: pre-wrap; }
                         </property>
                        </widget>
                       </item>
-                      <item row="1" column="5">
-                       <widget class="QLabel" name="label_21">
+                      <item row="4" column="2" colspan="2">
+                       <widget class="QLineEdit" name="Factor_LE">
+                        <property name="minimumSize">
+                         <size>
+                          <width>0</width>
+                          <height>20</height>
+                         </size>
+                        </property>
+                        <property name="maximumSize">
+                         <size>
+                          <width>220</width>
+                          <height>20</height>
+                         </size>
+                        </property>
+                        <property name="toolTip">
+                         <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Sans Serif'; font-size:9pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Droid Sans Mono,monospace,monospace'; font-size:14px; color:#000000;&quot;&gt;Power_Factor = Power * Nu / Q / Keff&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="4" column="5">
+                       <widget class="QLabel" name="label_16">
                         <property name="text">
-                         <string>Nu</string>
+                         <string>Keff</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="4" column="6">
+                       <widget class="QLineEdit" name="Keff_LE">
+                        <property name="enabled">
+                         <bool>false</bool>
+                        </property>
+                        <property name="maximumSize">
+                         <size>
+                          <width>16777215</width>
+                          <height>20</height>
+                         </size>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="0" column="0">
+                       <widget class="QLabel" name="label_19">
+                        <property name="text">
+                         <string>Normalize to</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="3" column="6">
+                       <widget class="QLineEdit" name="Q_LE">
+                        <property name="maximumSize">
+                         <size>
+                          <width>16777215</width>
+                          <height>20</height>
+                         </size>
+                        </property>
+                        <property name="toolTip">
+                         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;Could be modified&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                        </property>
+                        <property name="text">
+                         <string>193</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="0" column="4" colspan="2">
+                       <widget class="QCheckBox" name="Aver_CB">
+                        <property name="text">
+                         <string>average value</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="1" column="4" colspan="2">
+                       <widget class="QCheckBox" name="Max_CB">
+                        <property name="text">
+                         <string>max value</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="1" column="6">
+                       <widget class="QLineEdit" name="Max_LE">
+                        <property name="text">
+                         <string>1.</string>
                         </property>
                        </widget>
                       </item>
@@ -897,15 +915,45 @@ p, li { white-space: pre-wrap; }
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="1">
-                       <widget class="QCheckBox" name="Norm_to_Vol_CB">
+                      <item row="1" column="2">
+                       <widget class="QLineEdit" name="Power_LE">
+                        <property name="minimumSize">
+                         <size>
+                          <width>120</width>
+                          <height>21</height>
+                         </size>
+                        </property>
+                        <property name="maximumSize">
+                         <size>
+                          <width>220</width>
+                          <height>20</height>
+                         </size>
+                        </property>
                         <property name="toolTip">
-                         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Arial,sans-serif'; color:#000000;&quot;&gt;in a collision estimator tally, OpenMC accumulates 1/Sigma_t which has units of cm, and similarly for a tracklength tally, OpenMC accumulates the tracklength in cm. When you divide by volume, you get [neutrons/cm^2-source]&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
-
-Before checking you need to enter volumes in cc of checked cells.</string>
+                         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Insert reactor power in MW&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                         </property>
                         <property name="text">
-                         <string>cell volume /cc</string>
+                         <string>1.</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="2" column="2">
+                       <widget class="QLineEdit" name="Heating_LE">
+                        <property name="maximumSize">
+                         <size>
+                          <width>220</width>
+                          <height>20</height>
+                         </size>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="2" column="1">
+                       <widget class="QCheckBox" name="Norm_to_Heating_CB">
+                        <property name="toolTip">
+                         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Check to calculate power factor based on Heating. If Heating was scored in the simulation it will be picked and put in the corresponding LineEdit; otherwise it maust be entered manualy. More exact Heating value needs to transporte both neutrons and photons.&lt;/p&gt;&lt;p&gt;Power value is also needed to calculate the normalizing factor f.&lt;/p&gt;&lt;p&gt;f = Power (MW) / Heating (eV)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                        </property>
+                        <property name="text">
+                         <string>Heating /eV</string>
                         </property>
                        </widget>
                       </item>
@@ -920,26 +968,6 @@ p, li { white-space: pre-wrap; }
 &lt;p align=&quot;justify&quot; style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt; core power&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                         </property>
                        </widget>
-                      </item>
-                      <item row="3" column="5">
-                       <widget class="QLabel" name="label_16">
-                        <property name="text">
-                         <string>Keff</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="3" column="4">
-                       <spacer name="horizontalSpacer">
-                        <property name="orientation">
-                         <enum>Qt::Horizontal</enum>
-                        </property>
-                        <property name="sizeHint" stdset="0">
-                         <size>
-                          <width>40</width>
-                          <height>20</height>
-                         </size>
-                        </property>
-                       </spacer>
                       </item>
                      </layout>
                     </item>
@@ -2659,7 +2687,7 @@ p, li { white-space: pre-wrap; }
      <x>0</x>
      <y>0</y>
      <width>1602</width>
-     <height>22</height>
+     <height>30</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

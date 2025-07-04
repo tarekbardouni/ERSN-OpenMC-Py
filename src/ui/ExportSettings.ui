@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1316</width>
-    <height>529</height>
+    <height>584</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -113,7 +113,7 @@
       </size>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="tab">
       <attribute name="title">
@@ -137,7 +137,7 @@
          <property name="maximumSize">
           <size>
            <width>620</width>
-           <height>240</height>
+           <height>11111111</height>
           </size>
          </property>
          <property name="title">
@@ -148,134 +148,28 @@
            <layout class="QGridLayout" name="gridLayout_9">
             <item row="0" column="0" rowspan="6">
              <layout class="QGridLayout" name="gridLayout">
-              <item row="2" column="0">
-               <widget class="QCheckBox" name="Create_Surface_SRC_CB">
-                <property name="text">
-                 <string>Create surface source</string>
-                </property>
-               </widget>
-              </item>
-              <item row="9" column="2" colspan="2">
-               <widget class="QLineEdit" name="Particles_Max_LE">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>20</height>
-                 </size>
-                </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>16777215</width>
-                  <height>20</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>10000</string>
-                </property>
-               </widget>
-              </item>
-              <item row="8" column="2" colspan="2">
-               <widget class="QLineEdit" name="LineEdit_6">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>20</height>
-                 </size>
-                </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>16777215</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </widget>
-              </item>
-              <item row="7" column="2" colspan="2">
-               <widget class="QLineEdit" name="LineEdit_3">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>20</height>
-                 </size>
-                </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>16777215</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </widget>
-              </item>
-              <item row="5" column="2" colspan="2">
-               <widget class="QLineEdit" name="LineEdit_4">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>20</height>
-                 </size>
-                </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>16777215</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="2">
-               <widget class="QLabel" name="Label_1">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>20</height>
-                 </size>
-                </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>16777215</width>
-                  <height>20</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>Batches</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="0">
-               <widget class="QCheckBox" name="Create_Separate_SRC_CB">
-                <property name="text">
-                 <string>Create separate source</string>
-                </property>
+              <item row="9" column="2">
+               <widget class="QComboBox" name="Trigger_type_CB">
+                <item>
+                 <property name="text">
+                  <string>select trigger type</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>'variance'</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>'std_dev'</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>'rel_err'</string>
+                 </property>
+                </item>
                </widget>
               </item>
               <item row="0" column="0">
@@ -320,26 +214,53 @@
                 </item>
                </widget>
               </item>
-              <item row="5" column="0">
-               <widget class="QComboBox" name="Source_Surfaces_CB">
-                <property name="maximumSize">
+              <item row="9" column="0">
+               <widget class="QCheckBox" name="Vol_Trigger_CB">
+                <property name="text">
+                 <string>set trigger</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="2">
+               <widget class="QLabel" name="Label_37">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
                  <size>
-                  <width>16777215</width>
+                  <width>0</width>
                   <height>20</height>
                  </size>
                 </property>
-                <property name="currentText">
-                 <string>Select Surfaces</string>
+                <property name="maximumSize">
+                 <size>
+                  <width>110</width>
+                  <height>20</height>
+                 </size>
                 </property>
-                <item>
-                 <property name="text">
-                  <string>Select Surfaces</string>
-                 </property>
-                </item>
+                <property name="text">
+                 <string>Particles</string>
+                </property>
                </widget>
               </item>
               <item row="8" column="0">
-               <widget class="QComboBox" name="Mat_CB">
+               <widget class="QCheckBox" name="LL_CheckB">
+                <property name="text">
+                 <string>Lo. Left, Up. Right</string>
+                </property>
+               </widget>
+              </item>
+              <item row="7" column="0">
+               <widget class="QComboBox" name="Cells_CB">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
                 <property name="minimumSize">
                  <size>
                   <width>0</width>
@@ -352,139 +273,6 @@
                   <height>20</height>
                  </size>
                 </property>
-               </widget>
-              </item>
-              <item row="3" column="3">
-               <widget class="QLineEdit" name="LineEdit_2">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>20</height>
-                 </size>
-                </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>120</width>
-                  <height>20</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>10</string>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="3">
-               <widget class="QLabel" name="Label_2">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>20</height>
-                 </size>
-                </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>122222</width>
-                  <height>20</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>Inactive Batches</string>
-                </property>
-               </widget>
-              </item>
-              <item row="9" column="0">
-               <widget class="QLabel" name="label_11">
-                <property name="text">
-                 <string>Max particles number</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="2">
-               <widget class="QLineEdit" name="LineEdit_1">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>20</height>
-                 </size>
-                </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>120</width>
-                  <height>20</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>110</string>
-                </property>
-               </widget>
-              </item>
-              <item row="3" column="0">
-               <widget class="QComboBox" name="Volume_Calc_CB">
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>20</height>
-                 </size>
-                </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>16777215</width>
-                  <height>20</height>
-                 </size>
-                </property>
-                <item>
-                 <property name="text">
-                  <string>Select Option</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>Vol_Calc: General</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>Vol_Calc: Specific cells</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>Vol_Calc: Root cells</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>Vol_Calc: Cells in box</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>Vol_Calcs: Root</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>Vol_Calc: Materials</string>
-                 </property>
-                </item>
                </widget>
               </item>
               <item row="1" column="3">
@@ -510,33 +298,6 @@
                 <property name="text">
                  <string>1</string>
                 </property>
-               </widget>
-              </item>
-              <item row="7" column="0">
-               <widget class="QComboBox" name="Cells_CB">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>20</height>
-                 </size>
-                </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>16777215</width>
-                  <height>20</height>
-                 </size>
-                </property>
-                <item>
-                 <property name="text">
-                  <string>Select cells</string>
-                 </property>
-                </item>
                </widget>
               </item>
               <item row="3" column="2">
@@ -567,8 +328,133 @@
                 </property>
                </widget>
               </item>
-              <item row="2" column="2">
-               <widget class="QLabel" name="Label_37">
+              <item row="3" column="0">
+               <widget class="QComboBox" name="Volume_Calc_CB">
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <item>
+                 <property name="text">
+                  <string>Select Option</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Vol_Calc: Specific cells</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Vol_Calc: Geometry cells</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Vol_Calc: Materials</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Vol_Calc: Universes</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+              <item row="10" column="2" colspan="2">
+               <widget class="QLineEdit" name="Particles_Max_LE">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>10000</string>
+                </property>
+               </widget>
+              </item>
+              <item row="9" column="3">
+               <widget class="QComboBox" name="Trigger_value_CB">
+                <item>
+                 <property name="text">
+                  <string>select value</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>1.E-8</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>1.E-7</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>1.E-6</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>1.E-5</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>1.E-4</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>1.E-3</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>1.E-2</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>1.E-1</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>1</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>10</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+              <item row="0" column="2">
+               <widget class="QLabel" name="Label_1">
                 <property name="sizePolicy">
                  <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                   <horstretch>0</horstretch>
@@ -583,12 +469,12 @@
                 </property>
                 <property name="maximumSize">
                  <size>
-                  <width>110</width>
+                  <width>16777215</width>
                   <height>20</height>
                  </size>
                 </property>
                 <property name="text">
-                 <string>Particles</string>
+                 <string>Batches</string>
                 </property>
                </widget>
               </item>
@@ -617,6 +503,164 @@
                 </property>
                </widget>
               </item>
+              <item row="3" column="3">
+               <widget class="QLineEdit" name="LineEdit_2">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>120</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>10</string>
+                </property>
+               </widget>
+              </item>
+              <item row="5" column="2" colspan="2">
+               <widget class="QLineEdit" name="LineEdit_4">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="0">
+               <widget class="QCheckBox" name="Create_Surface_SRC_CB">
+                <property name="text">
+                 <string>Create surface source</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="3">
+               <widget class="QLabel" name="Label_2">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>122222</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>Inactive Batches</string>
+                </property>
+               </widget>
+              </item>
+              <item row="7" column="2" colspan="2">
+               <widget class="QLineEdit" name="LineEdit_3">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="2">
+               <widget class="QLineEdit" name="LineEdit_1">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>120</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>110</string>
+                </property>
+               </widget>
+              </item>
+              <item row="10" column="0">
+               <widget class="QLabel" name="label_11">
+                <property name="text">
+                 <string>Max particles number</string>
+                </property>
+               </widget>
+              </item>
+              <item row="5" column="0">
+               <widget class="QComboBox" name="Source_Surfaces_CB">
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <property name="currentText">
+                 <string>Select Surfaces</string>
+                </property>
+                <item>
+                 <property name="text">
+                  <string>Select Surfaces</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QCheckBox" name="Create_Separate_SRC_CB">
+                <property name="text">
+                 <string>Create separate source</string>
+                </property>
+               </widget>
+              </item>
               <item row="4" column="2">
                <spacer name="verticalSpacer">
                 <property name="orientation">
@@ -629,6 +673,13 @@
                  </size>
                 </property>
                </spacer>
+              </item>
+              <item row="8" column="2" colspan="2">
+               <widget class="QCheckBox" name="GeomBound_CheckB">
+                <property name="text">
+                 <string>Geometry boundings</string>
+                </property>
+               </widget>
               </item>
              </layout>
             </item>
@@ -3026,9 +3077,7 @@
   <tabstop>Cells_CB</tabstop>
   <tabstop>Add_Source_PB</tabstop>
   <tabstop>LineEdit_3</tabstop>
-  <tabstop>LineEdit_6</tabstop>
   <tabstop>Particles_Max_LE</tabstop>
-  <tabstop>Mat_CB</tabstop>
   <tabstop>Photon_CB</tabstop>
   <tabstop>Photon_Cut</tabstop>
   <tabstop>ttb_RB</tabstop>
