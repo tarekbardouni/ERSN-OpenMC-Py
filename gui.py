@@ -871,7 +871,7 @@ class Application(QtWidgets.QMainWindow):
         self.Vol_Calcs_list = []
         self.materials_name_list = []
         self.lattice_name_list = []
-        self.universe_name_list = []
+        self.universes_name_list = []
         self.cells_in_universes = []
         self.Source_name_list = []
         self.Source_strength_list = []
@@ -1127,7 +1127,7 @@ class Application(QtWidgets.QMainWindow):
             return
         #self.clear_Lists()
         Lists = [self.Model_Elements_List, self.Model_Nuclides_List, self.materials_name_list,
-                self.surface_name_list, self.cell_name_list, self.universe_name_list,
+                self.surface_name_list, self.cell_name_list, self.universes_name_list,
                 self.lattice_name_list, self.Source_name_list, 
                 self.tally_name_list, self.filter_name_list, self.mesh_name_list,
                 self.plot_name_list]
@@ -1182,6 +1182,8 @@ class Application(QtWidgets.QMainWindow):
             self.Sett = Components_lines["openmc.Settings"][0].split('=')[0].replace(' ', '')
         if Components_lines["batches"]:
             Batches = Components_lines["batches"][0].split('=')[1].replace(' ', '')
+            if '#' in Batches:
+                Batches = Batches.split('#', 1)[0]
             self.StatePoint = self.directory + '/statepoint.' + Batches + '.h5'
         else:
             self.StatePoint = None
@@ -1236,8 +1238,8 @@ class Application(QtWidgets.QMainWindow):
             elif 'openmc.Universe' in line and 'Filter' not in line:
                 item = line.split('=')[0].replace(' ', '')
                 if item not in self.filter_name_list:
-                    self.universe_name_list.append(item)
-                    #ID = len(self.universe_name_list)
+                    self.universes_name_list.append(item)
+                    #ID = len(self.universes_name_list)
                     self.detect_component_id(line, 'universe_id') #, ID)
                     self.universe_id_list.append(self.id)
                     self.id_list['universe_id'].append(self.id)
@@ -1446,7 +1448,7 @@ class Application(QtWidgets.QMainWindow):
         surf_id = self.surface_id_list
         cell = self.cell_name_list
         cell_id = self.cell_id_list
-        univ = self.universe_name_list
+        univ = self.universes_name_list
         univ_id = self.universe_id_list
         lat = self.lattice_name_list
         lat_id = self.lattice_id_list
@@ -1462,9 +1464,9 @@ class Application(QtWidgets.QMainWindow):
         """     
         v_1 = self.plainTextEdit_7
         self.detect_components()
-        self.wind5 = ExportSettings(self.openmc_version, v_1, self.Sett, self.directory, self.surface_name_list, 
+        self.wind5 = ExportSettings(self.openmc_version, v_1, self.Geom, self.Sett, self.directory, self.surface_name_list, 
                                     self.surface_id_list, self.cell_name_list,
-                                    self.materials_name_list, self.Vol_Calcs_list, self.Source_name_list,
+                                    self.materials_name_list, self.universes_name_list, self.Vol_Calcs_list, self.Source_name_list,
                                     self.Source_id_list, self.Source_strength_list)
         self.wind5.show()
 
@@ -1480,7 +1482,7 @@ class Application(QtWidgets.QMainWindow):
             self.wind6 = ExportTallies(v_1, self.Geom, self.Tallies, self.available_xs, self.tally_name_list, self.tally_id_list,
                                        self.filter_name_list, self.filter_id_list,self.score_name_list, self.score_id_list, 
                                        self.surface_name_list, self.surface_id_list, self.cell_name_list, self.cell_id_list, 
-                                       self.universe_name_list, self.materials_name_list, self.Model_Elements_List,
+                                       self.universes_name_list, self.materials_name_list, self.Model_Elements_List,
                                        self.Model_Nuclides_List, self.mesh_name_list, self.mesh_id_list)
         else:
             self.showDialog('Warning', 'Cross secions files not defined !')
@@ -1681,12 +1683,14 @@ class Application(QtWidgets.QMainWindow):
                             cmd = 'python3'
                         if 'openmc.deplete.get_microxs_and_flux' in line and line[0] != '#':
                             run_get_XS = True
+                        if 'openmc.calculate_volumes()' in line and line[0] != '#':
+                            vol_calc = True
 
                     self.readData(cmd, self.process)
                     os.chdir(self.app_dir)
                     if 'export_to_xml()' in self.plainTextEdit_7.toPlainText():
                         self.ViewXML(self.plainTextEdit_8)
-                        if not run_openmc and not plot_openmc and not run_deplete and not run_get_XS:
+                        if not run_openmc and not plot_openmc and not run_deplete and not run_get_XS and not vol_calc:
                             self.showDialog('Warning', 'No simulation neither plot will be processed.\n Only xml files will be created !')
                 else:
                     msg = 'Select your project python script or save it first !'
@@ -1756,6 +1760,11 @@ class Application(QtWidgets.QMainWindow):
                     cmd = 'python3'
                 else:
                     cmd = 'python3'
+                if 'openmc.calculate_volumes()' in Text:
+                    vol_calc = True
+                    cmd = 'python3'
+                else:
+                    cmd = 'python3'
 
                 self.readData(cmd, self.process)
                 time.sleep(1)
@@ -1767,7 +1776,7 @@ class Application(QtWidgets.QMainWindow):
                         plot_openmc = True
                     if 'openmc.deplete.get_microxs_and_flux' in Text and '#openmc.deplete.get_microxs_and_flux' not in Text.strip():
                             run_get_XS = True
-                    if not run_openmc and not plot_openmc and not run_deplete and not run_get_XS:
+                    if not run_openmc and not plot_openmc and not run_deplete and not run_get_XS and not vol_calc:
                         self.showDialog('Warning',
                                         'No simulation neither plot will be processed.\n Only xml files will be created !')
             else:
