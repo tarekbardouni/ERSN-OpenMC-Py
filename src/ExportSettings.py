@@ -23,7 +23,7 @@ class EmittingStream(QtCore.QObject):
 
 class ExportSettings(QWidget):
     from .func import resize_ui, showDialog, Def_Source_ToolTips, Exit, Move_Commands_to_End
-    def __init__(self, OpenMC_Ver, v_1, Sett, Directory, Surf_list, Surf_Id_list, Cells_list, Mat_list, Vol_Calcs_list, 
+    def __init__(self, OpenMC_Ver, v_1, Geom, Sett, Directory, Surf_list, Surf_Id_list, Cells_list, Mat_list, Univ_list, Vol_Calcs_list, 
                             Source_list, Source_Id, Strength_list, parent=None):
         super(ExportSettings, self).__init__(parent)
         uic.loadUi("src/ui/ExportSettings.ui", self)
@@ -41,16 +41,19 @@ class ExportSettings(QWidget):
         self.Source_Surfaces_CB.addItems(self.surface_name_list)
         self.cell_name_list = Cells_list
         self.materials_name_list = Mat_list
+        self.universes_name_list = Univ_list
         self.vol_calcs = Vol_Calcs_list
         self.list_of_cells = []
+        self.list_of_universes = []
         self.list_of_surfaces = []
         self.list_of_surfaces_ids = []
-        self.list_of_materials = self.materials_name_list
+        self.list_of_materials = []  
         self.Source_name_list = Source_list
         self.Source_id_list = Source_Id
         self.Source_strength_list = Strength_list
+        self.Geom = Geom
         self.Sett = Sett
-        self.vol_calcs = []
+        #self.vol_calcs = []
         self.Strength_LE.setText('1.')
         self.src_filename = ''
         self.Threshold_CB.setCurrentIndex(3)
@@ -96,6 +99,10 @@ class ExportSettings(QWidget):
         layoutH.addWidget(self.numbers)
         layoutH.addWidget(self.plainTextEdit)
         self.EditorLayout.addLayout(layoutH, 0, 0)
+        self.Settings_Header = '\n############################################################################### \n'+\
+                                 '#                 Exporting to OpenMC settings.xml file \n'+\
+                                 '###############################################################################'                
+                
         self.Find_Run_Mode()
         
         sys.stdout = EmittingStream(textWritten=self.normalOutputWritten)
@@ -129,6 +136,8 @@ class ExportSettings(QWidget):
         self.Source_Geom_CB.currentIndexChanged.connect(self.Choose_Only_Fissionable)
         self.Create_Separate_SRC_CB.stateChanged.connect(self.Create_Separate_Source)
         self.Create_Surface_SRC_CB.stateChanged.connect(self.Create_Surface_Source)
+        self.LL_CheckB.stateChanged.connect(self.onStateChange)
+        self.GeomBound_CheckB.stateChanged.connect(self.onStateChange)
         self.Source_Surfaces_CB.currentIndexChanged.connect(self.Add_Surface_Source)
         self.Import_Lists_PB.clicked.connect(lambda: self.Import_x_y_Lists(self.Energy_LE, self.Proba_LE))
         self.Add_Run_Mode_PB.clicked.connect(self.Run_Mode)
@@ -137,8 +146,7 @@ class ExportSettings(QWidget):
         self.Add_Trigger_PB.clicked.connect(self.Trigger_Settings)
         self.Add_Entropy_PB.clicked.connect(self.Entropy_Settings)
         self.Add_Source_PB.clicked.connect(self.Add_Sources)
-        self.Cells_CB.currentIndexChanged.connect(self.Add_Cells)
-        self.Mat_CB.currentIndexChanged.connect(self.Add_Materials)
+        self.Cells_CB.currentIndexChanged.connect(self.Add_Cells_Volume)
         self.Export_Settings_PB.clicked.connect(self.Export_to_Main_Window)
         self.Clear_PB.clicked.connect(self.clear_text)
         self.Exit_PB.clicked.connect(self.Exit)
@@ -152,10 +160,8 @@ class ExportSettings(QWidget):
         self.Create_Surface_SRC_CB.hide()
         self.Source_Surfaces_CB.hide()
         self.Cells_CB.hide()
-        self.Mat_CB.hide()
         self.LineEdit_3.hide()
         self.LineEdit_4.hide()
-        self.LineEdit_6.hide()
         self.Particles_Max_LE.hide()
         self.Volume_Calc_CB.hide()
         self.Add_Vol_Calc_PB.hide()
@@ -175,6 +181,17 @@ class ExportSettings(QWidget):
         self.Origin_LE.hide()
         self.Origin_Label.hide()
         self.Disable_SRC_Widgets()
+        self.LL_CheckB.hide()
+        self.GeomBound_CheckB.hide()
+
+    @pyqtSlot(int)
+    def onStateChange(self, state):
+        if state == Qt.Checked:
+            if self.sender() == self.LL_CheckB:
+                self.GeomBound_CheckB.setChecked(False)
+            elif self.sender() == self.GeomBound_CheckB:
+                self.LL_CheckB.setChecked(False)
+            self.Set_LL_GB()
 
     def Find_string(self, text_window, string_to_find):
         self.list_of_items = []
@@ -191,18 +208,22 @@ class ExportSettings(QWidget):
                 self.Insert_Header = False
                 break
 
-    def Add_Cells(self):
+    def Add_Cells_Volume(self):
         if self.Run_Mode_CB.currentIndex() == 3:
+            #self.list_of_cells.clear()
             if self.Cells_CB.currentIndex() != 0:
-                self.list_of_cells.append(self.cell_name_list[self.Cells_CB.currentIndex() - 1])
-                self.LineEdit_3.setText(str(self.list_of_cells).replace("'", ""))
+                if self.Volume_Calc_CB.currentIndex() == 1:
+                    self.list_of_cells.append(self.cell_name_list[self.Cells_CB.currentIndex() - 1])
+                    self.LineEdit_3.setText(str(self.list_of_cells).replace("'", ""))
+                elif self.Volume_Calc_CB.currentIndex() == 3:
+                    self.list_of_materials.append(self.materials_name_list[self.Cells_CB.currentIndex() - 1])
+                    self.LineEdit_3.setText(str(self.list_of_materials).replace("'", ""))
+                elif self.Volume_Calc_CB.currentIndex() == 4:
+                    if self.universes_name_list:
+                        self.list_of_universes.append(self.universes_name_list[self.Cells_CB.currentIndex() - 1])
+                        self.LineEdit_3.setText(str(self.list_of_universes).replace("'", ""))
+                
             self.Cells_CB.setCurrentIndex(0)
-
-    def Add_Materials(self):
-        self.list_of_materials = self.materials_name_list
-        if self.Mat_CB.currentIndex() != 0:
-            self.LineEdit_6.setText(str(self.list_of_materials).replace("'", ""))
-        self.Mat_CB.setCurrentIndex(0)
 
     def Widget_Status(self):                            # If Run Mode changed
         if not self.Inactive_Found:
@@ -212,8 +233,8 @@ class ExportSettings(QWidget):
         self.LineEdit_4.setText('')
         self.list_of_surfaces_ids.clear()
         if self.Run_Mode_CB.currentIndex() in [0, 1, 2]:
-            for item in [self.Volume_Calc_CB, self.Source_Surfaces_CB, self.Cells_CB, self.Mat_CB, self.label_11,
-                            self.LineEdit_4, self.LineEdit_3, self.LineEdit_6, self.Particles_Max_LE]:
+            for item in [self.Volume_Calc_CB, self.Source_Surfaces_CB, self.Cells_CB, self.label_11,
+                            self.LineEdit_4, self.LineEdit_3, self.Particles_Max_LE]:
                 item.hide()
             for item in [self.Label_1, self.Label_2, self.Label_5, self.Label_37, self.LineEdit_1, self.LineEdit_2,
                         self.LineEdit_5, self.Particles_Number_LE, self.Create_Separate_SRC_CB, self.Create_Surface_SRC_CB]:
@@ -222,31 +243,43 @@ class ExportSettings(QWidget):
                     item.setEnabled(False)
                 elif self.Run_Mode_CB.currentIndex() in [1, 2]:
                     item.setEnabled(True)
-            if self.Run_Mode_CB.currentIndex() == 1:
-                self.Label_1.setText('Batches')
-                self.Label_2.setText('Inactive Batches')
-                self.Label_5.setText('Generations')
-                self.Label_37.setText('Particles')
-                self.LineEdit_2.setText(str(self.inactives))
-                self.LineEdit_5.setText(str(self.generations))
-                self.Photon_Cut.setText('1000.0')
-        if self.Run_Mode_CB.currentIndex() in [1, 2]:
-            self.Add_Run_Mode_PB.setEnabled(True)
-            self.Volume_Calc_CB.hide()
-            self.Cells_CB.hide()
-            self.LineEdit_3.hide()
-            self.LineEdit_6.hide()
-            self.Mat_CB.hide()
-            self.Create_Separate_SRC_CB.show()
-            self.Create_Surface_SRC_CB.show()
-            self.label_16.setEnabled(True)
-            self.Photon_CB.setEnabled(True)
-            '''self.Photon_Cut.setEnabled(False)'''
-            self.ttb_RB.setChecked(True)
-            self.led_RB.setChecked(False)
-        else:
-            '''self.Create_Separate_SRC_CB.hide()
-            self.Create_Surface_SRC_CB.hide()'''
+
+            if self.Run_Mode_CB.currentIndex() in [1, 2]:
+                self.Add_Run_Mode_PB.setEnabled(True)
+                self.Volume_Calc_CB.hide()
+                self.Cells_CB.hide()
+                self.LineEdit_3.hide()
+                self.Create_Separate_SRC_CB.show()
+                self.Create_Surface_SRC_CB.show()
+                self.label_16.setEnabled(True)
+                self.Photon_CB.setEnabled(True)
+                '''self.Photon_Cut.setEnabled(False)'''
+                self.ttb_RB.setChecked(True)
+                self.led_RB.setChecked(False)
+                if self.Run_Mode_CB.currentIndex() == 1:
+                    self.LineEdit_2.setEnabled(True)
+                    self.Label_2.setEnabled(True)
+                    self.Label_1.setText('Batches')
+                    self.Label_2.setText('Inactive Batches')
+                    self.Label_5.setText('Generations')
+                    self.Label_37.setText('Particles')
+                    self.LineEdit_2.setText(str(self.inactives))
+                    self.LineEdit_5.setText(str(self.generations))
+                    self.Photon_Cut.setText('1000.0')
+                elif self.Run_Mode_CB.currentIndex() == 2:
+                    self.LineEdit_5.show()
+                    self.Label_5.show()
+                    self.Volume_Calc_CB.hide()
+                    self.Label_1.setText('Batches')
+                    self.Label_5.setText('Generations')
+                    #self.LineEdit_1.setText('110')
+                    self.LineEdit_2.setEnabled(False)
+                    self.Label_2.setEnabled(False)
+            self.LL_CheckB.hide()
+            self.GeomBound_CheckB.hide()
+        elif self.Run_Mode_CB.currentIndex() == 3:
+            self.LL_CheckB.show()
+            self.GeomBound_CheckB.show()
             self.Add_Run_Mode_PB.setEnabled(False)
             self.label_16.setEnabled(False)
             self.Label_17.setEnabled(False)
@@ -258,20 +291,13 @@ class ExportSettings(QWidget):
             self.Photon_Cut.setEnabled(False)
             self.Photon_CB.setChecked(False)
             self.Create_Separate_SRC_CB.setChecked(False)
-            self.Create_Surface_SRC_CB.setChecked(False)
-        if self.Run_Mode_CB.currentIndex() == 2:
-            self.LineEdit_5.show()
-            self.Label_5.show()
-            self.Volume_Calc_CB.hide()
-            self.Label_1.setText('Batches')
-            #self.LineEdit_1.setText('110')
-            self.LineEdit_2.hide()
-            self.Label_2.hide()
-        if self.Run_Mode_CB.currentIndex() == 3:
+            self.Create_Surface_SRC_CB.setChecked(False)        
             if self.Volume_Calc_CB.currentIndex() == 0:
                 self.Add_Vol_Calc_PB.setEnabled(False)
             else:
                 self.Add_Vol_Calc_PB.setEnabled(True)
+            self.GeomBound_CheckB.show()
+            self.LL_CheckB.show()
             self.Volume_Calc_CB.setCurrentIndex(0)
             self.Add_Vol_Calc_PB.show()
             self.Add_Run_Mode_PB.hide()
@@ -283,14 +309,11 @@ class ExportSettings(QWidget):
             self.Label_5.show()
             self.Label_5.setText('Lower Left (x, y, z)')
             self.Label_2.setText('Upper Right (x, y, z)')
-            self.Geometry_Key(self.v_1)
             self.LineEdit_5.setText('(-1, -1, -1)')
             self.LineEdit_2.setText('(1, 1, 1)')
             self.Create_Separate_SRC_CB.setEnabled(False)
             self.Create_Surface_SRC_CB.setEnabled(False)
-        else:
-            self.Add_Vol_Calc_PB.hide()
-            self.Add_Run_Mode_PB.show()
+        
         self.Create_Separate_SRC_CB.setChecked(False)
         self.Create_Surface_SRC_CB.setChecked(False)
 
@@ -317,49 +340,45 @@ class ExportSettings(QWidget):
             else:
                 pass
 
+    def Set_LL_GB(self):
+        if self.GeomBound_CheckB.isChecked():
+            self.LineEdit_5.setEnabled(False)
+            self.LineEdit_2.setEnabled(False)
+        elif self.LL_CheckB.isChecked():
+            self.LineEdit_5.setEnabled(True)
+            self.LineEdit_2.setEnabled(True)
+
     def Widget_Status_3(self):                              # if volume calculation option changed
         items = [self.Label_5, self.LineEdit_5, self.Label_37, self.Particles_Number_LE, self.Label_2, self.LineEdit_2]
         if self.Volume_Calc_CB.currentIndex() == 0:
             self.Add_Vol_Calc_PB.setEnabled(False)
             for item in items:
                 item.setEnabled(False)
-        else:
-            self.Add_Vol_Calc_PB.setEnabled(True)
-            for item in items:
-                item.setEnabled(True)
-        if self.Volume_Calc_CB.currentIndex() == 1:
-            for item in items:
-                item.setEnabled(True)
+            return
+        self.LineEdit_5.setText('(-1, -1, -1)')
+        self.LineEdit_2.setText('(1, 1, 1)')
+        self.LineEdit_3.show()
+        self.LineEdit_3.clear()
+        self.Add_Vol_Calc_PB.setEnabled(True)
+        for item in items:
+            item.setEnabled(True)
+        self.Cells_CB.show()
+        self.Cells_CB.clear()
+        if self.Volume_Calc_CB.currentIndex() == 1:            # cells volume
+            if self.cell_name_list:                     
+                self.Cells_CB.addItem('Select cell')
+                self.Cells_CB.addItems(self.cell_name_list)        
         elif self.Volume_Calc_CB.currentIndex() == 2:
-            self.LineEdit_5.setDisabled(True)
-            self.LineEdit_2.setDisabled(True)
-            self.Cells_CB.show()
-            self.LineEdit_3.show()
-            if self.cell_name_list:
-                self.Cells_CB.addItems(self.cell_name_list)
-            else:
-                pass
-        if self.Volume_Calc_CB.currentIndex() == 3:
-            self.LineEdit_5.setDisabled(True)
-            self.LineEdit_2.setDisabled(True)
-            self.Cells_CB.hide()
-            self.LineEdit_3.hide()
-            self.LineEdit_5.setText('(-1, -1, -1)')
-            self.LineEdit_2.setText('(1, 1, 1)')
-        if self.Volume_Calc_CB.currentIndex() not in [2, 3, 6]:
-            self.LineEdit_5.setEnabled(True)
-            self.LineEdit_2.setEnabled(True)
-        if self.Volume_Calc_CB.currentIndex() == 6:
-            self.Mat_CB.show()
-            self.LineEdit_6.show()
-            self.Cells_CB.hide()
-            self.LineEdit_3.hide()
+            self.Cells_CB.clear()
+            self.LineEdit_3.setText(self.Geom + '.get_all_cells().values()')    
+        elif self.Volume_Calc_CB.currentIndex() == 3:               # materials volume
             if self.materials_name_list:
-                self.Mat_CB.addItem('Select material')
-                self.Mat_CB.addItems(self.materials_name_list)
-        else:
-            self.Mat_CB.hide()
-            self.LineEdit_6.hide()
+                self.Cells_CB.addItem('Select material')
+                self.Cells_CB.addItems(self.materials_name_list)
+        elif self.Volume_Calc_CB.currentIndex() == 4:               # universes volume
+            if self.universes_name_list:                     
+                self.Cells_CB.addItem('Select universe')
+                self.Cells_CB.addItems(self.universes_name_list)
 
     def Widget_Status_4(self):
         if self.Direction_Dist_CB.currentIndex() in [0, 1]:
@@ -381,19 +400,12 @@ class ExportSettings(QWidget):
         if self.Insert_Header:
             self.Find_string(self.plainTextEdit, "openmc.Settings")
             if self.Insert_Header:
-                print('\n############################################################################### \n'
-                            '#                 Exporting to OpenMC settings.xml file \n'
-                            '###############################################################################')
+                print(self.Settings_Header)
                 print(self.Sett + " = openmc.Settings()\n")
             else:
                 pass
 
     def Import_OpenMC(self):
-        """self.Find_string(self.plainTextEdit, "import openmc")
-        if self.Insert_Header:
-            self.Find_string(self.v_1, "import openmc")
-            if self.Insert_Header:
-                print('import openmc')"""
         self.Find_string(self.v_1, "import openmc")
         if self.Insert_Header:
             cursor = self.v_1.textCursor()
@@ -497,6 +509,27 @@ class ExportSettings(QWidget):
                 print(self.Sett + ".surf_source_write = { 'surfaces_ids': " + Surfaces_List + ", 'max_particles': " + str(self.Particles_Max_LE.text()) +" }")
         self.Add_Tracks_PB.setEnabled(True)
 
+    def extract_lines_between_markers(self, document, start_str, end_str):
+        result = []
+        recording = False
+        for line in document:
+            if start_str in line:
+                recording = True
+            if recording:
+                result.append(line)
+            if end_str in line and recording:
+                break
+        return result
+    
+    def get_lines_with_string(self, document, search_string):
+        for line in document:
+            if search_string in line and line[0] != '#':
+                matching_line = line
+                break
+            else:
+                matching_line = ''
+        return matching_line
+
     def Find_Run_Mode(self):
         document = self.v_1.toPlainText()
         if 'openmc.Settings' not in document:
@@ -504,7 +537,8 @@ class ExportSettings(QWidget):
         electron_treatment = 'ttb'
         cursor = self.plainTextEdit.textCursor()
         doc_lines = [line for line in document.split('\n') if line != '' and line[0] != '#']
-        Settings_Lines = [line for line in doc_lines if self.Sett + '.' in line]
+        #Settings_Lines = [line for line in doc_lines if self.Sett + '.' in line]
+        Settings_Lines = self.extract_lines_between_markers(doc_lines, self.Sett, self.Sett + '.export_to_xml()')
         Source_Line = [line for line in doc_lines if 'openmc.Source' in line]
         if Source_Line:
             for line in Source_Line:
@@ -514,67 +548,82 @@ class ExportSettings(QWidget):
                         Particle_type = item.split('=')[1].strip()
         else:
             Particle_type = 'neutron'
-        if '.run_mode' in document:
-            for line in Settings_Lines:
-                if self.Sett + '.run_mode' in line: #.split('=')[0].rstrip():
-                    run_mode = line.split('=')[1].strip()
-                    break
-            if 'eigenvalue' in run_mode:
-                self.Run_Mode_CB.setCurrentIndex(1)
-            elif 'fixed source' in run_mode:
-                self.Run_Mode_CB.setCurrentIndex(2)
-            elif 'Volume' in run_mode:
-                self.Run_Mode_CB.setCurrentIndex(3)
-        else:
-            if Particle_type == 'neutron':
-                run_mode = 'eigenvalue'
-                self.Run_Mode_CB.setCurrentIndex(1)   # by default 'eigenvalue'
-        
-        for line in Settings_Lines :
-            if self.Sett + '.particles' in line.replace(" ", "").split('=')[0]:
-                self.particles = line.split('=')[1].strip()
-                #self.Particles_Number_LE.setText(str(self.particles))
-                self.Find_Settings_Parameters(Settings_Lines, self.Particles_Number_LE, self.particles)
-            elif self.Sett + '.inactive' in line.replace(" ", "").split('=')[0]: 
-                self.Inactive_Found = True
-                self.inactives = line.split('=')[1].strip()
-                #self.LineEdit_2.setText(str(self.inactives))
-                self.Find_Settings_Parameters(Settings_Lines, self.LineEdit_2, self.inactives)
-            elif self.Sett + '.batches' in line.replace(" ", "").split('=')[0]:                
-                self.batches = line.split('=')[1].strip()
-                #self.LineEdit_1.setText(str(self.batches))
-                self.Find_Settings_Parameters(Settings_Lines, self.LineEdit_1, self.batches)
-            elif self.Sett + '.generations_per_batch' in line.replace(" ", "").split('=')[0]: 
-                self.Generations_Found = True
-                self.generations = line.split('=')[1].strip()
-                #self.LineEdit_5.setText(str(self.generations))
-                self.Find_Settings_Parameters(Settings_Lines, self.LineEdit_5, self.generations)
-            elif self.Sett + '.photon_transport' in line.replace(" ", "").split('=')[0]:
-                photon_transport = line.split('=')[1].strip()
-                if 'True' in line: 
-                    self.Photon_CB.setChecked(True)
+        run_mode = ''
+        if Settings_Lines:
+            self.showDialog('1', str(Settings_Lines))
+            if '.run_mode' in '\n'.join(Settings_Lines):
+                matching_line = self.get_lines_with_string(Settings_Lines, '.run_mode')
+                self.showDialog('2', matching_line)
+                if matching_line:
+                    run_mode = matching_line.split('=')[1].strip()
+                    if 'fixed source' in run_mode:
+                        self.Run_Mode_CB.setCurrentIndex(2)
+                    elif 'eigenvalue' in run_mode:
+                        self.Run_Mode_CB.setCurrentIndex(1)
+                self.showDialog('2', run_mode)
+                """for line in Settings_Lines:
+                    if self.Sett + '.run_mode' in line and line[0] != '#':
+                        run_mode = line.split('=')[1].strip()
+                        self.showDialog('2', run_mode)
+                        if 'fixed source' in run_mode:
+                            self.Run_Mode_CB.setCurrentIndex(2)
+                        elif 'eigenvalue' in run_mode:
+                            self.Run_Mode_CB.setCurrentIndex(1)
+                        break"""
+            else:
+                if 'VolumeCalculation' in '\n'.join(Settings_Lines):
+                    self.Run_Mode_CB.setCurrentIndex(3)
                 else:
-                    self.Photon_CB.setChecked(False)
-                    self.ttb_RB.setEnabled(False)
-                    self.led_RB.setEnabled(False)
-            elif self.Sett + '.cutoff' in line.replace(" ", "").split('=')[0]:
-                photon_cutoff = line.split(':')[1].replace('}', '').strip()
-                #self.Photon_Cut.setText(str(photon_cutoff))
-                self.Find_Settings_Parameters(Settings_Lines, self.Photon_Cut, photon_cutoff)
-            elif self.Sett + '.electron_treatment' in line.replace(" ", "").split('=')[0]:
-                electron_treatment = line.split('=')[1].strip()
-                    
-        if 'ttb' in electron_treatment: 
-            self.ttb_RB.setChecked(True)
-        else:
-            self.led_RB.setChecked(True)
+                    if Particle_type == 'neutron':
+                        run_mode = 'eigenvalue'
+                        self.Run_Mode_CB.setCurrentIndex(1)   # by default 'eigenvalue'
         
-        try:
-            self.Set_Tracks_ComboBoxes()
-        except:
-            return
+        if run_mode in ['eigenvalue', 'fixed source']:
+            for line in Settings_Lines :
+                if self.Sett + '.particles' in line.replace(" ", "").split('=')[0]:
+                    self.particles = line.split('=')[1].strip()
+                    #self.Particles_Number_LE.setText(str(self.particles))
+                    self.Find_Settings_Parameters(Settings_Lines, self.Particles_Number_LE, self.particles)
+                elif self.Sett + '.inactive' in line.replace(" ", "").split('=')[0]: 
+                    self.Inactive_Found = True
+                    self.inactives = line.split('=')[1].strip()
+                    #self.LineEdit_2.setText(str(self.inactives))
+                    self.Find_Settings_Parameters(Settings_Lines, self.LineEdit_2, self.inactives)
+                elif self.Sett + '.batches' in line.replace(" ", "").split('=')[0]:                
+                    self.batches = line.split('=')[1].strip()
+                    #self.LineEdit_1.setText(str(self.batches))
+                    self.Find_Settings_Parameters(Settings_Lines, self.LineEdit_1, self.batches)
+                elif self.Sett + '.generations_per_batch' in line.replace(" ", "").split('=')[0]: 
+                    self.Generations_Found = True
+                    self.generations = line.split('=')[1].strip()
+                    #self.LineEdit_5.setText(str(self.generations))
+                    self.Find_Settings_Parameters(Settings_Lines, self.LineEdit_5, self.generations)
+                elif self.Sett + '.photon_transport' in line.replace(" ", "").split('=')[0]:
+                    photon_transport = line.split('=')[1].strip()
+                    if 'True' in line: 
+                        self.Photon_CB.setChecked(True)
+                    else:
+                        self.Photon_CB.setChecked(False)
+                        self.ttb_RB.setEnabled(False)
+                        self.led_RB.setEnabled(False)
+                elif self.Sett + '.cutoff' in line.replace(" ", "").split('=')[0]:
+                    photon_cutoff = line.split(':')[1].replace('}', '').strip()
+                    #self.Photon_Cut.setText(str(photon_cutoff))
+                    self.Find_Settings_Parameters(Settings_Lines, self.Photon_Cut, photon_cutoff)
+                elif self.Sett + '.electron_treatment' in line.replace(" ", "").split('=')[0]:
+                    electron_treatment = line.split('=')[1].strip()
+                        
+            if 'ttb' in electron_treatment: 
+                self.ttb_RB.setChecked(True)
+            else:
+                self.led_RB.setChecked(True)
+            
+            try:
+                self.Set_Tracks_ComboBoxes()
+            except:
+                return
 
-        self.Add_Tracks_PB.setEnabled(True)
+            self.Add_Tracks_PB.setEnabled(True)
 
     def Find_Settings_Parameters(self, lines, LE, parameter):
         if parameter.isdigit():
@@ -665,8 +714,11 @@ class ExportSettings(QWidget):
             return
         
         self.Insert_Header = True
-        self.Def_Settings(self.Volume_Calc_CB.currentIndex())
+        self.Def_Settings()
         if self.Volume_Calc_CB.currentIndex() != 0:
+            if self.LineEdit_3.text() == '':
+                self.showDialog('Warning', 'Choose domains first !')
+                return
             self.Find_string(self.v_1, 'eigenvalue')
             if not self.Insert_Header:
                 self.showDialog('Warning', 'Could not be added, Eigenvalue Mode already specified in the project !')
@@ -687,13 +739,13 @@ class ExportSettings(QWidget):
                             self.showDialog('Warning', 'Only one run mode is allowed in the project !')
                             return
                         else:
-                            string_to_find = self.Sett + ".run_mode = 'Volume'"
+                            string_to_find = self.Sett + ".volume_calculations"
                             self.Find_string(self.plainTextEdit, string_to_find)
                             if self.Insert_Header:
                                 self.Find_string(self.v_1, string_to_find)
                                 if self.Insert_Header:
-                                    print('# Volume calculation mode')
-                                    print(self.Sett + ".run_mode = 'Volume'")
+                                    if '# Volume calculation mode' not in self.v_1.toPlainText():
+                                        print('# Volume calculation mode')
                                     self.Insert_Header = False
                                 else:
                                     string_to_find = 'openmc.VolumeCalculation'
@@ -703,25 +755,29 @@ class ExportSettings(QWidget):
                                     for item in self.list_of_items:
                                         self.vol_calcs.append(item)
                             samples = str(self.Particles_Number_LE.text())
-                            if self.Volume_Calc_CB.currentIndex() == 1:     # Vol_Calc: General
-                                Lower_Left = str(self.LineEdit_5.text())
-                                Upper_Right = str(self.LineEdit_2.text())
-                                self.vol_calcs.append('openmc.VolumeCalculation([domain1, domain2, ...], ' + samples +
-                                                             ", lower_left = " + Lower_Left + ", upper_right = " + Upper_Right + ')')
-                            if self.Volume_Calc_CB.currentIndex() == 2:     # Vol_Calc: Specific cells
-                                self.vol_calcs.append('openmc.VolumeCalculation(' + self.LineEdit_3.text() + ", " + samples + ")")
-                            if self.Volume_Calc_CB.currentIndex() == 3:     # Vol_Calc: Root cells
-                                self.Geometry_Key(self.v_1)
-                                self.vol_calcs.append('openmc.VolumeCalculation(list(' + self.Geo + ".cells.values()), " + samples + ")")
-                            if self.Volume_Calc_CB.currentIndex() == 4:     # Vol_Calc: Cells in box
-                                self.Geometry_Key(self.v_1)
-                                self.vol_calcs.append('openmc.VolumeCalculation(list(' + self.Geo + ".cells.values()), " + samples + ', ' + self.Geo + '.bounding_box[0], ' + self.Geo + '.bounding_box[1])')
-                            if self.Volume_Calc_CB.currentIndex() == 5:     # Vol_Calcs: Root
-                                self.vol_calcs.append('openmc.VolumeCalculation([root], ' + samples + ', ' + self.Geo + '.bounding_box[0], ' + self.Geo + '.bounding_box[1])')
-                            if self.Volume_Calc_CB.currentIndex() == 6:     # Vol_Calc: Materials
-                                self.Geometry_Key(self.v_1)
-                                self.vol_calcs.append('openmc.VolumeCalculation(' + self.LineEdit_6.text() + ", " + samples + ', ' + self.Geo + '.bounding_box[0], ' + self.Geo + '.bounding_box[1])' )
+                            if self.LL_CheckB.isChecked():
+                                Lower_Left = ", lower_left = " + str(self.LineEdit_5.text())
+                                Upper_Right = ", upper_right = " + str(self.LineEdit_2.text())
+                            elif self.GeomBound_CheckB.isChecked():
+                                Lower_Left = ", lower_left = " +  self.Geom + '.bounding_box[0]'
+                                Upper_Right = ", upper_right = " +  self.Geom + '.bounding_box[1]'
+                            else:
+                                Lower_Left = ''
+                                Upper_Right = ''
+
+                            if self.Volume_Calc_CB.currentIndex() in [1, 3, 4]:     # Vol_Calc: Specific cells or Materials or Universes
+                                if self.Volume_Calc_CB.currentIndex() == 3:
+                                    if not self.LL_CheckB.isChecked() and not self.GeomBound_CheckB.isChecked():
+                                        self.showDialog('Warning', 'Could not automatically determine bounding box for stochastic volume calculation !'+
+                                                        '\nCheck Lower Left, Upper Right case or Geometry boundings case!')
+                                        return
+                                self.vol_calcs.append('openmc.VolumeCalculation(' + self.LineEdit_3.text() + ", " + samples +
+                                                            Lower_Left + Upper_Right + ')')
+                            elif self.Volume_Calc_CB.currentIndex() == 2:     # Vol_Calc: Geometry cells
+                                self.vol_calcs.append('openmc.VolumeCalculation([eval(cell.name) for cell in ' + self.Geom + ".get_all_cells().values()], " + samples + 
+                                                            Lower_Left + Upper_Right + ')')
                             self.Find_string(self.plainTextEdit, 'openmc.VolumeCalculation')
+                            
                             if not self.Insert_Header:
                                 self.Delete_lines(self.plainTextEdit, 'openmc.VolumeCalculation', False)
                                 self.plainTextEdit.moveCursor(QtGui.QTextCursor.Start)
@@ -737,9 +793,18 @@ class ExportSettings(QWidget):
                                 for i, item in enumerate(self.vol_calcs):
                                     if i:
                                         print(',')
-                                    print(item, end='')
+                                    print('\t' + item, end='')
                                 print(" ]")
                                 print(self.Sett + ".volume_calculations = vol_calcs")
+                            if self.Vol_Trigger_CB.isChecked():
+                                if self.Trigger_value_CB.currentIndex() == 0:
+                                    self.showDialog('Warning', 'Select threshold value !')
+                                    return
+                                if self.Trigger_type_CB.currentIndex() == 0:
+                                    self.showDialog('Warning', 'Select statistical quantity to apply threshold on !')
+                                    return
+                                print('vol_calcs.set_trigger(' + self.Trigger_value_CB.currentText() + ', ' + self.Trigger_type_CB.currentText() +')')
+
         self.Volume_Calc_CB.setCurrentIndex(0)
         self.Cells_CB.hide()
         self.LineEdit_3.hide()
@@ -808,9 +873,7 @@ class ExportSettings(QWidget):
         if self.Insert_Header:
             self.Find_string(self.plainTextEdit, "openmc.Settings")
             if self.Insert_Header:
-                print('\n############################################################################### \n'
-                      '#                 Exporting to OpenMC settings.xml file \n'
-                      '###############################################################################')
+                print(self.Settings_Header)
                 print(self.Sett + " = openmc.Settings()\n")
             else:
                 pass
@@ -851,9 +914,8 @@ class ExportSettings(QWidget):
             print("entropy_mesh.dimension = " + dim)
             print(self.Sett + ".entropy_mesh = entropy_mesh\n")
         elif self.Entropy_type_CB.currentIndex() == 2:
-            self.Geometry_Key(self.v_1)
             print("\nentropy_mesh = openmc.RegularMesh()")
-            print("entropy_mesh.lower_left, entropy_mesh.upper_right = " + self.Geo + ".bounding_box")
+            print("entropy_mesh.lower_left, entropy_mesh.upper_right = " + self.Geom + ".bounding_box")
             print("entropy_mesh.dimension = (8, 8, 8)")
             print(self.Sett + ".entropy_mesh = entropy_mesh\n")
 
@@ -1486,9 +1548,7 @@ class ExportSettings(QWidget):
         if self.Insert_Header:
             self.Find_string(self.plainTextEdit, "openmc.Settings")
             if self.Insert_Header:
-                print('\n############################################################################### \n'
-                      '#                 Exporting to OpenMC settings.xml file \n'
-                      '###############################################################################')
+                print(self.Settings_Header)
                 print(self.Sett + " = openmc.Settings()\n")
             else:
                 pass
@@ -1548,10 +1608,7 @@ class ExportSettings(QWidget):
                     energy_str = self.energy + ', '
                 if self.Direction_Dist_CB.currentIndex() != 0:
                     angle_str = self.angle + ', '
-                
-                """self.Source_Geom_CB.setCurrentIndex(0)
-                self.Energy_Dist_CB.setCurrentIndex(0)
-                self.Direction_Dist_CB.setCurrentIndex(0)"""
+
                 print(str(self.Name_LE.text()) + ' = openmc.IndependentSource(' + self.spatial + ', ' + angle_str + energy_str + 'strength=' + str(
                         self.Strength_LE.text()) + ', particle=' + self.Particle + ')\n')
         elif self.Source_Geom_CB.currentIndex() == 6:
@@ -1602,25 +1659,13 @@ class ExportSettings(QWidget):
         self.Phi_Dist_CB.setCurrentIndex(0)
         self.Insert_Header = False
 
-    def Geometry_Key(self, text_window):
-        self.Find_string(text_window, "openmc.Geometry")
-        if self.current_line != "":
-            Geo = self.current_line.split("=")[0]
-            self.Geo = Geo.strip()
-        else:
-            self.showDialog('Warning', 'Geometry not yet created !.')
-            self.Geo = "geometry"
-        self.Cells_CB.setCurrentIndex(0)
-
     def Export_to_Main_Window(self):
         self.Find_string(self.v_1, "openmc.Settings")
         self.v_1.moveCursor(QTextCursor.End)
         if self.Insert_Header:
             self.Find_string(self.plainTextEdit, "openmc.Settings")
             if self.Insert_Header:
-                print('\n############################################################################### \n'
-                      '#                 Exporting to OpenMC settings.xml file \n'
-                      '###############################################################################')
+                print(self.Settings_Header)
                 print(self.Sett + ' = openmc.Settings()\n')
             else:
                 pass

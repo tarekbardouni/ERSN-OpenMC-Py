@@ -188,6 +188,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 self.Get_Data_from_Depl_Res_file()
             else:
                 self.Depl_Res_file = None
+        
         if Chain != '':
             if os.path.isfile(self.directory + '/' + Chain):
                 self.Chain = self.directory + '/' + Chain
@@ -258,6 +259,8 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         self.Norm_to_UnitLethargy_CB.toggled.connect(self.Normalize_to_Unit_of_Lethargy)
         self.Norm_to_Vol_CB.toggled.connect(self.Normalize_to_Volume)
         self.Norm_to_SStrength_CB.toggled.connect(self.Normalize_to_SourceStrength)
+        self.Aver_CB.toggled.connect(self.Normalize_to_Average_Max)
+        self.Max_CB.toggled.connect(self.Normalize_to_Average_Max)
         self.S_Strength_LE.textChanged.connect(lambda:self.Norm_to_SStrength_CB.setChecked(False))
         self.Vol_List_LE.textChanged.connect(lambda:self.Norm_to_Vol_CB.setChecked(False))
         # depletion results actions
@@ -401,24 +404,29 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             self.Checked_Time_Steps = []
         
     def Display_Depletion_Results(self):
-        Keys = ['time', 'materials', 'nuclides', 'reactions']
+        Keys = ['time', 'eigenvalues', 'materials', 'nuclides', 'reactions', 'source_rate']
         with h5py.File(self.Depl_Res_file, 'r') as f:
             Results_Keys = list(f.keys())
             print('Available datasets/groups in openmc.deplete.Results :\n')
+            print(Results_Keys)
             for key in Keys:
                 print(f"  - Keys in group '{key}':")
                 if key in ['materials']:    
                     print(f"\t{np.array(f[key])}")
                 elif key == 'time':
                     times = f[key]
-                    np.set_printoptions(precision=5, suppress=True) 
+                    #np.set_printoptions(precision=5, suppress=True) 
                     print(f"\t{np.array(f[key])}")
-                elif key == 'source rate':
+                elif key == 'source_rate':
                     power = f[key]
+                elif key == 'eigenvalues':
+                    Keff = f[key]
                 elif key in ['nuclides', 'reactions']:
                     self.Print_Formated_Data(list(f[key]), 10, 110, 9, 'str_kind') 
-            power_vs_time = [(t, p, ) for t, p in zip(time, power)]
-            print(str(power_vs_time))
+            power_vs_time = [(t, p, k) for t, p, k in zip(np.array(times).tolist(), np.array(power).tolist(), np.array(Keff).tolist())]
+            self.Print_Formated_Data(['\tstep', 'time', 'power', 'Keff'], 4, 130, 24, 'str_kind') 
+            for i, pt in enumerate(power_vs_time):
+                self.Print_Formated_Data(['\t' + str(i), str(pt[0]), str(pt[1][0]), str(pt[2])], 4, 130, 24, 'str_kind') 
             print(f"{'#'*80}")
             for group in range(len(Results_Keys)):
                 present_group = list(f.keys())[group]  # e.g., '0'
@@ -929,6 +937,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                     self.Tallies['tallies_ids'].append(tally_id)
                     self.Tallies['names'].append(name)
                     for score in tally.scores:
+                        id = tally.scores.index(score)
                         if score == 'heating':
                             heat = tally.mean.ravel()[0]
                             self.Heating_LE.setText(str(heat))
@@ -966,6 +975,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 self.lineLabel2.setText('containing :  ' + str(self.n_tallies) + '  tallies')
         except:
             pass
+            
         self.Reset_Tally_CB()
         
     def Display_Tallies_Inf(self):
@@ -1118,7 +1128,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             tally_id = int(self.Tally_id_comboBox.currentText())
             self.Filters_comboBox.clear()
             self.Scores_comboBox.clear()
-            self.Nuclides_comboBox.clear()      
+            self.Nuclides_comboBox.clear()  
             idx = self.Tallies['tallies_ids'].index(tally_id)
             name = self.Tallies['names'][idx]
             self.Tally_name_LE.setText(name)
@@ -2263,6 +2273,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                     self.df_filtered = self.df_filtered.loc[self.df[self.Keys[idx]].isin(self.Key_Selected_Bins[idx])].copy()
         
         self.Print_Formated_df(self.df_filtered.copy(), self.tally_id, self.editor)
+        self.DF_Average_Max(self.df_filtered)
         self.Plot_by_CB.setCurrentIndex(1)
         self.Graph_Layout_CB.setCurrentIndex(1)
         self.Graph_type_CB.setCurrentIndex(1)
@@ -2270,7 +2281,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             self.xLog_CB.setEnabled(False)
             if 'low' in self.Plot_By_Key or 'center' in self.Plot_By_Key: 
                 if 'mu ' in self.Plot_By_Key:
-                    self.Curve_xLabel.setText('$\mu$')
+                    self.Curve_xLabel.setText(r'$\mu$')
                 else:
                     self.Curve_xLabel.setText(self.Plot_By_Key.replace('center', '').replace('low', '').replace('[', '/ ').replace(']', ''))
 
@@ -2282,6 +2293,31 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         self.Scores_comboBox.setCurrentIndex(0)
         self.Set_Axis_Labels()
         self.Normalizing_Settings()
+
+    def DF_Average_Max(self, df):
+        Average = {}
+        Maximum = {}
+        Minimum = {}
+        Nuc = 'nuclide'
+        Sc = 'score'
+        Av = 'Average value'
+        Mx = 'Maximum value'
+        Mi = 'Minimum value'
+        for nuclide in self.selected_nuclides:
+            Average[nuclide] = {}
+            Maximum[nuclide] = {}
+            Minimum[nuclide] = {}
+            for score in self.selected_scores:
+                df_filtered_part = df.loc[(self.df['nuclide']==nuclide) & (self.df['score']==score)]       
+                Average[nuclide][score] = np.average(df_filtered_part['mean'].values)
+                Maximum[nuclide][score] = np.max(df_filtered_part['mean'].values)
+                Minimum[nuclide][score] = np.min(df_filtered_part['mean'].values)
+                print(f"{Nuc:<8}\t {Sc:<25}{Av:<25}{Mx:<25}{Mi:<25}")
+                print(f"{nuclide:<8}\t {score:<25}{Average[nuclide][score]:<25}{Maximum[nuclide][score]:<25}{Minimum[nuclide][score]:<25}")
+            Aver = [float(v) for v in Average[nuclide].values()]
+            Max = [float(v) for v in Maximum[nuclide].values()]
+            self.Aver_LE.setText(str(Aver))
+            self.Max_LE.setText(str(Max))
 
     def Set_Axis_Labels(self):
         if 'MeshFilter' not in self.Filter_names:   
@@ -2499,7 +2535,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 High = [xx for xx in self.Key_Selected_Bins_High[idx]]
                 self.Bins_For_Title[idx] = [str((Format.format(x), Format.format(y),)).replace("'", "") for x, y in
                                     zip(Low, High)]
-                self.BIN[idx] = " at $\mu$ "
+                self.BIN[idx] = " at $\\mu$ "
             elif self.filter_name == 'PolarFilter':
                 self.Keys[idx] = 'polar low [rad]'
                 self.Checked_polar_Low, self.Checked_polar_High, self.Checked_polar_Center, self.Checked_Polar_Bins = self.Select_Bins_Energy_Angle_Time(idx)
@@ -3695,6 +3731,8 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             self.Norm_to_Heating_CB.setChecked(False)
             self.Norm_to_UnitLethargy_CB.setChecked(False)
             self.Norm_to_SStrength_CB.setChecked(False)
+            self.Aver_CB.setChecked(False)
+            self.Max_CB.setChecked(False)
 
     def Verify_Q_Nu_Value(self, LE):
         if LE == 'self.Q_LE':
@@ -3719,13 +3757,16 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         Norm_CBox = [self.Norm_to_Power_CB, self.Norm_to_Heating_CB, self.Norm_to_UnitLethargy_CB, self.Norm_to_Vol_CB, 
                     self.Norm_to_BW_CB]
         Norm_LE = [self.Nu_LE, self.Heating_LE, self.Q_LE, self.Power_LE, self.Factor_LE, self.Keff_LE, self.S_Strength_LE]
-        validator_positif = QRegExpValidator(QRegExp("((\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?)"))   
+        validator_positif = QRegExpValidator(QRegExp(r"((\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?)"))   
         for LE in Norm_LE:
             LE.setValidator(validator_positif)
         self.Norm_Bins_comboBox.clear()
         self.Norm_Bins_comboBox.addItem('Check item')      
         self.Norm_Bins_comboBox.addItems(self.Norm_Available_Keys)
         self.Norm_Bins_comboBox.model().item(0).setEnabled(False)
+
+        self.Aver_CB.stateChanged.connect(self.onStateChange)
+        self.Max_CB.stateChanged.connect(self.onStateChange)
 
         if self.run_mode == 'eigenvalue': 
             for item in power_items:
@@ -3763,7 +3804,8 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
     def Normalizing(self):             # called by Plot_Scores
         if self.Norm_to_BW_CB.isChecked() or self.Norm_to_UnitLethargy_CB.isChecked() or self.Norm_to_Vol_CB.isChecked() \
                                         or self.Norm_to_Power_CB.isChecked() or self.Norm_to_SStrength_CB.isChecked() \
-                                        or self.Norm_to_Heating_CB.isChecked():
+                                        or self.Norm_to_Heating_CB.isChecked() or self.Aver_CB.isChecked() \
+                                        or self.Max_CB.isChecked():
             self.Normalization = True 
         else:
             self.Normalization = False
@@ -3787,8 +3829,15 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         # Normalize to source strength
         elif self.Norm_to_SStrength_CB.isChecked():
             self.Normalizing_Factor *= np.array(self.Strength_Factor)
+        # Normalize to tally mean value or max
+        if self.Aver_CB.isChecked(): # and 'MeshFilter' not in self.Filter_names: 
+            self.Normalizing_Factor *= np.array(self.Aver_Factor[0])
+            print(str(self.Normalizing_Factor))
+        elif self.Max_CB.isChecked(): # and 'MeshFilter' not in self.Filter_names: 
+            self.Normalizing_Factor *= np.array(self.Max_Factor[0])
+            print(str(self.Normalizing_Factor))
         # Normalize to cells volume
-        if self.Norm_to_Vol_CB.isChecked() and 'MeshFilter' not in self.Filter_names: 
+        if self.Norm_to_Vol_CB.isChecked(): # and 'MeshFilter' not in self.Filter_names: 
             self.Normalizing_Factor *= self.Volume_Factor 
         # Normalize to variable bin width
         if self.Norm_to_BW_CB.isChecked():
@@ -3815,6 +3864,10 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 self.Norm_to_Heating_CB.setChecked(False)
             elif self.sender() == self.Norm_to_Heating_CB:
                 self.Norm_to_Power_CB.setChecked(False)
+            if self.sender() == self.Aver_CB:
+                self.Max_CB.setChecked(False)
+            elif self.sender() == self.Max_CB:
+                self.Aver_CB.setChecked(False)
 
     def Normalize_to_Bin_Width(self, checked):
         if self.Norm_Bins_comboBox.checkedItems():
@@ -3949,6 +4002,8 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         self.Norm_to_Heating_CB.setEnabled(False)
         self.Norm_to_Power_CB.setChecked(False)
         self.Norm_to_Power_CB.setEnabled(False)
+        self.Aver_CB.setEnabled(False)
+        self.Max_CB.setEnabled(False)
         if self.S_Strength_LE.text():
             if list(self.S_Strength_LE.text())[-1] not in ['E', 'e', '+', '-']:
                 self.Strength_Factor = float(self.S_Strength_LE.text())                  # MW = J/s
@@ -3990,6 +4045,58 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                     Title = Title.replace('s\u207B\u00B9', '') + ' s\u207B\u00B9 '
             else:
                 Title = Title.replace('s\u207B\u00B9', '')
+            self.Curve_title.setText(Title.replace('  ', ' '))
+
+    def Normalize_to_Average_Max(self):
+        self.Norm_to_Heating_CB.setChecked(False)
+        self.Norm_to_Heating_CB.setEnabled(False)
+        self.Norm_to_Power_CB.setChecked(False)
+        self.Norm_to_Power_CB.setEnabled(False)
+        self.Norm_to_SStrength_CB.setEnabled(False)
+        if self.Aver_LE.text():
+            if list(self.Aver_LE.text())[-1] not in ['E', 'e', '+', '-']:
+                self.Aver_Factor = np.reciprocal(self.LE_to_List(self.Aver_LE)).tolist()
+                print(self.Aver_Factor)
+            else:
+                return
+        else:
+            self.showDialog('Warning', 'Enter tally mean first!')
+            return
+        if self.Max_LE.text():
+            if list(self.Max_LE.text())[-1] not in ['E', 'e', '+', '-']:
+                self.Max_Factor = np.reciprocal(self.LE_to_List(self.Max_LE)).tolist()
+                print(self.Max_Factor)
+            else:
+                return
+        else:
+            self.showDialog('Warning', 'Enter tally max first!')
+            return
+        
+        self.Normalize_to_Aver_Max_Units()
+        
+    def Normalize_to_Aver_Max_Units(self):
+        if 'MeshFilter' not in self.Filter_names:
+            yText0 = self.Curve_yLabel.text()
+            if self.YSecondary:
+                y2Text0 = self.Curve_y2Label.text()
+            if self.Aver_CB.isChecked() or self.Max_CB.isChecked():
+                yText = yText0.split(' ')[0] + ' arbitrary units '
+                self.Curve_yLabel.setText(yText.replace('  ', ' '))
+                if self.YSecondary:
+                    y2Text = y2Text0.split(' ')[0] + ' arbitrary units '
+                    self.Curve_y2Label.setText(y2Text.replace('  ', ' '))
+            else:
+                if self.YSecondary:
+                    y2Text = yText0
+                    self.Curve_y2Label.setText(y2Text0)
+                yText = yText0
+                self.Curve_yLabel.setText(yText0)
+        else:
+            Title0 = self.Curve_title.text()
+            if self.Aver_CB.isChecked() or self.Max_CB.isChecked():
+                Title = Title0.split(' ')[0] + ' arbitrary units '
+            else:
+                Title = Title0
             self.Curve_title.setText(Title.replace('  ', ' '))
 
     def Normalize_to_Power(self):
@@ -4151,50 +4258,50 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
     def Normalize_to_Volume(self, checked):
         # Obtain the width of Lethargy Energy
         if checked: 
-            if 'MeshFilter' not in self.Filter_names:
-                self.Volumes = self.LE_to_List(self.Vol_List_LE)
-                n_bins = 0
-                if self.n_filters > 0:
-                    if 'cell' in self.df_Keys:
-                        idx = self.Keys.index('cell')
-                        Checked_Cells = self.DATA[idx]['Checked_bins']
-                        n_bins = len(Checked_Cells)
-                    else:
-                        n_bins = 1
-                    if len(self.Volumes) != n_bins:
-                        self.showDialog('Warning', "Numbers of checked cells and entered volumes don't match!\n")
-                        self.Norm_to_Vol_CB.setChecked(False)
-                        return
+            #if 'MeshFilter' not in self.Filter_names:
+            self.Volumes = self.LE_to_List(self.Vol_List_LE)
+            n_bins = 0
+            if self.n_filters > 0:
+                if 'cell' in self.df_Keys:
+                    idx = self.Keys.index('cell')
+                    Checked_Cells = self.DATA[idx]['Checked_bins']
+                    n_bins = len(Checked_Cells)
                 else:
                     n_bins = 1
-                    if len(self.Volumes) > n_bins:
-                        self.showDialog('Warning', 'Only first value of volumes list will be affected to root cell!')
-                        self.Volumes = [self.Volumes[0]]
-                        self.Vol_List_LE.setText(str(self.Volumes[0]))
-                        Checked_Cells = self.DATA['root']['Checked_bins']
-                    elif len(self.Volumes) == 0:
-                        self.showDialog('Warning', 'Enter volume of the root cell!')
-                        self.Norm_to_Vol_CB.setChecked(False)
-                        return
+                if len(self.Volumes) != n_bins:
+                    self.showDialog('Warning', "Numbers of checked cells and entered volumes don't match!\n")
+                    self.Norm_to_Vol_CB.setChecked(False)
+                    return
+            else:
+                n_bins = 1
+                if len(self.Volumes) > n_bins:
+                    self.showDialog('Warning', 'Only first value of volumes list will be affected to root cell!')
+                    self.Volumes = [self.Volumes[0]]
+                    self.Vol_List_LE.setText(str(self.Volumes[0]))
+                    Checked_Cells = self.DATA['root']['Checked_bins']
+                elif len(self.Volumes) == 0:
+                    self.showDialog('Warning', 'Enter volume of the root cell!')
+                    self.Norm_to_Vol_CB.setChecked(False)
+                    return
 
-                df = self.df_filtered.copy()
-                count_row = df.shape[0]                
-                self.All_Volumes = np.ones(count_row)
+            df = self.df_filtered.copy()
+            count_row = df.shape[0]                
+            self.All_Volumes = np.ones(count_row)
 
-                if 'cell' in self.df_Keys:
-                    for key in self.Keys:
-                        if key == 'cell':
-                            idx = self.Keys.index(key)
-                            cells = df[key].values[:]
-                            for i in range(count_row):
-                                j = Checked_Cells.index(cells[i])
-                                self.All_Volumes[i] = self.Volumes[j]
-                else:
-                    for i in range(count_row):
-                        self.All_Volumes[i] = self.Volumes[0]
+            if 'cell' in self.df_Keys:
+                for key in self.Keys:
+                    if key == 'cell':
+                        idx = self.Keys.index(key)
+                        cells = df[key].values[:]
+                        for i in range(count_row):
+                            j = Checked_Cells.index(cells[i])
+                            self.All_Volumes[i] = self.Volumes[j]
+            else:
+                for i in range(count_row):
+                    self.All_Volumes[i] = self.Volumes[0]
 
-                self.Volume_Factor = np.reciprocal(self.All_Volumes).tolist()
-
+            self.Volume_Factor = np.reciprocal(self.All_Volumes).tolist()
+            print(str(self.Volume_Factor))
         self.Normalize_to_Volume_Units(checked)
 
     def Normalize_to_Volume_Units(self, checked):
@@ -4271,7 +4378,13 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             self.Curve_title.setText(Title)
 
     def LE_to_List(self, LineEdit):
-        text = LineEdit.text().replace('(', '').replace(')', '')
+        text = LineEdit.text()
+        if '(' in text or ')' in text:
+            text = text.replace('(', '').replace(')', '')
+            
+        if '[' in LineEdit.text() and ']' in LineEdit.text():
+            text = text[text.find('[') + 1: text.find(']')]
+        
         if '*' in text: 
             text = text.replace('*', ' * ')
         for separator in [',', ';', ':', ' ']:
@@ -4285,8 +4398,8 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             List.pop(index)
             insert_list = [List[index - 1] + ' '] * n
             List = self.insert_list_at_index(List, insert_list, index)
-        Volumes = [float(item) for item in List]
-        return Volumes
+        ToList = [float(item) for item in List]
+        return ToList
 
     def insert_list_at_index(self, main_list, insert_list, index):
         # Copy the main_list to avoid modifying it in given place
@@ -4339,7 +4452,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 if 'Keff' not in self.Tally_id_comboBox.currentText():
                     self.Plot_By_Key = self.Plot_by_CB.currentText()
                     if self.Plot_By_Key in ['mu low', 'mu center of bin']:
-                        self.Curve_xLabel.setText('$\mu$')
+                        self.Curve_xLabel.setText(r'$\mu$')
                     elif 'energy' in self.Plot_By_Key:
                         self.Curve_xLabel.setText(self.Plot_By_Key.split(' ')[0] + ' / eV')
                     elif 'polar' in self.Plot_By_Key or 'azimuthal' in self.Plot_By_Key:
@@ -4765,6 +4878,8 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                                     self.showDialog('Warning', 'More than 6 filters not supported yet!')
                                                 
                                                 cbar = fig.colorbar(im, ax=ax, aspect=20, pad=0.06, shrink=0.8)  # Match the aspect ratio
+                                                if self.Aver_CB.isChecked() or self.Max_CB.isChecked():
+                                                    Suptitle1 = score + 'arbitrary unit'
                                                 cbar.set_label(Suptitle1, rotation=270, labelpad=20)                                                
 
                                                 # Format the colorbar labels in scientific notation
@@ -5310,6 +5425,8 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         self.Graph_Layout_CB.setCurrentIndex(0)
         self.Graph_type_CB.setCurrentIndex(0)
         self.Plot_by_CB.setCurrentIndex(0)
+        self.Aver_CB.setChecked(False)
+        self.Max_CB.setChecked(False)
         self.Curve_title.clear()
         self.Curve_xLabel.clear()
         self.Curve_yLabel.clear()
