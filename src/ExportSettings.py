@@ -199,10 +199,8 @@ class ExportSettings(QWidget):
         self.Insert_Header = True
         document = text_window.toPlainText()
         lines = [item for item in document.split('\n') if item and item != '#']
-        #self.showDialog('', str(lines))
         for line in lines:
             if string_to_find in line:
-                #self.showDialog('', line[0] + str(line))
                 self.current_line = line
                 self.list_of_items.append(line[0:len(line) -1])
                 self.Insert_Header = False
@@ -550,17 +548,14 @@ class ExportSettings(QWidget):
             Particle_type = 'neutron'
         run_mode = ''
         if Settings_Lines:
-            self.showDialog('1', str(Settings_Lines))
             if '.run_mode' in '\n'.join(Settings_Lines):
                 matching_line = self.get_lines_with_string(Settings_Lines, '.run_mode')
-                self.showDialog('2', matching_line)
                 if matching_line:
                     run_mode = matching_line.split('=')[1].strip()
                     if 'fixed source' in run_mode:
                         self.Run_Mode_CB.setCurrentIndex(2)
                     elif 'eigenvalue' in run_mode:
                         self.Run_Mode_CB.setCurrentIndex(1)
-                self.showDialog('2', run_mode)
                 """for line in Settings_Lines:
                     if self.Sett + '.run_mode' in line and line[0] != '#':
                         run_mode = line.split('=')[1].strip()
