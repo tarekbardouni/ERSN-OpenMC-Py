@@ -58,8 +58,8 @@ class ExportDepletion(QWidget):
     ###############################################################################
     #                   Initialize and run depletion calculation
     ###############################################################################
-    from .func import resize_ui
-    from .func import showDialog, Exit, Find_string
+    from .func import showDialog, Exit, Find_string, resize_ui
+
     def __init__(self, v_1, Directory, Materials, Elements, Nuclides, Cells, Mats, Geom, 
                 Sett, Operator, Integrator, Deplete_Mats, Deplete_Cells, Model, Chain, Run_Mode, parent=None):
         super(ExportDepletion, self).__init__(parent)

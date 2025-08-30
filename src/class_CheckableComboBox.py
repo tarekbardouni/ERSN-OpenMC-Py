@@ -1,6 +1,7 @@
 import PyQt5
-from PyQt5 import QtWidgets
+from PyQt5 import * #QtCore, QtWidgets
 from PyQt5.QtWidgets import *
+
 
 class CheckableComboBox(QtWidgets.QComboBox):
     def __init__(self, parent = None):
@@ -57,10 +58,10 @@ class CheckableComboBox(QtWidgets.QComboBox):
         if checked:
             item.setCheckState(Qt.Checked)
         else:
-            item.setCheckState(Qt.Unchecked)
+            item.setCheckState(QtCore.Qt.Unchecked)
 
     def setItemDisabled(self, index):
         item = self.model().item(index, self.modelColumn())  # QStandardItem object
         if item:
-            item.setCheckState(Qt.Unchecked)
+            item.setCheckState(QtCore.Qt.Unchecked)
             item.setEnabled(False)

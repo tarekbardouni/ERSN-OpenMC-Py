@@ -23,6 +23,8 @@ class EmittingStream(QtCore.QObject):
 
 class ExportSettings(QWidget):
     from .func import resize_ui, showDialog, Def_Source_ToolTips, Exit, Move_Commands_to_End
+    from .class_CheckableComboBox import CheckableComboBox
+
     def __init__(self, OpenMC_Ver, v_1, Geom, Sett, Directory, Surf_list, Surf_Id_list, Cells_list, Mat_list, Univ_list, Vol_Calcs_list, 
                             Source_list, Source_Id, Strength_list, parent=None):
         super(ExportSettings, self).__init__(parent)
@@ -65,10 +67,10 @@ class ExportSettings(QWidget):
         dim_validator = QRegExpValidator(QRegExp(r'[0-9 ,;:]+'))
         int_validator = QRegExpValidator(QRegExp(r'[0-9]+'))
 
-        for item in [self.LineEdit_1, self.LineEdit_2, self.LineEdit_5, self.Particles_Number_LE]:
+        for item in [self.LineEdit_1, self.LineEdit_2, self.LineEdit_5, self.Particles_Number_LE, self.Trigger_max_batches_LE, self.Trigger_batch_interval_LE]:
             item.setValidator(int_validator)
-        for item in [self.Photon_Cut, self.Strength_LE, self.X_LL, self.Y_LL, self.Z_LL, self.X_UR, self.Y_UR, self.Z_UR,
-                     self.Energy_LE, self.Proba_LE, self.Mu_Min_LE, self.Phi_Min_LE, self.Mu_Max_LE, self.Phi_Max_LE]:
+        for item in [self.Neutron_Cut, self.Photon_Cut, self.Strength_LE, self.X_LL, self.Y_LL, self.Z_LL, self.X_UR, self.Y_UR, self.Z_UR,
+                     self.Energy_LE, self.Proba_LE, self.Mu_Min_LE, self.Phi_Min_LE, self.Mu_Max_LE, self.Phi_Max_LE, self.Keff_Trigger_Value_LE]:
             item.setValidator(Dblevalidator)
         for item in self.Entropy_LE_List[3:9]:
             item.setValidator(Dblevalidator)
@@ -143,7 +145,7 @@ class ExportSettings(QWidget):
         self.Add_Run_Mode_PB.clicked.connect(self.Run_Mode)
         self.Add_Vol_Calc_PB.clicked.connect(self.Volume_Calculation)
         self.Add_Tracks_PB.clicked.connect(self.Tracks_Settings)
-        self.Add_Trigger_PB.clicked.connect(self.Trigger_Settings)
+        self.Add_Trigger_PB.clicked.connect(self.Keff_Trigger_Settings)
         self.Add_Entropy_PB.clicked.connect(self.Entropy_Settings)
         self.Add_Source_PB.clicked.connect(self.Add_Sources)
         self.Cells_CB.currentIndexChanged.connect(self.Add_Cells_Volume)
@@ -211,14 +213,20 @@ class ExportSettings(QWidget):
             #self.list_of_cells.clear()
             if self.Cells_CB.currentIndex() != 0:
                 if self.Volume_Calc_CB.currentIndex() == 1:
-                    self.list_of_cells.append(self.cell_name_list[self.Cells_CB.currentIndex() - 1])
+                    cell = self.cell_name_list[self.Cells_CB.currentIndex() - 1]
+                    if cell not in self.list_of_cells:
+                        self.list_of_cells.append(cell)
                     self.LineEdit_3.setText(str(self.list_of_cells).replace("'", ""))
                 elif self.Volume_Calc_CB.currentIndex() == 3:
-                    self.list_of_materials.append(self.materials_name_list[self.Cells_CB.currentIndex() - 1])
+                    mat = self.materials_name_list[self.Cells_CB.currentIndex() - 1]
+                    if mat not in self.list_of_materials:
+                        self.list_of_materials.append(mat)
                     self.LineEdit_3.setText(str(self.list_of_materials).replace("'", ""))
                 elif self.Volume_Calc_CB.currentIndex() == 4:
                     if self.universes_name_list:
-                        self.list_of_universes.append(self.universes_name_list[self.Cells_CB.currentIndex() - 1])
+                        univ = self.universes_name_list[self.Cells_CB.currentIndex() - 1]
+                        if univ not in self.list_of_universes:
+                            self.list_of_universes.append(univ)
                         self.LineEdit_3.setText(str(self.list_of_universes).replace("'", ""))
                 
             self.Cells_CB.setCurrentIndex(0)
@@ -231,6 +239,9 @@ class ExportSettings(QWidget):
         self.LineEdit_4.setText('')
         self.list_of_surfaces_ids.clear()
         if self.Run_Mode_CB.currentIndex() in [0, 1, 2]:
+            self.Vol_Trigger_CB.hide()
+            self.Vol_Trigger_type_CB.hide()
+            self.Vol_Trigger_value_CB.hide()
             for item in [self.Volume_Calc_CB, self.Source_Surfaces_CB, self.Cells_CB, self.label_11,
                             self.LineEdit_4, self.LineEdit_3, self.Particles_Max_LE]:
                 item.hide()
@@ -241,7 +252,13 @@ class ExportSettings(QWidget):
                     item.setEnabled(False)
                 elif self.Run_Mode_CB.currentIndex() in [1, 2]:
                     item.setEnabled(True)
-
+            
+            self.Label_1.setText('Batches')
+            self.Label_2.setText('Inactive Batches')
+            self.Label_5.setText('Generations')
+            self.LineEdit_2.setText(str(self.inactives))
+            self.LineEdit_5.setText(str(self.generations))
+            self.Photon_Cut.setText('1000.0')
             if self.Run_Mode_CB.currentIndex() in [1, 2]:
                 self.Add_Run_Mode_PB.setEnabled(True)
                 self.Volume_Calc_CB.hide()
@@ -257,25 +274,26 @@ class ExportSettings(QWidget):
                 if self.Run_Mode_CB.currentIndex() == 1:
                     self.LineEdit_2.setEnabled(True)
                     self.Label_2.setEnabled(True)
-                    self.Label_1.setText('Batches')
-                    self.Label_2.setText('Inactive Batches')
-                    self.Label_5.setText('Generations')
-                    self.Label_37.setText('Particles')
+                    """self.Label_37.setText('Particles')
                     self.LineEdit_2.setText(str(self.inactives))
-                    self.LineEdit_5.setText(str(self.generations))
-                    self.Photon_Cut.setText('1000.0')
+                    self.LineEdit_5.setText(str(self.generations))"""
+                    
                 elif self.Run_Mode_CB.currentIndex() == 2:
                     self.LineEdit_5.show()
                     self.Label_5.show()
                     self.Volume_Calc_CB.hide()
-                    self.Label_1.setText('Batches')
-                    self.Label_5.setText('Generations')
+                    """self.Label_1.setText('Batches')
+                    self.Label_2.setText('Inactive Batches')
+                    self.Label_5.setText('Generations')"""
                     #self.LineEdit_1.setText('110')
                     self.LineEdit_2.setEnabled(False)
                     self.Label_2.setEnabled(False)
             self.LL_CheckB.hide()
             self.GeomBound_CheckB.hide()
         elif self.Run_Mode_CB.currentIndex() == 3:
+            self.Vol_Trigger_CB.show()
+            self.Vol_Trigger_type_CB.show()
+            self.Vol_Trigger_value_CB.show()
             self.LL_CheckB.show()
             self.GeomBound_CheckB.show()
             self.Add_Run_Mode_PB.setEnabled(False)
@@ -461,13 +479,13 @@ class ExportSettings(QWidget):
             self.Generation_List.append(str(generation))
         for particle in range(1, particles + 1):
             self.Particle_List.append(str(particle))
-        self.Batch_Bins_comboBox = CheckableComboBox()
+        self.Batch_Bins_comboBox = self.CheckableComboBox()
         self.Batch_Bins_comboBox.addItem('Check Batches')
         self.Batch_Bins_comboBox.addItems(self.Batch_List)
-        self.Gen_Bins_comboBox = CheckableComboBox()
+        self.Gen_Bins_comboBox = self.CheckableComboBox()
         self.Gen_Bins_comboBox.addItem('Check Generations')
         self.Gen_Bins_comboBox.addItems(self.Generation_List)
-        self.Particle_Bins_comboBox = CheckableComboBox()
+        self.Particle_Bins_comboBox = self.CheckableComboBox()
         self.Particle_Bins_comboBox.addItem('Check Particles')
         self.Particle_Bins_comboBox.addItems(self.Particle_List)
         self.Tracks_Grid_Lay.addWidget(self.Batch_Bins_comboBox)
@@ -492,9 +510,16 @@ class ExportSettings(QWidget):
             print(self.Sett + ".batches = " + str(self.LineEdit_1.text()) + '\n')
             print(self.Sett + ".generations_per_batch = " + str(self.LineEdit_5.text()) + "\n")
         if self.Run_Mode_CB.currentIndex() in [1, 2]:
+            if self.Neutron_Cut.text() != "":    
+                print(self.Sett + ".cutoff = {}")
+                print(self.Sett + ".cutoff['energy_neutron'] = " + self.Neutron_Cut.text())
+            else:
+                if self.Photon_CB.isChecked() and self.Photon_Cut.text() != "":
+                    print(self.Sett + ".cutoff = {}")
             if self.Photon_CB.isChecked():
                 print(self.Sett + ".photon_transport = True")
-                print(self.Sett + ".cutoff = {'energy_photon' : " + self.Photon_Cut.text() + " }")
+                if self.Photon_Cut.text() != "":
+                    print(self.Sett + ".cutoff['energy_photon'] = " + self.Photon_Cut.text())
                 if self.ttb_RB.isChecked():
                     print(self.Sett + ".electron_treatment = 'ttb'")
                 elif self.led_RB.isChecked():
@@ -533,10 +558,12 @@ class ExportSettings(QWidget):
         if 'openmc.Settings' not in document:
             return        
         electron_treatment = 'ttb'
+        Particle_type = 'neutron'
         cursor = self.plainTextEdit.textCursor()
         doc_lines = [line for line in document.split('\n') if line != '' and line[0] != '#']
         #Settings_Lines = [line for line in doc_lines if self.Sett + '.' in line]
-        Settings_Lines = self.extract_lines_between_markers(doc_lines, self.Sett, self.Sett + '.export_to_xml()')
+        #Settings_Lines = self.extract_lines_between_markers(doc_lines, self.Sett, self.Sett + '.export_to_xml()')
+        Settings_Lines = self.extract_lines_between_markers(doc_lines, 'openmc.Settings()', self.Sett + '.export_to_xml()')
         Source_Line = [line for line in doc_lines if 'openmc.Source' in line]
         if Source_Line:
             for line in Source_Line:
@@ -556,15 +583,6 @@ class ExportSettings(QWidget):
                         self.Run_Mode_CB.setCurrentIndex(2)
                     elif 'eigenvalue' in run_mode:
                         self.Run_Mode_CB.setCurrentIndex(1)
-                """for line in Settings_Lines:
-                    if self.Sett + '.run_mode' in line and line[0] != '#':
-                        run_mode = line.split('=')[1].strip()
-                        self.showDialog('2', run_mode)
-                        if 'fixed source' in run_mode:
-                            self.Run_Mode_CB.setCurrentIndex(2)
-                        elif 'eigenvalue' in run_mode:
-                            self.Run_Mode_CB.setCurrentIndex(1)
-                        break"""
             else:
                 if 'VolumeCalculation' in '\n'.join(Settings_Lines):
                     self.Run_Mode_CB.setCurrentIndex(3)
@@ -602,9 +620,18 @@ class ExportSettings(QWidget):
                         self.ttb_RB.setEnabled(False)
                         self.led_RB.setEnabled(False)
                 elif self.Sett + '.cutoff' in line.replace(" ", "").split('=')[0]:
-                    photon_cutoff = line.split(':')[1].replace('}', '').strip()
-                    #self.Photon_Cut.setText(str(photon_cutoff))
-                    self.Find_Settings_Parameters(Settings_Lines, self.Photon_Cut, photon_cutoff)
+                    if 'energy_photon' in line:
+                        if '{' in line:
+                            photon_cutoff = line.split(':')[1].replace('}', '').strip()
+                        else:
+                            photon_cutoff = line.strip().split('=')[1]
+                        self.Find_Settings_Parameters(Settings_Lines, self.Photon_Cut, photon_cutoff)
+                    if 'energy_neutron' in line:
+                        if '{' in line:
+                            neutron_cutoff = line.split(':')[1].replace('}', '').strip()
+                        else:
+                            neutron_cutoff = line.strip().split('=')[1]
+                        self.Find_Settings_Parameters(Settings_Lines, self.Neutron_Cut, neutron_cutoff)
                 elif self.Sett + '.electron_treatment' in line.replace(" ", "").split('=')[0]:
                     electron_treatment = line.split('=')[1].strip()
                         
@@ -792,13 +819,14 @@ class ExportSettings(QWidget):
                                 print(" ]")
                                 print(self.Sett + ".volume_calculations = vol_calcs")
                             if self.Vol_Trigger_CB.isChecked():
-                                if self.Trigger_value_CB.currentIndex() == 0:
+                                if self.Vol_Trigger_value_CB.currentIndex() == 0:
                                     self.showDialog('Warning', 'Select threshold value !')
                                     return
-                                if self.Trigger_type_CB.currentIndex() == 0:
+                                if self.Vol_Trigger_type_CB.currentIndex() == 0:
                                     self.showDialog('Warning', 'Select statistical quantity to apply threshold on !')
                                     return
-                                print('vol_calcs.set_trigger(' + self.Trigger_value_CB.currentText() + ', ' + self.Trigger_type_CB.currentText() +')')
+                                print('for vol_calc in vol_calcs:')
+                                print('\tvol_calc.set_trigger(' + self.Vol_Trigger_value_CB.currentText() + ', ' + self.Vol_Trigger_type_CB.currentText() +')')
 
         self.Volume_Calc_CB.setCurrentIndex(0)
         self.Cells_CB.hide()
@@ -861,7 +889,7 @@ class ExportSettings(QWidget):
         except:
             self.showDialog('Warning', 'No batch is defined for track recording!')
 
-    def Trigger_Settings(self):
+    def Keff_Trigger_Settings(self):
         # /////////////////////////   Trigger Setting   /////////////////////////
         self.Import_OpenMC()
         self.Find_string(self.v_1, "openmc.Settings")
@@ -873,15 +901,20 @@ class ExportSettings(QWidget):
             else:
                 pass
         
-        if self.Zeroes_CB.currentText() == 'True':
-            print(self.Sett + ".keff_trigger = {'type' : '" + self.Type_CB.currentText() + \
-                                                       "', 'threshold' : " + self.Threshold_LE.text() + self.Threshold_CB.currentText()  + \
-                                                       ", 'ignore_zeros' : " + self.Zeroes_CB.currentText() + '}')
-        else:    
-            print(self.Sett + ".keff_trigger = {'type' : '" + self.Type_CB.currentText() + \
-                                                       "', 'threshold' : " + self.Threshold_LE.text() + self.Threshold_CB.currentText() +'}')
-        print(self.Sett + '.trigger_active = ' + self.Trigger_Active_CB.currentText())
-        print(self.Sett + '.trigger_max_batches = ' + self.Trigger_max_batches_LE.text() + '\n')
+        if self.Trigger_Active_CB.currentText() == 'True':
+            if self.Trigger_max_batches_LE.text().isdigit():
+                print(self.Sett + ".keff_trigger = {'type' : '" + self.Keff_Trigger_Type_CB.currentText() + \
+                    "', 'threshold' : " + self.Keff_Trigger_Value_LE.text() + self.Threshold_CB.currentText() +'}')
+                print(self.Sett + '.trigger_active = ' + self.Trigger_Active_CB.currentText())
+                print(self.Sett + '.trigger_max_batches = ' + self.Trigger_max_batches_LE.text() + '\n')
+                if self.Trigger_batch_interval_LE.text().isdigit():
+                    print(self.Sett + '.trigger_batch_interval = ' + self.Trigger_batch_interval_LE.text())
+            else:
+                self.showDialog('Warning', 'Trigger needs maximum number of batches to be given as an integer!')
+                return
+        else:
+            print(self.Sett + ".keff_trigger = {'type' : '" + self.Keff_Trigger_Type_CB.currentText() + \
+            "', 'threshold' : " + self.Keff_Trigger_Value_LE.text() + self.Threshold_CB.currentText() +'}')
 
     def Entropy_Settings(self):
         # /////////////////////////   Entropy Setting   /////////////////////////
@@ -1722,66 +1755,3 @@ class ExportSettings(QWidget):
         cursor = self.plainTextEdit.textCursor()
         cursor.insertText(text)
 
-
-class CheckableComboBox(QtWidgets.QComboBox):
-    def __init__(self, parent = None):
-        super(CheckableComboBox, self).__init__(parent)
-        self._changed = False
-        self.setView(QtWidgets.QListView(self))
-        self.view().pressed.connect(self.handleItemPressed)
-        self.setModel(PyQt5.QtGui.QStandardItemModel(self))
-
-    def handleItemPressed(self, index):
-        item = self.model().itemFromIndex(index)
-        if item.checkState() == QtCore.Qt.Checked:
-            item.setCheckState(QtCore.Qt.Unchecked)
-            self.undo_action(index.row())
-        else:
-            item.setCheckState(QtCore.Qt.Checked)
-            self.do_action(index.row())
-        self._changed = True
-
-    def do_action(self, index):
-        if self.model().item(index).text() == 'All bins' and self.model().item(1, 0).checkState() == QtCore.Qt.Checked:
-            for i in range(2, self.count()):
-                self.model().item(i, 0).setCheckState(QtCore.Qt.Checked)
-
-    def undo_action(self, index):
-        if self.model().item(index).text() == 'All bins' and self.model().item(1, 0).checkState() != QtCore.Qt.Checked:
-            for i in range(1, self.count()):    #  2
-                self.model().item(i, 0).setCheckState(QtCore.Qt.Unchecked)
-        else:
-            try:    
-                self.model().item(1, 0).setCheckState(QtCore.Qt.Unchecked)
-            except:
-                pass
-
-    def checkedItems(self):
-        checkedItems = []
-        for index in range(self.count()):
-            item = self.model().item(index)
-            if item.checkState() == QtCore.Qt.Checked:
-                checkedItems.append(index)
-        return checkedItems
-
-    def hidePopup(self):
-        if not self._changed:
-            super().hidePopup()
-        self._changed = False
-
-    def itemChecked(self, index):
-        item = self.model().item(index, self.modelColumn())
-        return item.checkState() == Qt.Checked
-
-    def setItemChecked(self, index, checked=False):
-        item = self.model().item(index, self.modelColumn())  # QStandardItem object
-        if checked:
-            item.setCheckState(Qt.Checked)
-        else:
-            item.setCheckState(Qt.Unchecked)
-
-    def setItemDisabled(self, index):
-        item = self.model().item(index, self.modelColumn())  # QStandardItem object
-        if item:
-            item.setCheckState(Qt.Unchecked)
-            item.setEnabled(False)
