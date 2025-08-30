@@ -56,13 +56,13 @@ insteade of : python3 gui.py
 
 6. install prerequisites
 	- Before installing prerequisites it is better to update miniconda on terminal or from the gui.
-	- If the update frozes in "Solving environment" step an issue is:
+	- If the update freezes in "Solving environment" step an issue is:
 		- delete the file : ~/.condarc
 		- then set channel priority : conda config --set channel_priority flexible
 
 
 	It's better to close the gui after prequisites installing is finished, then in a terminal activate the created openmc environment, 
-         for example: conda activate openmc-py3.7
+         for example: conda activate openmc-py3.13
          
 	If you can not run the gui because pyqt5 is not installed under conda, try the command in a terminal : 
          ==> Command : pip install pyqt5
@@ -85,7 +85,7 @@ E/ runing openmc under the GUI
 
 	Use the script bellow to lunch the gui to run openmc :
 
-		conda activate openmc-py3.7
+		conda activate openmc-py3.13
 
 		export OPENMC_CROSS_SECTIONS=$HOME/Py-OpenMC-2024/data/endfb71_hdf5/cross_sections.xml      if endfb71_hdf5 has been downloaded
 
@@ -108,8 +108,12 @@ F/ OpenMC could fail when installed under python 3.11
 	by
 	argspec = inspect.getfullargspec(f)
 
+G/ If you get the following message due to KDE graphical display:
+	qt.glx: qglx_findConfig: Failed to finding matching FBConfig for QSurfaceFormat
 
-G/ Installing on Linux with Conda
+	run this command: conda install -c conda-forge libstdcxx-ng
+
+H/ Installing on Linux with Conda
 	Once you have conda (Anaconda) installed on your system, OpenMC can be installed via the conda-forge channel.
 	First, add the conda-forge channel with:
 		conda config --add channels conda-forge

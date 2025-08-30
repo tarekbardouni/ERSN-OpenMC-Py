@@ -129,13 +129,13 @@ class Application(QtWidgets.QMainWindow):
         self.Surfaces_key_list = ['Plane', 'XPlane', 'YPlane', 'ZPlane', 'Sphere', 'XCylinder', 'YCylinder', 
                               'ZCylinder', 'Cone', 'XCone', 'YCone', 'Zcone', 'Quadric', 'XTorus', 'YTorus', 
                               'ZTorus', 'model.rectangular_prism', 'model.hexagonal_prism']
-        self.Filters_key_list = ['UniverseFilter', 'MaterialFilter', 'CellFilter', 'CellFromFilter', 'CellbornFilter',
+        self.Filters_key_list = ['UniverseFilter', 'MaterialFilter', 'CellFilter', 'CellFromFilter', 'CellBornFilter',
                                  'CellInstanceFilter', 'SurfaceFilter', 'MeshFilter', 'MeshSurfaceFilter',
                                  'DistribcellFilter', 'CollisionFilter', 'EnergyFilter', 'EnergyoutFilter',
                                  'MuFilter', 'PolarFilter', 'AzimuthalFilter', 'DelayedGroupFilter', 'EnergyFunctionFilter',
                                  'LegendreFilter', 'SpatialLegendreFilter', 'SphericalHarmonicsFilter', 'ZernikeFilter',
                                  'ZernikeRadialFilter', 'ParticleFilter', 'TimeFilter']
-        self.Filters_key_sub_list = ['CellFilter', 'CellFromFilter', 'CellbornFilter', 'CellInstanceFilter']
+        self.Filters_key_sub_list = ['CellFilter', 'CellFromFilter', 'CellBornFilter', 'CellInstanceFilter']
 
         if self.openmc_version >= 141:
             self.Surfaces_key_list[16] = 'model.RectangularPrism'
@@ -1185,6 +1185,8 @@ class Application(QtWidgets.QMainWindow):
             if '#' in Batches:
                 Batches = Batches.split('#', 1)[0]
             self.StatePoint = self.directory + '/statepoint.' + Batches + '.h5'
+            if glob.glob(self.directory + '/statepoint*.h5'):
+                self.StatePoints = glob.glob(self.directory + '/statepoint*.h5')
         else:
             self.StatePoint = None
         if Components_lines["openmc.Geometry"]:
@@ -1505,7 +1507,7 @@ class Application(QtWidgets.QMainWindow):
         self.Depletion_file = ''
         self.Chain = ''
         self.detect_components()
-        self.interface = TallyDataProcessing(self.directory, self.StatePoint, self.Depletion_file, self.Chain)
+        self.interface = TallyDataProcessing(self.directory, self.StatePoint, self.StatePoints, self.Depletion_file, self.Chain)
         self.interface.show()
 
     def Python_Depletion(self): 
@@ -1720,12 +1722,14 @@ class Application(QtWidgets.QMainWindow):
                                 
         # remove statepoint and summary h5 files
         Summary_H5file = self.directory + '/summary.h5'
+        Statepoint_H5Files = glob.glob(self.directory + '/statepoint*.h5')
         try:
-            if os.path.exists(self.StatePoint) or os.path.exists(Summary_H5file): 
+            if len(Statepoint_H5Files) != 0 or os.path.exists(Summary_H5file): 
                 reply = QMessageBox.question(self, "Message",
                 "Are you sure you want to delete summary and statepoint files ?\nIf a previous simulation results will be used press No!", QMessageBox.No, QMessageBox.Yes)
                 if reply == QMessageBox.Yes:
-                    os.remove(self.StatePoint)  
+                    for file in Statepoint_H5Files:
+                        os.remove(file)  
                     os.remove(Summary_H5file) 
         except:
             pass
@@ -3140,7 +3144,7 @@ class VLine(QFrame):
 
 
 
-version = '1.4.0'
+version = '1.4.1'
 qapp = QApplication(sys.argv)  
 app  = Application(u'ERSN-OpenMC-Py')
 qapp.setStyleSheet("QPushButton { background-color: palegoldenrod; border-width: 2px; border-color: darkkhaki}"
