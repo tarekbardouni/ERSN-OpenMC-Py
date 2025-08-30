@@ -697,6 +697,11 @@
                    </item>
                    <item>
                     <property name="text">
+                     <string>periodic</string>
+                    </property>
+                   </item>
+                   <item>
+                    <property name="text">
                      <string>white</string>
                     </property>
                    </item>
@@ -1491,7 +1496,7 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QFrame" name="">
+                  <widget class="QFrame" name="frame">
                    <layout class="QHBoxLayout" name="horizontalLayout_2">
                     <item>
                      <widget class="QPushButton" name="pushButton_7">

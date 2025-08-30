@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1350</width>
-    <height>565</height>
+    <height>636</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -157,7 +157,7 @@
          </size>
         </property>
         <property name="currentIndex">
-         <number>0</number>
+         <number>1</number>
         </property>
         <widget class="QWidget" name="tab_3">
          <attribute name="title">
@@ -860,145 +860,30 @@
           <string>Create tallies</string>
          </attribute>
          <layout class="QGridLayout" name="gridLayout_17">
-          <item row="6" column="0">
-           <widget class="QGroupBox" name="groupBox_12">
-            <property name="title">
-             <string>Scores</string>
+          <item row="0" column="1">
+           <widget class="QGroupBox" name="groupBox_18">
+            <property name="minimumSize">
+             <size>
+              <width>120</width>
+              <height>0</height>
+             </size>
             </property>
-            <layout class="QGridLayout" name="gridLayout_13">
-             <item row="0" column="0">
-              <layout class="QGridLayout" name="gridLayout_14">
-               <item row="0" column="0">
-                <widget class="QComboBox" name="FluxScores_CB">
-                 <property name="maximumSize">
-                  <size>
-                   <width>163</width>
-                   <height>16777215</height>
-                  </size>
-                 </property>
-                 <item>
-                  <property name="text">
-                   <string>Flux scores</string>
-                  </property>
-                 </item>
-                </widget>
-               </item>
-               <item row="0" column="1">
-                <widget class="QComboBox" name="RxnRates_CB">
-                 <property name="minimumSize">
-                  <size>
-                   <width>163</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                 <item>
-                  <property name="text">
-                   <string>Reaction scores</string>
-                  </property>
-                 </item>
-                </widget>
-               </item>
-               <item row="1" column="0">
-                <widget class="QComboBox" name="PartProduction_CB">
-                 <property name="maximumSize">
-                  <size>
-                   <width>163</width>
-                   <height>16777215</height>
-                  </size>
-                 </property>
-                 <item>
-                  <property name="text">
-                   <string>Particle production scores</string>
-                  </property>
-                 </item>
-                </widget>
-               </item>
-               <item row="1" column="1">
-                <widget class="QComboBox" name="MiscScores_CB">
-                 <item>
-                  <property name="text">
-                   <string>Miscellaneous scores</string>
-                  </property>
-                 </item>
-                </widget>
-               </item>
-               <item row="0" column="2">
-                <widget class="QComboBox" name="Estimator_CB">
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                   <horstretch>0</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
-                 </property>
-                 <property name="minimumSize">
-                  <size>
-                   <width>120</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                 <property name="maximumSize">
-                  <size>
-                   <width>1111</width>
-                   <height>22</height>
-                  </size>
-                 </property>
-                 <property name="currentText">
-                  <string>Select estimator</string>
-                 </property>
-                 <property name="currentIndex">
-                  <number>0</number>
-                 </property>
-                 <item>
-                  <property name="text">
-                   <string>Select estimator</string>
-                  </property>
-                 </item>
-                </widget>
-               </item>
-               <item row="4" column="0" colspan="2">
-                <widget class="QLineEdit" name="ScoresList_LE"/>
-               </item>
-               <item row="4" column="2">
-                <layout class="QHBoxLayout" name="horizontalLayout_5">
-                 <item>
-                  <widget class="QPushButton" name="UndoScores_PB">
-                   <property name="text">
-                    <string>undo</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QPushButton" name="ResetScores_PB">
-                   <property name="text">
-                    <string>reset</string>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-              </layout>
-             </item>
-            </layout>
-           </widget>
-          </item>
-          <item row="2" column="1">
-           <widget class="QGroupBox" name="groupBox_6">
             <property name="title">
              <string/>
             </property>
-            <layout class="QGridLayout" name="gridLayout_16">
+            <layout class="QGridLayout" name="gridLayout_22">
              <item row="0" column="0">
-              <widget class="QPushButton" name="AddFilters_PB">
+              <widget class="QPushButton" name="AddTally_PB">
                <property name="text">
-                <string>Add Filter</string>
+                <string>Create Tally</string>
                </property>
               </widget>
              </item>
             </layout>
            </widget>
           </item>
-          <item row="3" column="0">
-           <spacer name="verticalSpacer_4">
+          <item row="5" column="0">
+           <spacer name="verticalSpacer_5">
             <property name="orientation">
              <enum>Qt::Vertical</enum>
             </property>
@@ -1012,6 +897,103 @@
              </size>
             </property>
            </spacer>
+          </item>
+          <item row="6" column="1">
+           <widget class="QGroupBox" name="groupBox_19">
+            <property name="title">
+             <string/>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_28">
+             <item row="0" column="0">
+              <widget class="QPushButton" name="AddScore_PB">
+               <property name="text">
+                <string>Add Scores</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item row="4" column="0">
+           <widget class="QGroupBox" name="groupBox">
+            <property name="title">
+             <string>Nuclides</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_2">
+             <item row="0" column="0">
+              <layout class="QGridLayout" name="gridLayout">
+               <item row="0" column="0">
+                <widget class="QComboBox" name="Nuclides_CB">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>163</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>26</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <widget class="QLineEdit" name="Nuclides_Bins_List_LE">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>26</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item row="0" column="1">
+              <layout class="QHBoxLayout" name="horizontalLayout_3">
+               <item>
+                <widget class="QPushButton" name="UndoNucl_PB">
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>26</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>undo</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="ResetNucl_PB">
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>26</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>reset</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
           </item>
           <item row="2" column="0">
            <widget class="QGroupBox" name="groupBox_5">
@@ -1035,10 +1017,29 @@
                    <height>0</height>
                   </size>
                  </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>26</height>
+                  </size>
+                 </property>
                 </widget>
                </item>
                <item row="0" column="1">
-                <widget class="QLineEdit" name="Filters_List_LE"/>
+                <widget class="QLineEdit" name="Filters_List_LE">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>26</height>
+                  </size>
+                 </property>
+                </widget>
                </item>
               </layout>
              </item>
@@ -1046,6 +1047,18 @@
               <layout class="QHBoxLayout" name="horizontalLayout_4">
                <item>
                 <widget class="QPushButton" name="UndoFilter_PB">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>26</height>
+                  </size>
+                 </property>
                  <property name="text">
                   <string>undo</string>
                  </property>
@@ -1053,6 +1066,18 @@
                </item>
                <item>
                 <widget class="QPushButton" name="ResetFilter_PB">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>26</height>
+                  </size>
+                 </property>
                  <property name="text">
                   <string>reset</string>
                  </property>
@@ -1063,53 +1088,21 @@
             </layout>
            </widget>
           </item>
-          <item row="6" column="1">
-           <widget class="QGroupBox" name="groupBox_19">
+          <item row="2" column="1">
+           <widget class="QGroupBox" name="groupBox_6">
             <property name="title">
              <string/>
             </property>
-            <layout class="QGridLayout" name="gridLayout_28">
+            <layout class="QGridLayout" name="gridLayout_16">
              <item row="0" column="0">
-              <widget class="QPushButton" name="AddScore_PB">
+              <widget class="QPushButton" name="AddFilters_PB">
                <property name="text">
-                <string>Add Scores</string>
+                <string>Add Filter</string>
                </property>
               </widget>
              </item>
             </layout>
            </widget>
-          </item>
-          <item row="4" column="1">
-           <widget class="QGroupBox" name="groupBox_2">
-            <property name="title">
-             <string/>
-            </property>
-            <layout class="QGridLayout" name="gridLayout_4">
-             <item row="0" column="0">
-              <widget class="QPushButton" name="AddNuclides_PB">
-               <property name="text">
-                <string>Add Nuclides</string>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </widget>
-          </item>
-          <item row="1" column="0">
-           <spacer name="verticalSpacer_3">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
-            </property>
-            <property name="sizeType">
-             <enum>QSizePolicy::Maximum</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>20</width>
-              <height>40</height>
-             </size>
-            </property>
-           </spacer>
           </item>
           <item row="0" column="0">
            <widget class="QGroupBox" name="groupBox_13">
@@ -1145,10 +1138,42 @@
                 </widget>
                </item>
                <item row="1" column="0">
-                <widget class="QLineEdit" name="Tally_LE"/>
+                <widget class="QLineEdit" name="Tally_LE">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>26</height>
+                  </size>
+                 </property>
+                </widget>
                </item>
                <item row="1" column="1">
-                <widget class="QLineEdit" name="TallyId_LE"/>
+                <widget class="QLineEdit" name="TallyId_LE">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>26</height>
+                  </size>
+                 </property>
+                </widget>
                </item>
                <item row="2" column="0" colspan="2">
                 <widget class="QCheckBox" name="AddTallyId_CB">
@@ -1168,7 +1193,20 @@
                 </widget>
                </item>
                <item row="1" column="2">
-                <widget class="QLineEdit" name="TallyName_LE"/>
+                <widget class="QLineEdit" name="TallyName_LE">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>26</height>
+                  </size>
+                 </property>
+                </widget>
                </item>
                <item row="0" column="2">
                 <widget class="QLabel" name="label_12">
@@ -1182,38 +1220,151 @@
             </layout>
            </widget>
           </item>
-          <item row="0" column="1">
-           <widget class="QGroupBox" name="groupBox_18">
-            <property name="minimumSize">
-             <size>
-              <width>120</width>
-              <height>0</height>
-             </size>
-            </property>
+          <item row="4" column="1">
+           <widget class="QGroupBox" name="groupBox_2">
             <property name="title">
              <string/>
             </property>
-            <layout class="QGridLayout" name="gridLayout_22">
+            <layout class="QGridLayout" name="gridLayout_4">
              <item row="0" column="0">
-              <widget class="QPushButton" name="AddTally_PB">
+              <widget class="QPushButton" name="AddNuclides_PB">
                <property name="text">
-                <string>Create Tally</string>
+                <string>Add Nuclides</string>
                </property>
               </widget>
              </item>
             </layout>
            </widget>
           </item>
-          <item row="4" column="0">
-           <widget class="QGroupBox" name="groupBox">
-            <property name="title">
-             <string>Nuclides</string>
+          <item row="8" column="0">
+           <spacer name="verticalSpacer_6">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
             </property>
-            <layout class="QGridLayout" name="gridLayout_2">
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="3" column="0">
+           <spacer name="verticalSpacer_4">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Maximum</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="6" column="0">
+           <widget class="QGroupBox" name="groupBox_12">
+            <property name="minimumSize">
+             <size>
+              <width>120</width>
+              <height>140</height>
+             </size>
+            </property>
+            <property name="title">
+             <string>Scores</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_13">
              <item row="0" column="0">
-              <layout class="QGridLayout" name="gridLayout">
+              <layout class="QGridLayout" name="gridLayout_14">
                <item row="0" column="0">
-                <widget class="QComboBox" name="Nuclides_CB">
+                <widget class="QComboBox" name="FluxScores_CB">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>26</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>163</width>
+                   <height>26</height>
+                  </size>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>Flux scores</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <widget class="QComboBox" name="RxnRates_CB">
+                 <property name="minimumSize">
+                  <size>
+                   <width>163</width>
+                   <height>26</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>26</height>
+                  </size>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>Reaction scores</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="1" column="0">
+                <widget class="QComboBox" name="PartProduction_CB">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>26</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>163</width>
+                   <height>26</height>
+                  </size>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>Particle production scores</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="1" column="1">
+                <widget class="QComboBox" name="MiscScores_CB">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>26</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>26</height>
+                  </size>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>Miscellaneous scores</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="0" column="2">
+                <widget class="QComboBox" name="Estimator_CB">
                  <property name="sizePolicy">
                   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                    <horstretch>0</horstretch>
@@ -1222,40 +1373,94 @@
                  </property>
                  <property name="minimumSize">
                   <size>
-                   <width>163</width>
-                   <height>0</height>
+                   <width>120</width>
+                   <height>26</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>1111</width>
+                   <height>26</height>
+                  </size>
+                 </property>
+                 <property name="currentText">
+                  <string>Select estimator</string>
+                 </property>
+                 <property name="currentIndex">
+                  <number>0</number>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>Select estimator</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="4" column="0" colspan="2">
+                <widget class="QLineEdit" name="ScoresList_LE">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>26</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>26</height>
                   </size>
                  </property>
                 </widget>
                </item>
-               <item row="0" column="1">
-                <widget class="QLineEdit" name="Nuclides_Bins_List_LE"/>
-               </item>
-              </layout>
-             </item>
-             <item row="0" column="1">
-              <layout class="QHBoxLayout" name="horizontalLayout_3">
-               <item>
-                <widget class="QPushButton" name="UndoNucl_PB">
-                 <property name="text">
-                  <string>undo</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QPushButton" name="ResetNucl_PB">
-                 <property name="text">
-                  <string>reset</string>
-                 </property>
-                </widget>
+               <item row="4" column="2">
+                <layout class="QHBoxLayout" name="horizontalLayout_5">
+                 <item>
+                  <widget class="QPushButton" name="UndoScores_PB">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>26</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>16777215</width>
+                     <height>26</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>undo</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="ResetScores_PB">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>26</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>16777215</width>
+                     <height>26</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>reset</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
                </item>
               </layout>
              </item>
             </layout>
            </widget>
           </item>
-          <item row="5" column="0">
-           <spacer name="verticalSpacer_5">
+          <item row="1" column="0">
+           <spacer name="verticalSpacer_3">
             <property name="orientation">
              <enum>Qt::Vertical</enum>
             </property>
@@ -1271,17 +1476,152 @@
            </spacer>
           </item>
           <item row="7" column="0">
-           <spacer name="verticalSpacer_6">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
+           <widget class="QGroupBox" name="Tally_Trigger_GB">
+            <property name="maximumSize">
              <size>
-              <width>20</width>
-              <height>40</height>
+              <width>16777215</width>
+              <height>100</height>
              </size>
             </property>
-           </spacer>
+            <property name="title">
+             <string>Trigger</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_27">
+             <item row="0" column="0">
+              <layout class="QGridLayout" name="gridLayout_25">
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_6">
+                 <property name="maximumSize">
+                  <size>
+                   <width>150</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>Type</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="3">
+                <layout class="QGridLayout" name="Trig_Scores_GL"/>
+               </item>
+               <item row="2" column="1" colspan="2">
+                <widget class="QLineEdit" name="Tally_Trigger_Threshold_LE">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>120</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>150</width>
+                   <height>26</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1" colspan="2">
+                <widget class="QLabel" name="label_9">
+                 <property name="maximumSize">
+                  <size>
+                   <width>150</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>Threshold</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="3">
+                <widget class="QLabel" name="label_13">
+                 <property name="minimumSize">
+                  <size>
+                   <width>150</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>Scores</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="4">
+                <widget class="QCheckBox" name="Ignore_Zeroes_CB">
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>26</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>Ignore zeroes</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="0">
+                <widget class="QComboBox" name="Tally_Trigger_Type">
+                 <property name="minimumSize">
+                  <size>
+                   <width>120</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>150</width>
+                   <height>26</height>
+                  </size>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>Select type</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>'variance'</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>'std_dev'</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>'rel_err'</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item row="7" column="1">
+           <widget class="QGroupBox" name="groupBox_7">
+            <property name="title">
+             <string/>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_29">
+             <item row="0" column="0">
+              <widget class="QPushButton" name="Add_Trigger_PB">
+               <property name="text">
+                <string>Add Trigger</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
           </item>
          </layout>
         </widget>
@@ -1296,8 +1636,8 @@
  <connections/>
  <buttongroups>
   <buttongroup name="buttonGroup_4"/>
+  <buttongroup name="buttonGroup_2"/>
   <buttongroup name="buttonGroup"/>
   <buttongroup name="buttonGroup_3"/>
-  <buttongroup name="buttonGroup_2"/>
  </buttongroups>
 </ui>
