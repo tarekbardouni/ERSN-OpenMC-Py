@@ -64,10 +64,10 @@ tab = chr(9)
 eof = "\n"
 iconsize = QSize(24, 24)
 
-# look if miniconda3 is installed
+# look if conda3 is installed
 CONDA = subprocess.run(['which', 'conda'], stdout=subprocess.PIPE, text=True)
 CONDA = CONDA.stdout.rstrip('\n')
-if "miniconda3" in CONDA:
+if "conda3" in CONDA:
     try:
         from src.TallyDataProcessing import TallyDataProcessing
     except:
@@ -81,6 +81,18 @@ class Application(QtWidgets.QMainWindow):
     from src.func import Surf,Cell,Hex_Lat,Rec_Lat,Comment,Mat,Settings,Tally
     from src.func import Filter,Mesh,Ass_Sep,CMDF,Plot_S,Plot_V
     from src.func import showDialog, CursorPosition
+
+    def get_openmc_version(self):
+        import re
+        try:
+            # Run 'openmc --version' and capture output
+            output = subprocess.check_output(["openmc", "--version"], text=True)
+            # Extract version (e.g., "OpenMC version 0.15.3-dev55" → "0.15.3-dev55")
+            version = re.search(r"OpenMC version (.+)", output).group(1)
+            return version.strip()
+        except Exception as e:
+            print(f"Error getting OpenMC version: {e}")
+            return "0.0.0"  # Fallback
 
     def __init__(self, title= "Py_ERSN_OpenMC", parent=None):
         super(Application, self).__init__(parent)
@@ -98,8 +110,10 @@ class Application(QtWidgets.QMainWindow):
         try:
             import openmc
             from openmc import __version__
-            self.openmc_Ver = __version__
-            self.openmc_version = int(''.join(__version__.split('.')[:3]))
+            #self.openmc_Ver = __version__d
+            self.openmc_Ver = self.get_openmc_version()
+            #self.openmc_version = int(''.join(__version__.split('.')[:3]))
+            self.openmc_version = int(''.join(self.openmc_Ver.split('.')[:3]))
         except:
             self.openmc_version = 0
             
@@ -115,13 +129,13 @@ class Application(QtWidgets.QMainWindow):
         self.Surfaces_key_list = ['Plane', 'XPlane', 'YPlane', 'ZPlane', 'Sphere', 'XCylinder', 'YCylinder', 
                               'ZCylinder', 'Cone', 'XCone', 'YCone', 'Zcone', 'Quadric', 'XTorus', 'YTorus', 
                               'ZTorus', 'model.rectangular_prism', 'model.hexagonal_prism']
-        self.Filters_key_list = ['UniverseFilter', 'MaterialFilter', 'CellFilter', 'CellFromFilter', 'CellbornFilter',
+        self.Filters_key_list = ['UniverseFilter', 'MaterialFilter', 'CellFilter', 'CellFromFilter', 'CellBornFilter',
                                  'CellInstanceFilter', 'SurfaceFilter', 'MeshFilter', 'MeshSurfaceFilter',
                                  'DistribcellFilter', 'CollisionFilter', 'EnergyFilter', 'EnergyoutFilter',
                                  'MuFilter', 'PolarFilter', 'AzimuthalFilter', 'DelayedGroupFilter', 'EnergyFunctionFilter',
                                  'LegendreFilter', 'SpatialLegendreFilter', 'SphericalHarmonicsFilter', 'ZernikeFilter',
                                  'ZernikeRadialFilter', 'ParticleFilter', 'TimeFilter']
-        self.Filters_key_sub_list = ['CellFilter', 'CellFromFilter', 'CellbornFilter', 'CellInstanceFilter']
+        self.Filters_key_sub_list = ['CellFilter', 'CellFromFilter', 'CellBornFilter', 'CellInstanceFilter']
 
         if self.openmc_version >= 141:
             self.Surfaces_key_list[16] = 'model.RectangularPrism'
@@ -245,7 +259,7 @@ class Application(QtWidgets.QMainWindow):
         self.actionExit.triggered.connect(self.Exit)
         self.actionHelp.triggered.connect(self.Help)
         self.actionAbout.triggered.connect(self.About)
-        self.actionOpenMC_Version.triggered.connect(self.OpenMC_Ver)
+        self.actionOpenMC_Version.triggered.connect(self.OpenMC_Ver1)
         self.actionClose_Project.triggered.connect(self.Close_Project)
         self.actionClose_Img.triggered.connect(self.Close_Img)
         self.pB_Clear_OW_2.clicked.connect(self.clear_text)
@@ -857,7 +871,7 @@ class Application(QtWidgets.QMainWindow):
         self.Vol_Calcs_list = []
         self.materials_name_list = []
         self.lattice_name_list = []
-        self.universe_name_list = []
+        self.universes_name_list = []
         self.cells_in_universes = []
         self.Source_name_list = []
         self.Source_strength_list = []
@@ -1113,7 +1127,7 @@ class Application(QtWidgets.QMainWindow):
             return
         #self.clear_Lists()
         Lists = [self.Model_Elements_List, self.Model_Nuclides_List, self.materials_name_list,
-                self.surface_name_list, self.cell_name_list, self.universe_name_list,
+                self.surface_name_list, self.cell_name_list, self.universes_name_list,
                 self.lattice_name_list, self.Source_name_list, 
                 self.tally_name_list, self.filter_name_list, self.mesh_name_list,
                 self.plot_name_list]
@@ -1168,7 +1182,11 @@ class Application(QtWidgets.QMainWindow):
             self.Sett = Components_lines["openmc.Settings"][0].split('=')[0].replace(' ', '')
         if Components_lines["batches"]:
             Batches = Components_lines["batches"][0].split('=')[1].replace(' ', '')
+            if '#' in Batches:
+                Batches = Batches.split('#', 1)[0]
             self.StatePoint = self.directory + '/statepoint.' + Batches + '.h5'
+            if glob.glob(self.directory + '/statepoint*.h5'):
+                self.StatePoints = glob.glob(self.directory + '/statepoint*.h5')
         else:
             self.StatePoint = None
         if Components_lines["openmc.Geometry"]:
@@ -1222,8 +1240,8 @@ class Application(QtWidgets.QMainWindow):
             elif 'openmc.Universe' in line and 'Filter' not in line:
                 item = line.split('=')[0].replace(' ', '')
                 if item not in self.filter_name_list:
-                    self.universe_name_list.append(item)
-                    #ID = len(self.universe_name_list)
+                    self.universes_name_list.append(item)
+                    #ID = len(self.universes_name_list)
                     self.detect_component_id(line, 'universe_id') #, ID)
                     self.universe_id_list.append(self.id)
                     self.id_list['universe_id'].append(self.id)
@@ -1432,7 +1450,7 @@ class Application(QtWidgets.QMainWindow):
         surf_id = self.surface_id_list
         cell = self.cell_name_list
         cell_id = self.cell_id_list
-        univ = self.universe_name_list
+        univ = self.universes_name_list
         univ_id = self.universe_id_list
         lat = self.lattice_name_list
         lat_id = self.lattice_id_list
@@ -1448,9 +1466,9 @@ class Application(QtWidgets.QMainWindow):
         """     
         v_1 = self.plainTextEdit_7
         self.detect_components()
-        self.wind5 = ExportSettings(self.openmc_version, v_1, self.Sett, self.directory, self.surface_name_list, 
+        self.wind5 = ExportSettings(self.openmc_version, v_1, self.Geom, self.Sett, self.directory, self.surface_name_list, 
                                     self.surface_id_list, self.cell_name_list,
-                                    self.materials_name_list, self.Vol_Calcs_list, self.Source_name_list,
+                                    self.materials_name_list, self.universes_name_list, self.Vol_Calcs_list, self.Source_name_list,
                                     self.Source_id_list, self.Source_strength_list)
         self.wind5.show()
 
@@ -1466,7 +1484,7 @@ class Application(QtWidgets.QMainWindow):
             self.wind6 = ExportTallies(v_1, self.Geom, self.Tallies, self.available_xs, self.tally_name_list, self.tally_id_list,
                                        self.filter_name_list, self.filter_id_list,self.score_name_list, self.score_id_list, 
                                        self.surface_name_list, self.surface_id_list, self.cell_name_list, self.cell_id_list, 
-                                       self.universe_name_list, self.materials_name_list, self.Model_Elements_List,
+                                       self.universes_name_list, self.materials_name_list, self.Model_Elements_List,
                                        self.Model_Nuclides_List, self.mesh_name_list, self.mesh_id_list)
         else:
             self.showDialog('Warning', 'Cross secions files not defined !')
@@ -1489,7 +1507,7 @@ class Application(QtWidgets.QMainWindow):
         self.Depletion_file = ''
         self.Chain = ''
         self.detect_components()
-        self.interface = TallyDataProcessing(self.directory, self.StatePoint, self.Depletion_file, self.Chain)
+        self.interface = TallyDataProcessing(self.directory, self.StatePoint, self.StatePoints, self.Depletion_file, self.Chain)
         self.interface.show()
 
     def Python_Depletion(self): 
@@ -1638,17 +1656,17 @@ class Application(QtWidgets.QMainWindow):
                         if self.openmc_version >= 141:
                             if 'rectangular_prism' in line:
                                 self.showDialog('Warning', 'rectangular_prism must be replaced by RectangularPrism!')
-                                return
+                                #return
                             if 'hexagonal_prism' in line:
                                 self.showDialog('Warning', 'hexagonal_prism must be replaced by HexagonalPrism!')
-                                return
+                                #return
                         else:
                             if 'RectangularPrism' in line:
                                 self.showDialog('Warning', 'RectangularPrism must be replaced by rectangular_prism!')
-                                return
+                                #return
                             if 'HexagonalPrism' in line:
                                 self.showDialog('Warning', 'HexagonalPrism must be replaced by hexagonal_prism!')
-                                return
+                                #return
 
                         if 'openmc.run()' in line and '#openmc.run()' not in line.strip():
                             run_openmc = True
@@ -1667,12 +1685,14 @@ class Application(QtWidgets.QMainWindow):
                             cmd = 'python3'
                         if 'openmc.deplete.get_microxs_and_flux' in line and line[0] != '#':
                             run_get_XS = True
+                        if 'openmc.calculate_volumes()' in line and line[0] != '#':
+                            vol_calc = True
 
                     self.readData(cmd, self.process)
                     os.chdir(self.app_dir)
                     if 'export_to_xml()' in self.plainTextEdit_7.toPlainText():
                         self.ViewXML(self.plainTextEdit_8)
-                        if not run_openmc and not plot_openmc and not run_deplete and not run_get_XS:
+                        if not run_openmc and not plot_openmc and not run_deplete and not run_get_XS and not vol_calc:
                             self.showDialog('Warning', 'No simulation neither plot will be processed.\n Only xml files will be created !')
                 else:
                     msg = 'Select your project python script or save it first !'
@@ -1688,26 +1708,28 @@ class Application(QtWidgets.QMainWindow):
             if self.openmc_version >= 141:
                 if 'rectangular_prism' in line:
                     self.showDialog('Warning', 'rectangular_prism must be replaced by RectangularPrism!')
-                    return
+                    #return
                 if 'hexagonal_prism' in line:
                     self.showDialog('Warning', 'hexagonal_prism must be replaced by HexagonalPrism!')
-                    return        
+                    #return        
             else:
                 if 'RectangularPrism' in line:
                     self.showDialog('Warning', 'RectangularPrism must be replaced by rectangular_prism!')
-                    return
+                    #return
                 if 'HexagonalPrism' in line:
                     self.showDialog('Warning', 'HexagonalPrism must be replaced by hexagonal_prism!')
-                    return
+                    #return
                                 
         # remove statepoint and summary h5 files
         Summary_H5file = self.directory + '/summary.h5'
+        Statepoint_H5Files = glob.glob(self.directory + '/statepoint*.h5')
         try:
-            if os.path.exists(self.StatePoint) or os.path.exists(Summary_H5file): 
+            if len(Statepoint_H5Files) != 0 or os.path.exists(Summary_H5file): 
                 reply = QMessageBox.question(self, "Message",
                 "Are you sure you want to delete summary and statepoint files ?\nIf a previous simulation results will be used press No!", QMessageBox.No, QMessageBox.Yes)
                 if reply == QMessageBox.Yes:
-                    os.remove(self.StatePoint)  
+                    for file in Statepoint_H5Files:
+                        os.remove(file)  
                     os.remove(Summary_H5file) 
         except:
             pass
@@ -1742,6 +1764,11 @@ class Application(QtWidgets.QMainWindow):
                     cmd = 'python3'
                 else:
                     cmd = 'python3'
+                if 'openmc.calculate_volumes()' in Text:
+                    vol_calc = True
+                    cmd = 'python3'
+                else:
+                    cmd = 'python3'
 
                 self.readData(cmd, self.process)
                 time.sleep(1)
@@ -1753,7 +1780,7 @@ class Application(QtWidgets.QMainWindow):
                         plot_openmc = True
                     if 'openmc.deplete.get_microxs_and_flux' in Text and '#openmc.deplete.get_microxs_and_flux' not in Text.strip():
                             run_get_XS = True
-                    if not run_openmc and not plot_openmc and not run_deplete and not run_get_XS:
+                    if not run_openmc and not plot_openmc and not run_deplete and not run_get_XS and not vol_calc:
                         self.showDialog('Warning',
                                         'No simulation neither plot will be processed.\n Only xml files will be created !')
             else:
@@ -2291,7 +2318,7 @@ class Application(QtWidgets.QMainWindow):
         QMessageBox(QMessageBox.Information, title, message, QMessageBox.NoButton, self,
                     Qt.Dialog | Qt.NoDropShadowWindowHint).show()
 
-    def OpenMC_Ver(self):
+    def OpenMC_Ver1(self):
         try:
             import openmc
             self.showDialog('', 'openmc version ' + openmc.__version__ + ' found')
@@ -3117,7 +3144,7 @@ class VLine(QFrame):
 
 
 
-version = '1.4.0'
+version = '1.4.1'
 qapp = QApplication(sys.argv)  
 app  = Application(u'ERSN-OpenMC-Py')
 qapp.setStyleSheet("QPushButton { background-color: palegoldenrod; border-width: 2px; border-color: darkkhaki}"

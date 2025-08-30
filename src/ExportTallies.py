@@ -41,7 +41,8 @@ class EmittingStream(QtCore.QObject):
 
 class ExportTallies(QWidget):
     from .func import resize_ui, showDialog, Exit, Move_Commands_to_End 
-    
+    from .class_CheckableComboBox import CheckableComboBox
+
     def __init__(self,v_1, Geom, Tallies, available_xs, Tally, Tally_ID, Filter, Filter_ID, Scores, 
                  Scores_ID, Surf_list, Surf_Id_list, Cells_list, Cell_Id_list, 
                  univ, mat, elements, nuclides, mesh, mesh_ID, parent=None):
@@ -61,7 +62,7 @@ class ExportTallies(QWidget):
             item.setValidator(self.int_validator)
             item.setToolTip("Only integer is accepted")
 
-        for LineEd in [self.Start_LE, self.End_LE]:
+        for LineEd in [self.Start_LE, self.End_LE, self.Tally_Trigger_Threshold_LE]:
             LineEd.setValidator(self.validator)
             LineEd.setToolTip("Only float number is accepted")
 
@@ -155,6 +156,9 @@ class ExportTallies(QWidget):
         layoutH.addWidget(self.numbers)
         layoutH.addWidget(self.plainTextEdit)
         self.EditorLayout.addLayout(layoutH, 0, 0)
+        # add scores ComboBox for Tally trigger
+        self.Trigger_Scores_comboBox = self.CheckableComboBox()
+        self.Trig_Scores_GL.addWidget(self.Trigger_Scores_comboBox)
 
         sys.stdout = EmittingStream(textWritten=self.normalOutputWritten)
         # sys.stderr = EmittingStream(textWritten=self.normalOutputWritten)
@@ -205,6 +209,7 @@ class ExportTallies(QWidget):
         self.ExportData_PB.clicked.connect(self.Export_to_Main_Window)
         self.ClearData_PB.clicked.connect(self.clear_text)
         self.Exit_PB.clicked.connect(self.Exit)
+        self.Add_Trigger_PB.clicked.connect(self.Add_Trigger)
         
     def Set_Validators(self):
         self.int_validator = QRegExpValidator(QRegExp(r'[0-9]+'))
@@ -294,7 +299,7 @@ class ExportTallies(QWidget):
         self.MISCELLANEOUS_SCORES = ['current', 'events', 'inverse-velocity', 'heating', 'heating-local', 'kappa-fission',
                                      'fission-q-prompt', 'fission-q-recoverable', 'decay-rate', 'damage-energy', 'pulse-height']
 
-        self.FILTER_SUFFIX = ['Universe_filter', 'Material_filter', 'Cell_filter', 'CellFrom_filter', 'Cellborn_filter',
+        self.FILTER_SUFFIX = ['Universe_filter', 'Material_filter', 'Cell_filter', 'CellFrom_filter', 'CellBorn_filter',
                         'CellInstance_filter', 'Collision_filter', 'Surface_filter', 'Mesh_filter', 'MeshSurface_filter',
                         'Energy_filter', 'Energyout_filter', 'Mu_filter', 'Polar_filter', 'Azimuthal_filter',
                         'Distribcell_filter', 'DelayedGroup_filter', 'EnergyFunction_filter', 'Legendre_filter',
@@ -1470,7 +1475,39 @@ class ExportTallies(QWidget):
         else:
             self.showDialog('Warning', 'Add tally first !')
             return
-        #self.Reset(self.Scores_List, self.ScoresList_LE)
+        self.Trigger_Scores_comboBox.clear()
+        self.Trigger_Scores_comboBox.addItem('Check scores')
+        self.Scores_List.insert(0, 'All')
+        self.Trigger_Scores_comboBox.addItems(self.Scores_List)
+        self.Trigger_Scores_comboBox.model().item(0).setEnabled(False)
+
+    def Add_Trigger(self):
+        if self.Tally_Trigger_Threshold_LE.text() == '':
+            self.showDialog('Warning', ' Enter Trigger threshold value!')
+            return
+        if self.Tally_Trigger_Type.currentIndex() == 0:
+            self.showDialog('Warning', ' Select Trigger type first!')
+            return
+        if self.Trigger_Scores_comboBox.checkedItems():
+            self.Checked_Scores = [self.Scores_List[i-1] for i in self.Trigger_Scores_comboBox.checkedItems()]
+        else: 
+            self.Checked_Scores = []
+        if 'All' in self.Checked_Scores:
+            self.Checked_Scores = ['all']
+
+        if self.Ignore_Zeroes_CB.isChecked():
+            Ignore_Zeros = ', ignore_zeros=True'
+        else:
+            Ignore_Zeros = ''
+        
+        Type = 'trigger_type=' + self.Tally_Trigger_Type.currentText()
+        Threshold = ', threshold=' + self.Tally_Trigger_Threshold_LE.text()
+        Trigger = 'tally_trigger = openmc.Trigger(' + Type + Threshold + Ignore_Zeros +')'
+        Scores = 'tally_trigger.scores = ' + str(self.Checked_Scores)
+        text1 = self.tally_name_list[-1] + '.triggers = [tally_trigger]'
+        if text1 in self.plainTextEdit.toPlainText(): self.Update_Document(text1)
+        print('\n' + Trigger + '\n' + Scores + '\n' + text1 )
+        self.Trigger_Scores_comboBox.setCurrentIndex(0)
 
     def Update_Document(self, text):
         document = self.plainTextEdit.toPlainText()

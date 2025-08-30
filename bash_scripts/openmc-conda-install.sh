@@ -197,6 +197,21 @@ if [[ $INSTALL_PREREQUISITES == yes ]]; then
 
     # to avoid this warning : libGL error: MESA-LOADER: failed to open iris
     conda install -c conda-forge libstdcxx-ng
+
+    source ~/miniconda3/etc/profile.d/conda.sh
+    conda activate $ENVNAME
+    echo "Checking for PyQt5..."
+    if [[ -z "$(conda list|grep pyqt)" ]]; then
+        echo
+        echo "#########               PyQT5 will be installed !           #########"
+        #conda install -y pyqt
+        pip install pyqt5
+        echo
+        echo "==> If QtCore module cannot be loaded from PyQt5 force reinstall PyQt5 <=="
+        echo "==> Command : python3 -m pip install --upgrade --force-reinstall PyQt5 <=="
+        echo
+        echo "==> For changes to take effect, close and re-open your current shell. <=="
+    fi
 fi
 # conda activate $ENVNAME
 # echo "#########     $ENVNAME activated     #########"
@@ -325,10 +340,25 @@ if [[ $INSTALL_OPENMC == yes ]]; then
         popd
     fi
 fi
+
+if [[ $INSTALL_OPENMC == yes ]]; then
+    # Install endf package
+    # Use the appropriate Python executable (e.g., python, python3, or a conda env)
+    PYTHON_EXEC=python3
+
+    if ! $PYTHON_EXEC -c "import endf" >/dev/null 2>&1; then
+        echo "❌ Python module 'endf' is NOT installed. Installing..."
+        $PYTHON_EXEC -m pip install --upgrade pip
+        $PYTHON_EXEC -m pip install endf
+    else
+        echo "✅ Python module 'endf' is already installed."
+    fi
+fi
+
 FILE=$CONDA_PREFIX
 FILE+="/lib/libopenmc.so"
 DESTINATION=$CONDA_PREFIX
-DESTINATION+="/lib/python3.11/site-packages/openmc/lib"
+DESTINATION+="/lib/python$PYTHON_VERSION/site-packages/openmc/lib"
 # Check if the file exists
 if [ -f "$FILE" ]; then
     if [ -d $DESTINATION ]; then

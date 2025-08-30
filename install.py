@@ -84,8 +84,8 @@ class InstallOpenMC(QtWidgets.QMainWindow):
         self.tab_install.currentChanged.connect(self.set_Options_to_default)
         self.tab_install.setCurrentIndex(0)
         self.set_Options_to_default()
-        self.RB_Python_Ver = [self.rB_py37, self.rB_py39, self.rB_py311, self.rB_py312]
-        self.RB_Python_Ver_PR = [self.rB_py37_prerequis, self.rB_py39_prerequis, self.rB_py311_prerequis, self.rB_py312_prerequis]
+        self.RB_Python_Ver = [self.rB_py313, self.rB_py314, self.rB_py311, self.rB_py312]
+        self.RB_Python_Ver_PR = [self.rB_py313_prerequis, self.rB_py314_prerequis, self.rB_py311_prerequis, self.rB_py312_prerequis]
         self.set_prerequis_Options_to_default()
 
     def dataReady(self):
@@ -160,22 +160,28 @@ class InstallOpenMC(QtWidgets.QMainWindow):
 
     def uncheck_rB(self):
         self.buttonGroup.setExclusive(False)
-        self.rB_py37.setChecked(False)
-        self.rB_py39.setChecked(False)
+        self.rB_py313.setChecked(False)
+        self.rB_py314.setChecked(False)
         self.rB_py311.setChecked(False)
         self.rB_py312.setChecked(False)
         self.buttonGroup.setExclusive(True)
 
     def define_pB(self):
         # Define pressButtons of Install Miniconda tab
+        self.rB_yes_conda.toggled.connect(self.Set_RB_Install_Conda1)
+        self.rB_yes_update_conda.toggled.connect(self.Set_RB_Install_Conda1)
+        self.rB_yes_anaconda.toggled.connect(self.Set_RB_Install_Conda2)
+        self.rB_yes_update_anaconda.toggled.connect(self.Set_RB_Install_Conda2)
+        self.rB_yes_openmc.toggled.connect(self.Set_RB_Install_Conda3)
         self.pB_Start_conda.clicked.connect(self.install_miniconda)
         self.pB_Refresh_conda.clicked.connect(self.set_Options_to_default)
         self.pB_Cancel_conda.clicked.connect(self.kill_process)
-        self.pB_Start_conda.setStatusTip("Will install miniconda3")
+        self.pB_Start_conda.setStatusTip("Will install conda")
         self.pB_Refresh_conda.setStatusTip("Will set options to default")
         self.pB_Cancel_conda.setStatusTip("Will kill process !")
         # Define pressButtons of Install OpenMC tab
         self.pB_Start.clicked.connect(self.Proc_Start)
+        self.PB_Inst_OpenMC_conda.clicked.connect(self.Proc_Start_forge)
         self.pB_Browse.clicked.connect(lambda: self.get_working_directory(self.WORK_DIR))
         self.pB_Refresh.clicked.connect(self.set_Options_to_default)
         self.pB_Cancel.clicked.connect(self.kill_process)
@@ -204,8 +210,38 @@ class InstallOpenMC(QtWidgets.QMainWindow):
         # common button
         self.pB_Clear_Text.clicked.connect(self.clear_text)
         self.pB_exit.clicked.connect(self.ExitInstall)
+        # Tips
         self.pB_Clear_Text.setStatusTip("Will clear the text area !")
         self.pB_exit.setStatusTip("Will close the GUI !")
+        self.rB_yes_conda.setStatusTip("If you install miniconda3 you need to install prerequisites then openmc !")
+        self.rB_yes_anaconda.setStatusTip("If you install anaconda3 you do not need to install prerequisites separately. \nInstall openmc from the bottun below !")
+        self.PB_Inst_OpenMC_conda.setStatusTip("After installing Anaconda you need to close the gui and the terminal to enable changes to have effect !")
+
+    def Set_RB_Install_Conda1(self):
+        if self.rB_yes_conda.isChecked():
+            self.rB_no_anaconda.setChecked(True)
+            #self.rB_yes_update_conda.setEnabled(True)
+            self.rB_no_openmc.setChecked(True)
+        if self.rB_yes_update_conda.isChecked():
+            self.rB_no_update_anaconda.setChecked(True)
+            #self.rB_yes_update_anaconda.setEnabled(False)
+
+    def Set_RB_Install_Conda2(self):
+        if self.rB_yes_anaconda.isChecked():
+            self.rB_no_conda.setChecked(True)
+            #self.rB_yes_update_anaconda.setEnabled(True)
+            self.rB_no_openmc.setChecked(True)
+        if self.rB_yes_update_anaconda.isChecked():
+            self.rB_no_update_conda.setChecked(True)
+            #self.rB_yes_update_conda.setEnabled(False)
+
+    def Set_RB_Install_Conda3(self):
+        if self.rB_yes_openmc.isChecked():
+            self.rB_no_conda.setChecked(True)
+            self.rB_no_update_conda.setChecked(True)
+            self.PB_Inst_OpenMC_conda.setEnabled(True)
+        else:
+            self.PB_Inst_OpenMC_conda.setEnabled(False)
 
     def menu_bar(self):
         # define menu bar actions
@@ -350,8 +386,9 @@ class InstallOpenMC(QtWidgets.QMainWindow):
         CONDA = CONDA.stdout.rstrip('\n')
         # CONDA = script_exec('which conda')
         cmd = self.tools_conda_lE.text().replace('Installing ','')
-        if "miniconda3" in CONDA:
-            self.showDialog('conda info', '         miniconda3 found       ')
+        #if "miniconda3" in CONDA:
+        if "conda3" in CONDA:
+            self.showDialog('conda info', '         conda found       ')
             if cmd == '':
                 self.print_lines('Nothing done !')
             else:
@@ -359,8 +396,8 @@ class InstallOpenMC(QtWidgets.QMainWindow):
                 self.script_exec(CONDA + ' install -y ' + cmd)
         else:
             self.print_lines("can't continue without miniconda3 installed !")
-            self.showDialog('conda warning', '   miniconda3 not found, Install miniconda3 first !  ')
-            self.print_lines('miniconda3 not found, Install miniconda3 first !')
+            self.showDialog('conda warning', '   conda not found, Install Anaconda or miniconda3 first !  ')
+            self.print_lines('conda not found, Install Anaconda or miniconda3 first !')
             self.tools_conda_lE.setText('Installing ' + cmd)
 
     def Install_Plotter(self):
@@ -371,8 +408,9 @@ class InstallOpenMC(QtWidgets.QMainWindow):
         # CONDA = script_exec('which conda')
         self.disable_enable_pB()
         cmd = self.Plotter_LE.text()
-        if "miniconda3" in CONDA:
-            self.showDialog('conda info', '         miniconda3 found       ')
+        #if "miniconda3" in CONDA:
+        if "conda3" in CONDA:
+            self.showDialog('conda info', '         conda found       ')
             if cmd == '':
                 self.print_lines('Nothing done !')
             else:
@@ -380,8 +418,8 @@ class InstallOpenMC(QtWidgets.QMainWindow):
                 self.script_exec(cmd)
         else:
             self.print_lines("can't continue without miniconda3 installed !")
-            self.showDialog('conda warning', '   miniconda3 not found, Install miniconda3 first !  ')
-            self.print_lines('miniconda3 not found, Install miniconda3 first !')
+            self.showDialog('conda warning', '   conda not found, Install Anaconda or miniconda3 first !  ')
+            self.print_lines('conda not found, Install Anaconda or miniconda3 first !')
 
     def set_prerequis_Options_to_default(self):
         # set radioButtons to default
@@ -403,23 +441,24 @@ class InstallOpenMC(QtWidgets.QMainWindow):
         self.tools_conda_lE.textChanged[str].connect(lambda: self.pB_extra_tools.setDisabled(self.tools_conda_lE.text() == ""))
 
     def set_Options_to_default(self):
-        global CONDA_MD5_IN
         tab_index = self.tab_install.currentIndex()
         if tab_index == 0:                     # miniconda tab
             # set radioButtons to default
             self.rB_no_conda.setChecked(True)
             self.rB_yes_update_conda.setChecked(True)
-            self.rB_no_checksum.setChecked(True)
-            self.rB_CONDA_URL.setChecked(True)
-            # set MD5 to its default value
-            self.lineEdit_SHA256.setText(CONDA_MD5_IN)
+            self.rB_no_anaconda.setChecked(True)
+            self.rB_yes_update_anaconda.setChecked(True)
+            if self.rB_yes_openmc.isChecked():
+                self.PB_Inst_OpenMC_conda.setEnabled(True)
+            else:
+                self.PB_Inst_OpenMC_conda.setEnabled(False)
         elif tab_index == 1:               # prerequisites tab
             # set radioButtons to default
             self.rB_yes_update_env_prerequis.setChecked(True)
             ENV_NAME_PREFIX = 'openmc-py'
 
-            self.rB_py37_prerequis.toggled.connect(lambda: self.PyVer_btnstate(self.rB_py37_prerequis, ENV_NAME_PREFIX, self.lineEdit_Env_Name_prerequis))
-            self.rB_py39_prerequis.toggled.connect(lambda: self.PyVer_btnstate(self.rB_py39_prerequis, ENV_NAME_PREFIX, self.lineEdit_Env_Name_prerequis))
+            self.rB_py313_prerequis.toggled.connect(lambda: self.PyVer_btnstate(self.rB_py313_prerequis, ENV_NAME_PREFIX, self.lineEdit_Env_Name_prerequis))
+            self.rB_py314_prerequis.toggled.connect(lambda: self.PyVer_btnstate(self.rB_py314_prerequis, ENV_NAME_PREFIX, self.lineEdit_Env_Name_prerequis))
             self.rB_py311_prerequis.toggled.connect(lambda: self.PyVer_btnstate(self.rB_py311_prerequis, ENV_NAME_PREFIX, self.lineEdit_Env_Name_prerequis))
             self.rB_py312_prerequis.toggled.connect(lambda: self.PyVer_btnstate(self.rB_py312_prerequis, ENV_NAME_PREFIX, self.lineEdit_Env_Name_prerequis))
             # get python version and suggest environment name
@@ -455,8 +494,8 @@ class InstallOpenMC(QtWidgets.QMainWindow):
             self.uncheck_rB()
             # Env. Name
             ENV_NAME_PREFIX = 'openmc-py'
-            self.rB_py37.toggled.connect(lambda: self.PyVer_btnstate(self.rB_py37, ENV_NAME_PREFIX, self.lineEdit_Env_Name))
-            self.rB_py39.toggled.connect(lambda: self.PyVer_btnstate(self.rB_py39, ENV_NAME_PREFIX, self.lineEdit_Env_Name))
+            self.rB_py313.toggled.connect(lambda: self.PyVer_btnstate(self.rB_py313, ENV_NAME_PREFIX, self.lineEdit_Env_Name))
+            self.rB_py314.toggled.connect(lambda: self.PyVer_btnstate(self.rB_py314, ENV_NAME_PREFIX, self.lineEdit_Env_Name))
             self.rB_py311.toggled.connect(lambda: self.PyVer_btnstate(self.rB_py311, ENV_NAME_PREFIX, self.lineEdit_Env_Name))
             self.rB_py312.toggled.connect(lambda: self.PyVer_btnstate(self.rB_py312, ENV_NAME_PREFIX, self.lineEdit_Env_Name))
             # get python version and suggest environment name
@@ -469,7 +508,7 @@ class InstallOpenMC(QtWidgets.QMainWindow):
             self.rB_yes_in_conda.toggled.connect(self.INSTALL_PREFIX_QLnE.setDisabled)
         elif tab_index == 3:
             self.WORKDIR_XS.setText(QDir.homePath() + "/Py-OpenMC-" + str(datetime.date.today().year))
-            self.Env_Name_XS.setText("openmc-py3.7")
+            self.Env_Name_XS.setText("openmc-py3.12")
 
     def detect_python_version(self, RBs):
         self.python_version = str(sys.version_info[0]) + '.' + str(sys.version_info[1]) 
@@ -526,6 +565,7 @@ class InstallOpenMC(QtWidgets.QMainWindow):
         UPDATE_CONDA = "no"
         INSTALL_PYQT = "no"
         DOWNLOAD_MINICONDA = "no"
+        INSTALL_OPENMC = 'no'
         if tab_index == 2:      # if tab2 is selected switch to openmc installation
             INSTALL_PREREQUISITES = 'no'
             INSTALL_OPENMC = 'yes'
@@ -546,16 +586,18 @@ class InstallOpenMC(QtWidgets.QMainWindow):
         # look if miniconda3 is installed
         CONDA = subprocess.run(['which', 'conda'], stdout=subprocess.PIPE, text=True)
         CONDA = CONDA.stdout.rstrip('\n')
-        if "miniconda3" in CONDA:
-            self.showDialog('conda info', '         miniconda3 found       ')
-            self.print_lines('miniconda3 found ')
+        #if "miniconda3" in CONDA:
+        if "conda3" in CONDA:
+            self.showDialog('conda info', '         conda found       ')
+            self.print_lines('conda found ')
             CONDA_DIR = str(CONDA.replace('/bin/conda', ''))
         else:                 # suggest to install miniconda
-            self.showDialog('conda warning', 'miniconda3 not found, Install miniconda3 first ! \nIf it has been just installed you need to close shell and open it !')
-            self.print_lines('miniconda3 not found, Install miniconda3 first !')
+            self.showDialog('conda warning', 'conda not found, Install Anaconda or miniconda3 first ! \nIf it has been just installed you need to close shell and open it !')
+            self.print_lines('conda not found, Install Anaconda or miniconda3 first !')
             self.print_lines(' IMPORTANTE: For changes to take effect, close and re-open your current shell and the GUI ! ')
             return
 
+        OPTIONS = ' '
         if "miniconda3" in CONDA:
             if tab_index == 2:
                 self.make_dir(WORK_DIR)                          # create WORK_DIR if doesn't exist
@@ -579,20 +621,49 @@ class InstallOpenMC(QtWidgets.QMainWindow):
                             DELETE_SOURCES, UPDATE_ENV, PYTHON_VERSION, ENV_NAME, WORK_DIR,
                             INSTALL_PREFIX, CONDA, CONDA_DIR, INSTALL_OPENMC, OPENMC_RELEASE, DOWNLOAD_OPENMC,
                             OPENMC_DIR, INSTALL_PYQT]
-            OPTIONS = ' '
             OPTIONS = OPTIONS.join(OPTIONS_LIST)
             self.print_lines("will install openmc and/or the preriquisites")
             self.script_exec('bash bash_scripts/openmc-conda-install.sh ' + OPTIONS)
         else:
-            self.print_lines("can't continue without miniconda3 installed !")
+            self.print_lines("can't continue without Anaconda or miniconda3 installed !")
             return
+        
+    def Proc_Start_forge(self):  
+        INSTALL_MINICONDA = "no"
+        UPDATE_CONDA = "no"
+        INSTALL_PYQT = "yes"
+        DOWNLOAD_MINICONDA = "no"
+        INSTALL_OPENMC = 'no'
+        OPTIONS = ' '
+        ENV_NAME = 'openmc-env'
+
+        # look if miniconda3 is installed
+        CONDA = subprocess.run(['which', 'conda'], stdout=subprocess.PIPE, text=True)
+        CONDA = CONDA.stdout.rstrip('\n')
+        #if "miniconda3" in CONDA:
+        if "conda3" in CONDA:
+            self.showDialog('conda info', '         conda found       ')
+            self.print_lines('conda found ')
+            CONDA_DIR = str(CONDA.replace('/bin/conda', ''))
+        else:                 # suggest to install miniconda
+            self.showDialog('conda warning', 'conda not found, Install Anaconda or miniconda3 first ! \nIf it has been just installed you need to close shell and open it !')
+            self.print_lines('conda not found, Install Anaconda or miniconda3 first !')
+            self.print_lines(' IMPORTANTE: For changes to take effect, close and re-open your current shell and the GUI ! ')
+            return
+
+        if self.rB_yes_openmc.isChecked():
+            INSTALL_OPENMC = 'yes'
+        #OPTIONS_LIST = [INSTALL_MINICONDA, DOWNLOAD_MINICONDA, SH_SCRIPT, CONDA_URL, UPDATE_CONDA, ENV_NAME, CONDA, CONDA_DIR, INSTALL_OPENMC, INSTALL_PYQT]
+        OPTIONS_LIST = [INSTALL_MINICONDA, DOWNLOAD_MINICONDA, 'none', 'none', UPDATE_CONDA, ENV_NAME, CONDA, CONDA_DIR, INSTALL_OPENMC, INSTALL_PYQT]
+        OPTIONS = OPTIONS.join(OPTIONS_LIST)
+        self.script_exec('bash bash_scripts/openmc-anaconda-forge.sh ' + OPTIONS)
 
     def update_prerequis_options(self):
         global INSTALL_MINICONDA, UPDATE_CONDA, ENV_NAME, UPDATE_ENV, INSTALL_PREREQUISITES, WITH_MPI, INSTALL_OPENMC, rc
         INSTALL_MINICONDA = 'no'
         UPDATE_CONDA = 'no'
         INSTALL_OPENMC = 'no'
-        self.Test_If_rB_Checked(self.Python_Version_gB_prerequis, self.rB_py37_prerequis, self.rB_py39_prerequis, self.rB_py311_prerequis, self.rB_py312_prerequis)
+        self.Test_If_rB_Checked(self.Python_Version_gB_prerequis, self.rB_py313_prerequis, self.rB_py314_prerequis, self.rB_py311_prerequis, self.rB_py312_prerequis)
         ENV_NAME = self.lineEdit_Env_Name_prerequis.text()
         if self.rB_yes_update_env_prerequis.isChecked():
             UPDATE_ENV = 'yes'
@@ -618,34 +689,18 @@ class InstallOpenMC(QtWidgets.QMainWindow):
         import glob
         global rc, SH_SCRIPT, DOWNLOAD_MINICONDA
         self.del_logfiles()
-        CONDA_MD5 = self.lineEdit_SHA256.text()
         i_str_chk = 0
         rc = 1
         script_list = glob.glob(script_str + "*")
         if len(script_list) != 0:
             self.print_lines(str(len(script_list)) + "     install file(s) found")
             for SH_SCRIPT in script_list:
-                if self.rB_yes_checksum.isChecked():
-                    i_str_chk += 1
-                    check_sum = subprocess.Popen(['sha256sum', SH_SCRIPT], stdout=subprocess.PIPE)
-                    str_chk = str(check_sum.stdout.read())
-                    if CONDA_MD5 in str_chk:
-                        self.print_lines(SH_SCRIPT + ' checksum succes; \n it will be installed')
-                        DOWNLOAD_MINICONDA = 'no'
-                        return SH_SCRIPT, DOWNLOAD_MINICONDA
-                        #break
-                    elif i_str_chk >= len(script_list):
-                        self.print_lines(SH_SCRIPT + ' checksum fails; it will be downloaded and installed')
-                        DOWNLOAD_MINICONDA = 'yes'
-                        return DOWNLOAD_MINICONDA
-                        #break
-                else:
-                    script_list = glob.glob(script_str + "*")
-                    self.print_lines(str(len(script_list)) + " install file(s) found and the more recent will be installed !")
-                    DOWNLOAD_MINICONDA = 'no'
-                    if len(script_list) != 0:
-                        SH_SCRIPT = max(script_list, key=os.path.getsize)
-                        return SH_SCRIPT, DOWNLOAD_MINICONDA
+                script_list = glob.glob(script_str + "*")
+                self.print_lines(str(len(script_list)) + " install file(s) found and the more recent will be installed !")
+                DOWNLOAD_MINICONDA = 'no'
+                if len(script_list) != 0:
+                    SH_SCRIPT = max(script_list, key=os.path.getsize)
+                    return SH_SCRIPT, DOWNLOAD_MINICONDA
         else:
             self.print_lines('Miniconda script will be downloaded !')
             DOWNLOAD_MINICONDA = 'yes'
@@ -665,35 +720,44 @@ class InstallOpenMC(QtWidgets.QMainWindow):
         self.disable_enable_pB()
         CONDA = subprocess.run(['which', 'conda'], stdout=subprocess.PIPE, text=True)
         CONDA = CONDA.stdout.rstrip('\n')
-        # if self.rB_yes_conda.isChecked():
         if INSTALL_MINICONDA == 'yes':
             if "miniconda3" in CONDA:                             # look if miniconda3 is installed
-                self.showDialog('conda info', '         miniconda3 found       ')
-                self.print_lines("miniconda3 already installed")
+                self.showDialog('conda info', '         conda found       ')
+                self.print_lines("conda already installed")
                 INSTALL_MINICONDA = 'no'
                 if UPDATE_CONDA == 'yes':
-                    self.print_lines("miniconda will be updated !")
+                    self.print_lines("conda will be updated !")
                 else:
-                    self.print_lines("miniconda needs to be updated !")
+                    self.print_lines("conda needs to be updated !")
             else:
                 # check if $HOME/miniconda3 directory exists
-                conda_path = str(Path.home()) + "/miniconda3"
+                if self.rB_yes_conda.isChecked():    
+                    conda_path = str(Path.home()) + "/miniconda3"
+                elif self.rB_yes_anaconda.isChecked():
+                    conda_path = str(Path.home()) + "/anaconda3"
                 if os.path.isdir(conda_path):
-                    if os.path.isfile(CONDA_DIR + '/condabin/conda'):
-                        self.showDialog('conda warning', conda_path + 'It seems like if miniconda3 is already installed; check if it can be activated!')
+                    if os.path.isfile(conda_path + '/condabin/conda'):
+                        self.showDialog('conda warning', conda_path + 'It seems like if conda is already installed; check if it can be activated!')
                         return
                     else:
                         self.showDialog('conda warning', conda_path + '  directory already exists; delete or rename it before retrying!')
                         return
                 else:
-                    script_str = 'Miniconda3-latest'
+                    if self.rB_yes_conda.isChecked():    
+                        script_str = 'Miniconda3-latest'
+                    elif self.rB_yes_anaconda.isChecked():
+                        script_str = 'Anaconda3-'
                     self.print_lines("Checking if " + script_str + " script exists")
                     self.look_for_script(script_str)
-                CONDA = CONDA_DIR + "/condabin/conda"
+                CONDA = conda_path + "/condabin/conda"
         else:
             if UPDATE_CONDA == 'yes':
                 if "miniconda3" in CONDA:                             # look if miniconda3 is installed
                     self.print_lines("miniconda will be updated !")
+                    conda_path = str(Path.home()) + "/miniconda3"
+                if "anaconda3" in CONDA:
+                    self.print_lines("anaconda will be updated !")
+                    conda_path = str(Path.home()) + "/anaconda3"
                 else:
                     self.print_lines("miniconda not installed and cannot be updated !")
                     return
@@ -701,9 +765,9 @@ class InstallOpenMC(QtWidgets.QMainWindow):
                 self.print_lines("Nothing will be done !")
                 return
 
-        if "miniconda3" in CONDA:
-            # CONDA_DIR = str(CONDA.replace('/conda', ''))
-            if os.path.isfile(CONDA_DIR + '/bin/qmake'):
+        if "conda3" in CONDA:
+            CONDA_DIR = str(CONDA.replace('/bin/conda', ''))
+            if os.path.isfile(conda_path + '/bin/qmake'):
                 INSTALL_PYQT = 'no'
             else:
                 INSTALL_PYQT = 'yes'
@@ -711,41 +775,42 @@ class InstallOpenMC(QtWidgets.QMainWindow):
         if CANCEL_PROCESS is not True:
             # Options of installation
             NONE = 'no'
-            OPTIONS_LIST = [INSTALL_MINICONDA, DOWNLOAD_MINICONDA, CHECKSUM, SH_SCRIPT, CONDA_MD5, UPDATE_CONDA,
-                            CONDA_URL, NONE, WITH_MPI, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
-                            NONE, CONDA, CONDA_DIR, NONE, NONE, NONE, NONE, INSTALL_PYQT]
             OPTIONS = ' '
-            OPTIONS = OPTIONS.join(OPTIONS_LIST)
-            self.script_exec('bash bash_scripts/openmc-conda-install.sh ' + OPTIONS)
+            if "miniconda3" in CONDA: 
+                OPTIONS_LIST = [INSTALL_MINICONDA, DOWNLOAD_MINICONDA, 'none', SH_SCRIPT, 'none', UPDATE_CONDA,
+                                CONDA_URL, NONE, WITH_MPI, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+                                NONE, CONDA, CONDA_DIR, NONE, NONE, NONE, NONE, INSTALL_PYQT]
+                OPTIONS = OPTIONS.join(OPTIONS_LIST)
+                self.script_exec('bash bash_scripts/openmc-conda-install.sh ' + OPTIONS)
+            elif "anaconda3" in CONDA: 
+                OPTIONS_LIST = [INSTALL_MINICONDA, DOWNLOAD_MINICONDA, SH_SCRIPT, CONDA_URL, UPDATE_CONDA, NONE, CONDA, CONDA_DIR, NONE, INSTALL_PYQT]
+                OPTIONS = OPTIONS.join(OPTIONS_LIST)
+                self.script_exec('bash bash_scripts/openmc-anaconda-forge.sh ' + OPTIONS)
 
     def update_conda_options(self):
         global INSTALL_MINICONDA, UPDATE_CONDA, CHECKSUM, CONDA_MD5, CONDA_URL, SH_SCRIPT
-        if self.rB_yes_conda.isChecked():
+        if self.rB_yes_conda.isChecked() or self.rB_yes_anaconda.isChecked():
             INSTALL_MINICONDA = 'yes'
         else:
             INSTALL_MINICONDA = 'no'
-        if self.rB_yes_update_conda.isChecked():
+        if self.rB_yes_update_conda.isChecked() or self.rB_yes_update_anaconda.isChecked():
             UPDATE_CONDA = 'yes'
         else:
             UPDATE_CONDA = 'no'
-        if self.rB_yes_checksum.isChecked():
-            CHECKSUM = 'yes'
-        else:
-            CHECKSUM = 'no'
-        CONDA_MD5 = self.lineEdit_SHA256.text()
-        if self.rB_CONDA_URL.isChecked():
+
+        if self.rB_yes_conda.isChecked():
             CONDA_URL = url1
-            SH_SCRIPT = 'Miniconda3-latest-Linux-x86_64.sh'
-        elif self.rB_MIRROR_URL.isChecked():
+            SH_SCRIPT = url1.split('/')[-1]
+        elif self.rB_yes_anaconda.isChecked():
             CONDA_URL = url2
-            SH_SCRIPT = 'Miniconda3-py311_23.10.0-1-Linux-x86_64.sh'
+            SH_SCRIPT = url2.split('/')[-1]
 
     def update_openmc_options(self):
         # update of OpenMC installation options
         global ENV_NAME, UPDATE_ENV, INSTALL_IN_CONDA, INSTALL_PREREQUISITES, INSTALL_OPENMC,\
                INSTALL_EDITABLE, WITH_MPI, DELETE_SOURCES, WORK_DIR, INSTALL_PREFIX, OPENMC_RELEASE
         INSTALL_OPENMC = 'yes'
-        self.Test_If_rB_Checked(self.Python_Version_gB, self.rB_py37, self.rB_py39, self.rB_py311, self.rB_py312)
+        self.Test_If_rB_Checked(self.Python_Version_gB, self.rB_py313, self.rB_py314, self.rB_py311, self.rB_py312)
         ENV_NAME = self.lineEdit_Env_Name.text()
         if self.rB_yes_update_env.isChecked():
             UPDATE_ENV = 'yes'
@@ -814,7 +879,6 @@ class InstallOpenMC(QtWidgets.QMainWindow):
                                                      QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
         dir.setText(directory)
         self.INSTALL_PREFIX_QLnE.setText(directory + "/opt/openmc/" + datetime.date.today().strftime("%m-%Y"))
-        #return directory
 
     def get_INSTALL_PREFIX(self):                  # get text if modified
         self.dir.setText(self.QDir.homePath() + "/Py-OpenMC-" + str(datetime.date.today().year))
@@ -908,13 +972,6 @@ class InstallOpenMC(QtWidgets.QMainWindow):
             else:
                 # update path value
                 self.path = path
-                '''
-                if self.path.split(".")[-1] == "py":
-                    self.highlight = syntax.PythonHighlighter(self.receiveArea.document())
-                elif self.path.split(".")[-1] == "xml":
-                    self.receiveArea.setStyleSheet("")
-                    self.highlight = syntax.XMLHighlighter(self.receiveArea.document())
-                '''
                 # update the text
                 self.receiveArea.setPlainText(text)
                 # update the title
@@ -1003,7 +1060,7 @@ class InstallOpenMC(QtWidgets.QMainWindow):
 # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 # initialize openmc installation options
 global INSTALL_PREREQUISITES, WITH_MPI, INSTALL_OPENMC, INSTALL_MINICONDA, DOWNLOAD_MINICONDA, UPDATE_CONDA,\
-       CHECKSUM, CONDA_MD5_IN, SH_SCRIPT, CONDA_URL, CONDA_DIR
+       SH_SCRIPT, CONDA_URL, CONDA_DIR
 # tab_index = 0
 # Miniconda3 MD5 and download url
 INSTALL_MINICONDA = 'no'
@@ -1012,10 +1069,8 @@ UPDATE_CONDA = 'no'
 CHECKSUM = 'no'
 INSTALL_PYQT = 'no'
 SH_SCRIPT = 'Miniconda3-latest-Linux-x86_64.sh'
-CONDA_MD5 = "c9ae82568e9665b1105117b4b1e499607d2a920f0aea6f94410e417a0eff1b9c"
-CONDA_MD5_IN = CONDA_MD5
 url1 = 'https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh'
-url2 = 'https://repo.anaconda.com/miniconda/Miniconda3-py39_23.10.0-1-Linux-x86_64.sh'
+url2 = 'https://repo.anaconda.com/archive/Anaconda3-2024.10-1-Linux-x86_64.sh'
 CONDA_URL = url1
 miniconda = QDir.homePath() + '/miniconda3/bin/conda'
 
@@ -1031,7 +1086,7 @@ DELETE_SOURCES = 'no'
 UPDATE_ENV = 'no'
 WORK_DIR = QDir.homePath()
 WORK_DIR_XS = QDir.homePath()
-PYTHON_VERSION = '3.7'
+PYTHON_VERSION = '3.12'
 ENV_NAME = 'openmc-py'
 INSTALL_PREFIX = QDir.homePath() + '/Py-OpenMC'
 CONDA = 'conda'
@@ -1042,6 +1097,7 @@ OPENMC_RELEASE = 'latest'
 OPENMC_DIR = ''
 CANCEL_PROCESS = False
 line = '~' * 70
+
 
 
 #  to be removed if called by gui.py
