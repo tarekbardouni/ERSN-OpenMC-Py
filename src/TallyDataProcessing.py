@@ -35,10 +35,6 @@ from PyQt5.QtGui import QTextOption
 
 from PyQt5.QtCore import Qt, pyqtSignal
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 def global_exception_handler(exc_type, exc_value, exc_traceback):
     """
     Custom exception handler to display unhandled exceptions in a dialog.
@@ -157,7 +153,18 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         # Create nuclides combobox
         self.Nuclides_ComboBx = self.CheckableComboBox()
         self.Nuclides_ComboBx.addItems(['Check nuclide', 'All bins'])
-        self.Nuclide_GL.addWidget(self.Nuclides_ComboBx)
+        self.Nuclides_GL.addWidget(self.Nuclides_ComboBx)
+        # Create reactions combobox
+        self.Reactions_CB = self.CheckableComboBox()
+        self.Reactions_CB.addItems(['Check reaction', 'All bins'])
+        self.Reactions_GL.addWidget(self.Reactions_CB)
+        # Fill units comboboxes
+        self.Time_Units_CB.addItems(["s", "min", "h", "d", "a"])
+        self.Atoms_Units_CB.addItems(["atoms", "atom/b-cm", "atom/cm3"])
+        self.Activity_Units_CB.addItems(['Bq', 'Bq/g', 'Bq/cm3'])
+        self.Mass_Units_CB.addItems(["g", "g/cm3", "kg"])
+        self.RR_Units_CB.addItems(['per sec'])
+        self.Decay_Heat_Units_CB.addItems(['W', 'W/g', 'W/cm3'])
         # +++++++++++++++++++++++
         self.Tally_name_LE.setPlaceholderText("Name")
         self.root = QFileInfo.path(QFileInfo(QCoreApplication.arguments()[0]))
@@ -176,7 +183,9 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         
         self.directory = Directory
         if Sp != '':
-            if len(Sps) == 1:
+            if len(Sps) == 0:
+                self.showDialog('Warning', 'No statepoint file found!')
+            elif len(Sps) == 1:
                 if os.path.isfile(Sp): 
                     self.sp_file = Sp
                     self.lineEdit.setText(self.sp_file)
@@ -272,15 +281,17 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         self.Vol_List_LE.textChanged.connect(lambda:self.Norm_to_Vol_CB.setChecked(False))
         # depletion results actions
         self.browse_Depl_Res_PB.clicked.connect(self.Get_Depl_Res_File)
-        self.browse_Sim_PB.clicked.connect(self.Get_Simulation_File)
-        self.Display_Depl_Res_Data_PB.clicked.connect(self.Display_Depletion_Results)
-        self.Display_Data_PB.clicked.connect(self.Display_Depletion_Data)
+        self.Depl_Res_LE.textChanged.connect(self.Enable_Disable_GB)
+        self.Display_Depl_Res_Data_PB.clicked.connect(self.Display_Depletion_Results_Summary)
+        self.Display_Data_PB.clicked.connect(self.Display_Depletion_Results)
         self.Time_Units_CB.currentIndexChanged.connect(self.Convert_Time_Units)
         self.Time_steps_comboBox.currentIndexChanged.connect(self.Get_Time_steps_from_Depl_Res_file)
         self.Material_CB.currentIndexChanged.connect(self.Get_material_specific_data)
-        self.Nuclide_Data_type_CB.currentIndexChanged.connect(self.Get_specific_nuclides_data)
+        self.Nuclide_Data_type_CB.currentIndexChanged.connect(self.Specify_Nuclides_data)
         self.Nuclides_ComboBx.currentIndexChanged.connect(self.CheckNuclides)
         self.Nuclides_ComboBx.model().dataChanged.connect(self.CheckNuclides)
+        self.Reactions_CB.currentIndexChanged.connect(self.CheckReactions)
+        self.Reactions_CB.model().dataChanged.connect(self.CheckReactions)
         self.Data_Threshold_CB.currentIndexChanged.connect(self.Apply_Filter_Nuclides)
         self.Data_CB.currentIndexChanged.connect(self.Reset_Widgets)
         self.Define_Buttons()
@@ -292,11 +303,16 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         # read summary file
         if self.directory == '':
             return
-        self._f = h5py.File(self.directory + '/summary.h5', 'r')
         self.Cells = []; self.Cells_id = []; self.surfaces = []
-        self.materials = []; self.materials_id = []
+        self.materials_name = []; self.materials_id = []
         self.depletable_materials = []; self.depletable_materials_id = []
-        self.materials_depletable = []; self.materials_volumes = []
+        self.materials_depletable = []; self.materials_volumes = []        
+        # load summary.h5 file
+        if not os.path.isfile(self.directory + '/summary.h5'):
+            self.showDialog('Warning', "Couldn't find summary.h5 file!")
+            return
+        self._f = h5py.File(self.directory + '/summary.h5', 'r')
+
         for key, group in self._f['geometry/cells'].items():
             cell_id = int(key.lstrip('cell '))
             self.Cells_id.append(cell_id)
@@ -310,7 +326,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         summary = openmc.Summary(self.directory + '/summary.h5')
         materials = summary.materials
         for mat in materials:
-            self.materials.append(mat.name)
+            self.materials_name.append(mat.name)
             self.materials_id.append(str(mat.id))
             self.materials_depletable.append(mat.depletable)
             self.materials_volumes.append(mat.volume)
@@ -325,21 +341,17 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
     def Get_Depl_Res_File(self):
         self.editor2.clear()
         self.Time_steps_comboBox.clear()
-        self.Depl_Nuclides_List_LE.clear()
+        self.Checked_Nuc_LE.clear()
+        self.Reactions_LE.clear()
+        self.Checked_Nucl_Thesh_LE.clear()
         self.tabWidget_2.setCurrentIndex(2)
         self.cursor = self.editor2.textCursor()
         self.Depl_Res_file = QtWidgets.QFileDialog.getOpenFileName(self, "Select HDF5 File", self.directory, "Depletion results file (depletion*.h5)")[0]
         self.directory = os.path.dirname(self.Depl_Res_file)    
         self.Depl_Res_LE.setText(self.Depl_Res_file)
-        self.Get_Data_from_Depl_Res_file()
-        self.lineLabel3.clear()
-    
-    def Get_Simulation_File(self):
-        self.tabWidget_2.setCurrentIndex(2)
-        self.Simulation_file = QtWidgets.QFileDialog.getOpenFileName(self, "Select HDF5 File", self.directory, "Simulation file (openmc_simulation*.h5)")[0]
-        self.directory = os.path.dirname(self.Simulation_file)    
-        self.Simulation_file_LE.setText(self.Simulation_file)
-        self.Get_Data_from_Depl_Res_file()
+        self.Get_Summary_File()
+        if os.path.isfile(self.Depl_Res_file):
+            self.Get_Data_from_Depl_Res_file()
         self.lineLabel3.clear()
 
     def Get_Data_from_Depl_Res_file(self):
@@ -356,35 +368,55 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             self.showDialog('Warning', "depletion_results.h5 not available!" )
             return
 
+        try:
+            _f = h5py.File(self.directory + '/openmc_simulation_n0.h5', 'r')
+            self.run_mode = _f['run_mode'][()].decode()
+        except:
+            _f = h5py.File(self.Depl_Res_file, 'r')
+            if 'inf' not in list(_f['eigenvalues']):
+                self.run_mode = 'eigenvalue'
+
+        self._Nuclides_RR = []
+        self._Nuclides_No_RR = []
+
         with h5py.File(self.Depl_Res_file, "r") as f:
             cv.check_filetype_version(f, 'depletion results', VERSION_RESULTS[0])
             # Get number of results stored
             self.n = f["number"][...].shape[0]
             Results_Keys = list(f.keys())
-            #print('Available datasets/groups in openmc.deplete.Results :\t' + str(Results_Keys))
-            """for group in range(len(f.keys())):
-                present_group = list(f.keys())[group]  # e.g., '0'
-                print(f"Keys in group '{present_group}':")
-                print(list(f[present_group]))"""
+            # get nuclides list
+            nuclides = f['nuclides']
+            materials_ids = f['materials']
+            reactions_rates = list(f['reaction rates'])
+            times = list(f['time'])
 
-        # get data frpm depletion_results.h5 file
+            for nuc in list(nuclides):
+                if len(nuclides[nuc].attrs) == 2:
+                    self._Nuclides_RR.append(nuc)
+                else:
+                    self._Nuclides_No_RR.append(nuc)
+            self.Nuclides = [nuc for nuc in nuclides]
+
+        # get data from depletion_results.h5 file
         self.results = openmc.deplete.Results(self.Depl_Res_file)
+
         # fill Data combobox
         self.Data_CB.clear()
         self.Data_CB.addItem('select data')
         self.Data_CB.setCurrentIndex(0)
         
-        if 'eigenvalues' in Results_Keys:
+        if self.run_mode == 'eigenvalue':
             self.Data_CB.addItems(['Keff data', 'Nuclide data'])
         else:
             self.Data_CB.addItem('Nuclide data')
+            self.Data_CB.setCurrentIndex(1)
 
         # Obtain time steps
-        self.Time_Steps = [None] * self.n
+        self.Time_Steps = [None] * self.n   # in second
+        self.Time_Units = 's'
         for i, result in enumerate(self.results):
             self.Time_Steps[i] = result.time[0]
-        # convert time units
-        #self.Time_Steps = self.Convert_Time_Units()
+
         # Fill time steps combobox
         self.Time_steps_comboBox.clear()
         self.Time_steps_comboBox.addItems(['Check step', 'All bins'])
@@ -392,91 +424,111 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         self.Time_steps_comboBox.model().item(0).setEnabled(False)
         self.Time_steps_comboBox.model().item(0).setCheckState(QtCore.Qt.Unchecked)
 
-
-    def Get_Time_steps_from_Depl_Res_file(self):
-        results = self.results
-        if self.Data_CB.currentIndex() == 1:  # get Keff
-            Keff = results.get_keff(time_units='d')[1]
-        elif self.Data_CB.currentIndex() == 2: # get nuclide data
-            self.Material_CB.clear()
-            self.Material_CB.addItem('select material')
-            self.Material_CB.addItems(self.depletable_materials)
-            self.Material_CB.setCurrentIndex(0)
-
-        if self.Time_steps_comboBox.checkedItems():
-            self.Checked_Time_Steps = [self.Time_steps_comboBox.itemText(i) for i in self.Time_steps_comboBox.checkedItems()]
-            if 'All bins' in self.Checked_Time_Steps:
-                self.Checked_Time_Steps.pop(self.Checked_Time_Steps.index('All bins'))
-        else:
-            self.Checked_Time_Steps = []
+    def Get_Time_steps_from_Depl_Res_file(self):   # to be revised
+        try:
+            if self.Time_steps_comboBox.checkedItems():
+                self.Checked_Time_Steps = [self.Time_steps_comboBox.itemText(i) for i in self.Time_steps_comboBox.checkedItems()]
+                if 'All bins' in self.Checked_Time_Steps:
+                    self.Checked_Time_Steps.pop(self.Checked_Time_Steps.index('All bins'))
+            else:
+                self.Checked_Time_Steps = []
+            self.Time_Steps_LE.setText(str(self.Checked_Time_Steps).replace("'", ""))
+        except:
+            pass
         
-    def Display_Depletion_Results(self):
-        Keys = ['time', 'eigenvalues', 'materials', 'nuclides', 'reactions', 'source_rate']
+    def Display_Depletion_Results_Summary(self):
+        if not os.path.isfile(self.Depl_Res_LE.text()) :
+            self.showDialog('Warning', 'No depletion results file loaded!')
+            return
+        #Keys = ['depletion time', 'eigenvalues', 'materials', 'nuclides', 'number', 'reaction rates', 'reactions', 'source_rate', 'time']
+        print(f"{'#'*120}") 
+        print(f"\t D E P L E T I O N \t S U M M A R Y")
+        print(f"{'#'*120}") 
+
         with h5py.File(self.Depl_Res_file, 'r') as f:
             Results_Keys = list(f.keys())
-            print('Available datasets/groups in openmc.deplete.Results :\n')
-            print(Results_Keys)
-            for key in Keys:
-                print(f"  - Keys in group '{key}':")
-                if key in ['materials']:    
-                    print(f"\t{np.array(f[key])}")
-                elif key == 'time':
-                    times = f[key]
-                    #np.set_printoptions(precision=5, suppress=True) 
-                    print(f"\t{np.array(f[key])}")
-                elif key == 'source_rate':
-                    power = f[key]
-                elif key == 'eigenvalues':
-                    Keff = f[key]
-                elif key in ['nuclides', 'reactions']:
-                    self.Print_Formated_Data(list(f[key]), 10, 110, 9, 'str_kind') 
-            power_vs_time = [(t, p, k) for t, p, k in zip(np.array(times).tolist(), np.array(power).tolist(), np.array(Keff).tolist())]
-            self.Print_Formated_Data(['\tstep', 'time', 'power', 'Keff'], 4, 130, 24, 'str_kind') 
-            for i, pt in enumerate(power_vs_time):
-                self.Print_Formated_Data(['\t' + str(i), str(pt[0]), str(pt[1][0]), str(pt[2])], 4, 130, 24, 'str_kind') 
-            print(f"{'#'*80}")
-            for group in range(len(Results_Keys)):
-                present_group = list(f.keys())[group]  # e.g., '0'
-                print(f"\t- Keys in group '{present_group}':")
-                print(f"\t\t{list(f[present_group])}")
+            materials_ids = f['materials']
+            materials = self.depletable_materials
+            times = np.array(f['time'])
+            power = np.array(f['source_rate'])
+            Keff = np.array(f['eigenvalues'])
+            nuclides = f['nuclides']
+            number = np.array(f['number'])
+            reactions = np.array(f['reactions'])
+            reactions_rates = np.array(f['reaction rates'])
+                        
+            print(f"{len(times)}  Depletion time steps (s) : ")
+            print(f"\tStart\tStop")
+            for t in times:
+                print("\t" + str(t[0]) + "\t" + str(t[1]))
+            print(f"{len(materials)}  Depleted materials : ")
+            print(f"\tMaterial\tID")
+            for m in list(zip(materials, materials_ids)):
+                print('\t' + m[0] + '\t' + m[1])
+            print(f"{len(nuclides)}  Nuclides processed : ")
+            self.Print_Formated_Data(list(nuclides), 10, 110, 0, 'str_kind')
+            print(f"{len(self._Nuclides_No_RR)}  Nuclides with no reaction rate : ")
+            self.Print_Formated_Data(list(self._Nuclides_No_RR), 10, 110, 0, 'str_kind')
+            print(f"{len(reactions)}  Reactions : ")
+            self.Print_Formated_Data(list(reactions), 8, 110, 0, 'str_kind')
+
+            power_vs_time = [(t, p) for t, p in zip(np.array(times).tolist(), np.array(power).tolist())]
             
-            """
-            print("Available datasets/groups:", list(f.keys()))
-            print(f)
-            materials = list(f['materials'].keys())
-            print('materials : ' + str(materials))
-            print("Materials:", list(f["materials"].keys()))
-            print("Nuclides:", list(f["nuclides"].keys()))
-            print("Reactions:", list(f['reactions']))
-            rates = f['reaction rates'][()]"""
+            if self.run_mode == 'eigenvalue':
+                col_width = max(len(str(x)) for x in np.array(times).tolist() + ['power/W'])
+                print(f"Power at each step : ")
+                self.Print_Formated_Data(['step', 'time/s', 'power/W'], 3, 130, col_width, 'str_kind') 
+            else:
+                col_width = max(len(str(x)) for x in np.array(times).tolist() + ['source rate (p/s)']) 
+                print(f"Source rate at each step : ")
+                self.Print_Formated_Data(['step', 'time (s)', '\tsource rate (p/s)'], 3, 130, col_width, 'str_kind') 
+            
+            for i, pt in enumerate(power_vs_time):
+                self.Print_Formated_Data([str(i), str(pt[0]), str(format(pt[1][0], ".1E"))], 3, 130, col_width, 'str_kind') 
 
-    def Print_Formated_Data(self, data, cols, LWidth, StrWidth, StrKind):
-        # Calculate required padding
-        padding = (cols - (len(data) % cols)) % cols  # Ensures correct padding (0 if already divisible)
-        padded_data = data + [""] * padding  # Fill missing with empty strings
+            print(f"{'#'*120}") 
+            print(f"\t D E P L E T I O N \t R E S U L T S")
+            print(f"{'#'*120}")   
 
-        # Reshape into matrix
-        matrix = np.array(padded_data).reshape(-1, cols)  # -1 = auto compute rows
+            if self.run_mode == 'eigenvalue':
+                power_vs_time = [(t, k) for t, k in zip(np.array(times).tolist(), np.array(Keff).tolist())]
+                col_width = max(len(str(x)) for x in np.array(times).tolist()) # + ['time/s'])
+                print(f"Keff at each step : ")
+                self.Print_Formated_Data(['step', 'time/s', 'Keff', '\tdKeff'], 4, 300, col_width, 'str_kind') 
+                for i, pt in enumerate(power_vs_time):
+                    self.Print_Formated_Data([str(i), str(pt[0]), str(format(pt[1][0][0], ".5f")), str(format(pt[1][0][1], ".5f"))], 4, 300, col_width, 'str_kind') 
+            
+                print(f"{'='*136}")
 
-        #np.set_printoptions(edgeitems=3, infstr='inf', linewidth=75, nanstr='nan', precision=8, suppress=False, threshold=1000, formatter=None)
-        np.set_printoptions(edgeitems=3, infstr='inf', linewidth=LWidth, nanstr='nan', suppress=False, threshold=1000, formatter=None)
-        # Print formatted
-        print(np.array2string(
-            matrix,
-            formatter={StrKind: lambda x: f"{x:{StrWidth}}"},  # Fixed width
-            threshold=np.inf  # Ensure all rows print
-        ).replace('[', '').replace(']', ''))
+            print(f"Concentration : {number.shape}")
+            print(f"step\tstage\tmaterial\tnuclide\tConcentration")
+            for step in range(number.shape[0]):
+                for i in range(number.shape[1]):
+                    for mat in materials:
+                        for nuc in nuclides:
+                            cc = number[step][i][materials.index(mat)][nuclides[nuc].attrs['atom number index']]
+                            print(f"{step}\t{i}\t{mat}\t{nuc}\t{cc:.6E}")
+            print(f"{'='*136}")
+            print(f"Reactions rates : ")
+            tab = '\t'
+            print(f"step\tstage\tmaterial\tnuclide\t{tab.join([r for r in reactions])}")
+            for step in range(reactions_rates.shape[0]):
+                for i in range(reactions_rates.shape[1]):
+                    for mat in materials:
+                        for nuc in nuclides:
+                            if len(nuclides[nuc].attrs) == 2:
+                                rx = reactions_rates[step][i][materials.index(mat)][nuclides[nuc].attrs['reaction rate index']]
+                                rx = '\t'.join([format(r, ".4E") for r in rx])
+                                print(f"{step}\t{i}\t{mat}\t{nuc}\t{rx}")
 
+            print(f"{'#'*120}")                                   
 
-        """padding = (cols - (len(data) % cols)) % cols
-        padded_data = data + [""] * padding
-
-        for i in range(0, len(padded_data), cols):
-            row = padded_data[i:i+cols]
-            print(" | ".join(f"{x:10}" for x in row))  # Fixed width"""
-        
-    def Display_Depletion_Data(self):
+    def Display_Depletion_Results(self):
+        tab = '\t'
         self.tabWidget_2.setCurrentIndex(2)
+        if not os.path.isfile(self.Depl_Res_LE.text()) :
+            self.showDialog('Warning', 'No depletion results file loaded!')
+            return
         results = self.results
         if self.Time_steps_comboBox.checkedItems():
             self.Checked_Time_Steps = [self.Time_steps_comboBox.itemText(i) for i in self.Time_steps_comboBox.checkedItems()]
@@ -487,89 +539,313 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             self.showDialog('Warning', 'Check time step first!')
             return        
         
+        if self.Data_CB.currentIndex() == 0:
+            self.showDialog('Warning', 'Select data type first !')
+            return
+                
+        title = "D E P L E T I O N   R E S U L T S"
+        Pad = 112 - len(title)
+        print(f"{'#'*100}")
+        print(f"{'#'*100}")
+        print(f"{'#'*10}{' '*Pad}{title}{' '*Pad}{'#'*10}")
+        print(f"{'#'*100}")
+        print(f"{'#'*100}")
+
+        # display time steps
+        times = results.get_times(self.Time_Units_CB.currentText())
+        print(f'\tTime steps in {os.path.basename(self.Depl_Res_LE.text())} :')
+        print(f"\tStep\tTime [{self.Time_Units_CB.currentText()}]")
+        for step in times:
+            i_step = list(times).index(float(step))
+            print('\t'.join(['', f"{i_step}", f"{float(times[i_step])}"]))
+        print(f"{'#'*100}")
+        print('\nChecked time steps :')
+        print(f"\tStep\tTime [{self.Time_Units_CB.currentText()}]")
+        for step in self.Checked_Time_Steps:
+            i_step = self.Time_Steps.index(float(step))
+            print('\t'.join(['', f"{i_step}", f"{float(self.Time_Steps[i_step])}"]))
+        print(f"{'#'*100}")
+
+        # display Keff vs time steps
+        if self.Data_CB.currentText() == 'Keff data':  # display Keff
+            Keff = results.get_keff(time_units='d')[1]
+            print(f"\tStep\tTime [{self.Time_Units_CB.currentText()}]\tKeff\tdKeff")
+            for step in self.Checked_Time_Steps:
+                i_step = self.Time_Steps.index(float(step))  
+                if self.Time_Units_CB.currentText() == 'a':
+                    print('\t'.join(['', f"{i_step}", f"{float(self.Time_Steps[i_step]):10.7f}", f"{Keff[i_step][0]:7.5f}", f"{Keff[i_step][1]:7.5f}"]))
+                else:
+                    print('\t'.join(['', f"{i_step}", f"{float(self.Time_Steps[i_step])}", f"{Keff[i_step][0]:7.5f}", f"{Keff[i_step][1]:7.5f}"]))
+            print(f"{'#'*100}")
+            return
+
+        with h5py.File(self.Depl_Res_file, 'r') as f:
+            materials_ids = f['materials']
+            nuclides =  np.array(f['nuclides'])
+            reactions = np.array(f['reactions'])
+
+        # display depletable materials
+        materials = {}
+        for material_id in self.depletable_materials_id:
+            material = self.depletable_materials[self.depletable_materials_id.index(material_id)]
+            materials['id = ' +f'{material_id}'] = self.depletable_materials[self.depletable_materials_id.index(material_id)]
+        print('Depleted materials :')
+        print(f"\tMaterial\tID")
+        for key in materials:
+            print('\t'.join(['', materials[key], key.split('=')[1].strip()]))
+        
+        print(f"{'#'*100}")
+
+        print(f"{len(nuclides)}  Nuclides processed : ")
+        self.Print_Formated_Data(list(nuclides), 9, 110, 0, 'str_kind')
+        print(f"{len(self._Nuclides_No_RR)}  Nuclides with no reaction rate : ")
+        self.Print_Formated_Data(list(self._Nuclides_No_RR), 9, 110, 0, 'str_kind')
+
+        print(f"{'#'*100}")
+
+        times = [float(t) for t in self.Time_Steps]
+        self.Checked_Time_Steps = [float(t) for t in self.Checked_Time_Steps]
+
+        # display nuclides masses
         material_data = {}
         for material_id in self.depletable_materials_id:
+            id = str(material_id)
+            material = self.depletable_materials[self.depletable_materials_id.index(material_id)]
+            print(f"\nData for : {material} (id = {material_id})")
+            
+            # calculate total mass by material at each time step
+            atoms_mass = np.zeros(len(self.Time_Steps) * len(nuclides)).reshape(len(self.Time_Steps), len(nuclides))
+            total_mass = np.zeros(len(self.Time_Steps))
+            
+            for i, nuclide in enumerate(nuclides):
+                atoms_mass[:,i] = results.get_mass(id, nuclide, mass_units=self.Mass_Units_CB.currentText(), time_units=self.Time_Units_CB.currentText())[1]
+            
+            for step in self.Checked_Time_Steps:
+                i_step = self.Time_Steps.index(float(step))
+                total_mass[i_step] += np.sum(atoms_mass[i_step,:])
+            
+            for step in self.Checked_Time_Steps:
+                i_step = self.Time_Steps.index(float(step))
+                Sum_wo = 0
+                for i, nuclide in enumerate(nuclides): 
+                    atoms_mass = self.results.get_mass(id, nuclide, mass_units=self.Mass_Units_CB.currentText(), time_units=self.Time_Units_CB.currentText())[1]   
+                    #times = [float(t) for t in self.Time_Steps]
+                    if i == 0:
+                        print(f'\nNuclides masses in material    {material} (id = {id}) \tat time step {i_step} \tt = {times[i_step]} {self.Time_Units_CB.currentText()}\n ') 
+                        col_width = max(len(str(x)) for x in nuclides)
+                        self.Print_Formated_Data(['Nuclide', f'Mass [{self.Mass_Units_CB.currentText()}]', f'\two [%]'], 3, 300, col_width, 'str_kind') 
+                    wo = atoms_mass[i_step] * 100. / total_mass[i_step]
+                    Sum_wo += wo
+                    self.Print_Formated_Data([nuclide, f"{atoms_mass[i_step]:.6E}", f"{wo:.6f}" if wo > 1E-3 or wo == 0 else f"{wo:.6e}"], 3, 300, col_width, 'str_kind') 
+                    t_m = total_mass[i_step]
+                self.Print_Formated_Data([f'Total', f"{t_m:.6f}" if t_m > 1E-3 or t_m == 0 else f"{t_m:.6e}", f"\t{Sum_wo:.4f}"], 3, 300, col_width, 'str_kind') 
+
+            print(f"\n{'='*114}")
+
+        print(f"\n{'#'*100}") 
+
+        # display nuclides concentrations
+        material_data = {}
+        for material_id in self.depletable_materials_id:
+            id = str(material_id)
+            material = self.depletable_materials[self.depletable_materials_id.index(material_id)]
+            print(f"\nData for : {material} (id = {material_id})")
             for step in self.Checked_Time_Steps:
                 i_step = self.Time_Steps.index(float(step))
                 current_step = self.results[i_step]
-                id = str(material_id)
                 material_data[id] = current_step.get_material(id)
                 nuclides = material_data[id].nuclides
-                print(f'nuclides in material {id} at step {i_step}\n ')
-                print(f"Nuclide\t Atom fraction \t Atoms")
-                for nuclide in nuclides:  
-                    times, atoms_numb = self.results.get_atoms(id, nuclide.name)
-                    print(f'{str(nuclide.name)} \t {str(nuclide.percent)} \t {str(atoms_numb[list(times).index(float(step))])}')
-
-        if self.Data_CB.currentText() == 'Keff data':  # display Keff
-            Keff = results.get_keff(time_units='d')[1]
-            print(f"Time [{self.Time_Units_CB.currentText()}]\t\tKeff\tdKeff")
-            for i in range(len(self.Checked_Time_Steps)):  
-                print(f"{float(self.Checked_Time_Steps[i]):12.3f}\t{Keff[i][0]:7.5f}\t{Keff[i][1]:7.5f}")
-        elif self.Data_CB.currentText() == 'Nuclide data':  # display nuclide data
-            print('Checked time steps : ' + str(self.Checked_Time_Steps))
-            materials = {}; nuclides = {}; activities = {}
-            for id in self.depletable_materials_id:
-                materials['id = ' +f'{id}'] = self.depletable_materials[self.depletable_materials_id.index(id)]
-            print('Depleted materials :\t' + str(materials))
+                tot_number = 0
+                tot_percent = 0
+                for i, nuclide in enumerate(nuclides):
+                    atoms_numb = self.results.get_atoms(id, nuclide.name, nuc_units=self.Atoms_Units_CB.currentText(), time_units=self.Time_Units_CB.currentText())[1]
+                    tot_number += atoms_numb[list(times).index(step)]
+                    tot_percent += nuclide.percent
+                    if i == 0:
+                        print(f'\nNuclides concentrations in material    {material} (id = {id})\tat time step {i_step} \tt = {times[i_step]} {self.Time_Units_CB.currentText()}\n ') 
+                        col_width = max(len(str(x.name)) for x in nuclides)
+                        self.Print_Formated_Data(['Nuclide', f'Atoms [{self.Atoms_Units_CB.currentText()}]', 'Atom fraction'], 3, 300, col_width, 'str_kind') 
+                    self.Print_Formated_Data([nuclide.name, str(format(atoms_numb[list(times).index(step)],".6E")), str(format(nuclide.percent,".6E"))], 3, 300, col_width, 'str_kind') 
+                self.Print_Formated_Data([f'Total', f"{tot_number:.6E}", f"{tot_percent:.6E}"], 3, 300, col_width, 'str_kind') 
             
-            for id in self.depletable_materials_id:
-                mat = materials['id = ' +f'{id}']
-                nuclides[mat] = []
-                times, activities[id] = results.get_activity(str(id), by_nuclide=True)
-                times, activities[id] = results.get_activity(str(id), by_nuclide=True)
+            print(f"\n{'='*114}")
+
+        print(f"\n{'#'*100}") 
+
+        activities = {}; total_activities = {}
+
+        # Display materials activities
+        for id in self.depletable_materials_id:
+            mat = materials['id = ' + f'{id}']
+            total_activities[id] = results.get_activity(str(id), by_nuclide=False, units=self.Activity_Units_CB.currentText())[1]
+            #times = [float(t) for t in self.Time_Steps]
+            print(f'\nTotal activity in {mat} (id = {id}) vs time step :')
+            print(f'\n\tTime step\tTime [{self.Time_Units_CB.currentText()}]\tTotal activity [{self.Activity_Units_CB.currentText()}]')
+            for time_step in self.Checked_Time_Steps:   
+                i_step = self.Time_Steps.index(float(time_step))    
+                print('\t'.join(['', str(i_step), str(time_step), f"{total_activities[id][i_step]:.6E}"]))
+        
+        print(f"\n{'='*114}") 
+
+        # display nuclides activities
+        for id in self.depletable_materials_id:
+            mat = materials['id = ' + f'{id}']
+            activities[id] = results.get_activity(str(id), by_nuclide=True, units=self.Activity_Units_CB.currentText())[1]
+            print(f"\nActivities for material : {mat} (id = {id})")
+            #times = [float(t) for t in self.Time_Steps]
+
+            for time_step in self.Checked_Time_Steps:
+                i_step = self.Time_Steps.index(float(time_step))  
+                print(f'\nNuclides activity in   {mat} (id = {id}) \tat time step  {i_step}  \tt = {time_step} {self.Time_Units_CB.currentText()} :')
+                nuclides = [nuc for nuc in activities[id][i_step].keys()]
+                activity = [val for val in activities[id][i_step].values()]
+                relative_activity = list(np.array(activity) * 100. / total_activities[id][i_step])
+                print(f'\n\tNuclide\tActivity [{self.Activity_Units_CB.currentText()}]\t\tPercentage [%]')
+                col_width = max(len(x) for x in nuclides)
+                tot_rel_act = 0
+                for nuc, act, rel_act in zip(nuclides, activity, relative_activity):
+                    tot_rel_act += rel_act   
+                    self.Print_Formated_Data([str(nuc), f"{act:.6E}", f"{rel_act:.6f}" if rel_act > 1E-3 or rel_act == 0 else f"{rel_act:.6E}"], 3, 300, col_width, 'str_kind') 
+                self.Print_Formated_Data([f'Total', f"{total_activities[id][i_step]:.6E}", f"{tot_rel_act:.5f}"], 3, 300, col_width, 'str_kind') 
+            
+            print(f"\n{'='*114}")
+
+        print(f"\n{'#'*100}") 
+
+        # display nuclides reaction rates
+        React_Rates = {}
+        nuclides = self._Nuclides_RR
+        for id in self.depletable_materials_id:
+            mat = materials['id = ' + f'{id}']
+            React_Rates[str(id)] = {}
+            for nuclide in nuclides:
+                React_Rates[str(id)][nuclide] = {}
                 for time_step in self.Checked_Time_Steps:
-                    print(f'nuclides in {mat} at time_step {time_step} {self.Time_Units_CB.currentText()} :')
-                    t_idx = list(times).index(float(time_step))   
-                    nuclide = [nuc for nuc in activities[id][t_idx].keys()]
-                    activity = [val for val in activities[id][t_idx].values()]
-                    nuclides[mat].append(nuclide)
-                    print('\t Nuclide \t Activity [Bq/cm3]')
-                    for nuc, act in zip(nuclide, activity):    
-                        print('\t' + str(nuc) + '\t' + str(act))
-            print("Nuclides tracked:\t", nuclides)
-            #print("Nuclides tracked:", list(results['nuclides']))
-            
-            return
+                    i_step = self.Time_Steps.index(float(time_step)) 
+                    React_Rates[str(id)][nuclide][i_step] = [] 
+                for rx in reactions:
+                    #times, RR = results.get_reaction_rate(str(id), nuclide, rx)
+                    RR = results.get_reaction_rate(str(id), nuclide, rx)[1]
+                    for time_step in self.Checked_Time_Steps:
+                        i_step = self.Time_Steps.index(float(time_step))     
+                        React_Rates[str(id)][nuclide][i_step].append(RR[i_step])
 
-            print('Nuclides at last step:\t' + str(list(f["nuclides"].keys())))
-            for i in range(len(self.Checked_Time_Steps)):
-                step_idx = self.Time_Steps.index(float(self.Checked_Time_Steps[i]))
-                current_result = results[step_idx]
-                print('step : ' + str() + '\tT = ' + \
-                       str(self.Checked_Time_Steps[i]) + ' ' + str(self.Time_Units_CB.currentText())) 
+            #times = [float(t) for t in self.Time_Steps]
+            print(f"\nReaction rates for material : {mat} (id = {id})")
+
+            for time_step in self.Checked_Time_Steps:
+                i_step = self.Time_Steps.index(float(time_step))  
+                print(f'\nNuclides reaction rates in   {mat} (id = {id}) \tat time step  {i_step}  \tt = {time_step} {self.Time_Units_CB.currentText()} :')
+                
+                col_width = max(len(x) for x in nuclides) + 10
+                #self.Print_Formated_Data([f"Nuclide"] + [rx for rx in reactions], len(reactions) + 1, 300, col_width, 'str_kind') 
+                print(f"\n\tNuclide\t", '\t'.join([rx for rx in reactions])) 
+
+                for nuclide in nuclides:
+                    #self.Print_Formated_Data([f"{nuclide}"] + [str(format(rr, ".4E")) for rr in React_Rates[str(id)][nuclide][i_step]], len(reactions) + 1, 300, col_width, 'str_kind') 
+                    print(f"\t{nuclide}\t", '\t'.join([str(format(rr, ".4E")) for rr in React_Rates[str(id)][nuclide][i_step]])) 
+            
+            print(f"\n{'='*114}")
+
+        print(f"\n{'#'*100}") 
+
+        # Display materials decay heat
+        if self.Chain:
+            openmc.config['chain_file'] = self.Chain
+        else:
+            reply = QMessageBox.question(self, "Message", "Load a chain depletion file ?", QMessageBox.No, QMessageBox.Yes)
+            if reply == QMessageBox.Yes:
+                self.Chain = QtWidgets.QFileDialog.getOpenFileName(self, "Select depletion chain file", self.directory, "Depletion results file (chain*.xml)")[0]
+                openmc.config['chain_file'] = self.Chain
+            else:    
+                return
+
+        total_decay_heat = {}; decay_heat = {}
+
+        for id in self.depletable_materials_id:
+            mat = materials['id = ' + f'{id}']
+            total_decay_heat[id] = results.get_decay_heat(str(id), by_nuclide=False, units=self.Decay_Heat_Units_CB.currentText())[1]
+            #times = [float(t) for t in self.Time_Steps]
+            print(f'\nTotal decay heat in {mat} (id = {id}) vs time step :')
+            print(f'\n\tTime step\tTime [{self.Time_Units_CB.currentText()}]\tTotal decay heat [{self.Decay_Heat_Units_CB.currentText()}]')
+            for time_step in self.Checked_Time_Steps:   
+                i_step = self.Time_Steps.index(float(time_step))    
+                print('\t'.join(['', str(i_step), str(time_step), f"{total_decay_heat[id][i_step]:.6E}"]))
+        
+        print(f"\n{'='*114}")
+
+        # display nuclides decay heat
+        for id in self.depletable_materials_id:
+            mat = materials['id = ' + f'{id}']
+            decay_heat[id] = results.get_decay_heat(str(id), by_nuclide=True, units=self.Decay_Heat_Units_CB.currentText())[1]
+            print(f"\nDecay heat for material : {mat} (id = {id})")
+            times = [float(t) for t in self.Time_Steps]
+
+            for time_step in self.Checked_Time_Steps:
+                i_step = self.Time_Steps.index(float(time_step))  
+                print(f'\nNuclides decay heat in   {mat} (id = {id}) \tat time step  {i_step}  \tt = {time_step} {self.Time_Units_CB.currentText()} :')
+                nuclides = [nuc for nuc in decay_heat[id][i_step].keys()]
+                DyHeat = [val for val in decay_heat[id][i_step].values()]
+                relative_decay_heat = list(np.array(DyHeat) * 100. / total_decay_heat[id][i_step])
+                print(f'\n\tNuclide\tDecay heat [{self.Decay_Heat_Units_CB.currentText()}]\tPercentage [%]')
+                col_width = max(len(x) for x in nuclides)
+                tot_rel_DyHeat = 0
+                for nuc, heat, rel_heat in zip(nuclides, DyHeat, relative_decay_heat):
+                    tot_rel_DyHeat += rel_heat   
+                    self.Print_Formated_Data([str(nuc), f"{heat:.6E}", f"{rel_heat:.6f}" if rel_heat > 1E-3 or rel_heat == 0 else f"{rel_heat:.6E}"], 3, 300, col_width, 'str_kind') 
+                self.Print_Formated_Data([f'Total', f"{total_decay_heat[id][i_step]:.6E}", f"{tot_rel_DyHeat:.5f}"], 3, 300, col_width, 'str_kind') 
+            print(f"\n{'='*114}")
+
+        print(f"\n{'#'*100}") 
 
     def Get_material_specific_data(self):  
         self.Nuclide_Data_type_CB.setCurrentIndex(0)
         self.Data_Threshold_CB.setCurrentIndex(0) 
 
-        if self.Data_CB.currentIndex() != 2:
+        if self.Data_CB.currentText() != 'Nuclide data':
             return
-        if self.Material_CB.currentIndex() <= 0:
+        if self.Material_CB.currentIndex() == 0:
             self.Nuclides_ComboBx.clear()
             return
+
+        with h5py.File(self.Depl_Res_file, 'r') as f:
+            Results_Keys = list(f.keys())
+            materials_ids = f['materials']
+            times = np.array(f['time'])
+            nuclides = [nuc for nuc in self.Nuclides]
+            reactions = np.array(f['reactions'])
+        
+        # prepare nuclides combobox
         self.Nuclides_ComboBx.clear()
-        self.Nuclides_ComboBx.addItems(['check nuclide', 'All bins'])
+        self.Nuclides_ComboBx.addItems(['Check nuclide', 'All bins'])
         self.Nuclides_ComboBx.model().item(0).setEnabled(False)
         self.Nuclides_ComboBx.model().item(0).setCheckState(QtCore.Qt.Unchecked)
+        # prepare reactions combobox
+        self.Reactions_CB.clear()
+        self.Reactions_CB.addItems(['Check reaction', 'All bins'])
+        self.Reactions_CB.model().item(0).setEnabled(False)
+        self.Reactions_CB.model().item(0).setCheckState(QtCore.Qt.Unchecked)
     
-        materials = {}; self.tracked_nuclides = {}; self.activities = {}
+        self.materials = {}; self.activities = {}; self.activity = {}
         self.decay_heat = {}; self.atoms = {}; self.mass = {}; self.reaction_rate = {}
 
         self.id = self.depletable_materials_id[self.depletable_materials.index(self.Material_CB.currentText())]
         id = self.id
-        materials['id = ' +f'{id}'] = self.depletable_materials[self.depletable_materials_id.index(id)]
-        self.mat = materials['id = ' +f'{id}']
+        self.materials['id = ' +f'{id}'] = self.depletable_materials[self.depletable_materials_id.index(id)]
+        self.mat = self.materials['id = ' +f'{id}']
         mat = self.mat
-        self.tracked_nuclides[mat] = []
         results = self.results
-        self.times, self.activities[id] = results.get_activity(str(id), by_nuclide=True)
-        # get nuclide list at last time step
-        self.tracked_nuclides[mat] = [nuc for nuc in self.activities[id][-1].keys()]
-        self.Nuclides_ComboBx.addItems(self.tracked_nuclides[mat])
+        self.activities[id] = results.get_activity(str(id), by_nuclide=True, units=self.Activity_Units_CB.currentText())[1]
+
+        self.Nuclides_ComboBx.addItems(self.Nuclides)
+        # get reaction list
+        self.Reactions = [reac for reac in reactions]
+        self.Reactions_CB.addItems(self.Reactions)
+        self.Reactions_CB.setEnabled(False)
+
         if self.Chain:
             openmc.config['chain_file'] = self.Chain
-            times, self.decay_heat[id] = results.get_decay_heat(str(id), units='W', by_nuclide=True)
+            self.decay_heat[id] = results.get_decay_heat(str(id), units=self.Decay_Heat_Units_CB.currentText(), by_nuclide=True)[1]
             self.Nuclide_Data_type_CB.model().item(self.Nuclide_Data_type_CB.findText('decay heat')).setEnabled(True)
         else:
             pass
@@ -580,131 +856,55 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             else:    
                 self.Nuclide_Data_type_CB.model().item(self.Nuclide_Data_type_CB.findText('decay heat')).setEnabled(False)
 
-        self.atoms[id] = {}; self.mass[id] = {}; self.reaction_rate[id] = {}
-        
-        print(results.keys())
-        return
-        for nuc in self.tracked_nuclides[mat]:
-            RXs = results.reactions[nuc]
-            print(f'Available reactions for {nuc} : {str(RXs)}')
-            times, self.atoms[id][nuc] = results.get_atoms(str(id), nuc_units='atoms', nuclide=nuc)
-            times, self.mass[id][nuc] = results.get_mass(str(id), mass_units='atoms', nuclide=nuc)
-            self.reaction_rate[id][nuc] = {}
-            for reaction in RXs:
-                times, self.reaction_rate[id][nuc][reaction] = results.get_reaction_rate(str(id), nuclide=nuc, rx=reaction)
-
-    def CheckNuclides(self):
-        self.Depl_Nuclides_List_LE.clear()
-        if self.Nuclides_ComboBx.checkedItems():
-            self.Checked_Nuclides = [self.Nuclides_ComboBx.itemText(i) for i in self.Nuclides_ComboBx.checkedItems()]
-            if 'All bins' in self.Checked_Nuclides:
-                self.Checked_Nuclides.pop(self.Checked_Nuclides.index('All bins'))
-            self.Depl_Nuclides_List_LE.setText(str(self.Checked_Nuclides))
-        else:
-            self.Checked_Nuclides = []
-            self.Depl_Nuclides_List_LE.clear()
-        self.Nuclides_ComboBx.setCurrentIndex(0)
-
-    def Apply_Filter_Nuclides(self):
-        self.Remained_Nuclides = set()  # Using a set to avoid duplicates
-        self.Rejected_Nuclides = set()
-        self.Remained_Activities = {}; self.Rejected_Activities = {}
-        self.Remained = {}; self.Rejected = {}
-        
-        if self.Data_Threshold_CB.currentIndex() in [-1,0,1]:  # no filter
-            Threshold = -1.
-        elif self.Data_Threshold_CB.currentIndex() == 2:    # only non null data nuclides
-            Threshold = 0
-        else:                                               # only satisfying threshold nuclides 
-            #Threshold = float(self.Data_Threshold_CB.currentText())
-            Threshold = self.parse_scientific_unicode(self.Data_Threshold_CB.currentText())
-
-        if self.Nuclide_Data_type_CB.currentText() == 'atoms':
-            pass
-        elif self.Nuclide_Data_type_CB.currentText() == 'mass':
-            pass
-        elif self.Nuclide_Data_type_CB.currentText() == 'activity':
-            for time in self.Checked_Time_Steps:
-                t_idx = list(self.times).index(float(time)) 
-                self.Remained[str(t_idx)] = []; self.Rejected[str(t_idx)] = []
-                self.Remained_Activities[str(t_idx)] = []; self.Rejected_Activities[str(t_idx)] = []  
-                for nuclide in self.Checked_Nuclides:
-                    Nuc_idx = self.Checked_Nuclides.index(nuclide)   #self.tracked_nuclides[self.mat]
-                    activity = list(self.activities[self.id][t_idx].values())[Nuc_idx]
-                    if activity > Threshold:
-                        self.Remained_Nuclides.add(nuclide)
-                        self.Remained_Activities[str(t_idx)].append(activity)
-                        self.Remained[str(t_idx)].append((nuclide, activity,))
-                    else:
-                        self.Rejected_Nuclides.add(nuclide)
-                        self.Rejected_Activities[str(t_idx)].append(activity)
-                        self.Rejected[str(t_idx)].append((nuclide, activity,))
+        self.atoms[id] = {}; self.mass[id] = {}; self.activity[id] = {}; self.reaction_rate[id] = {}
                 
-        elif self.Nuclide_Data_type_CB.currentText() == 'reaction rate':
-            pass
-        elif self.Nuclide_Data_type_CB.currentText() == 'decay heat':
-            pass
+        for time_step in self.Time_Steps:
+            i_step = self.Time_Steps.index(float(time_step)) 
+            self.activity[id][i_step] = {} 
+            for nuclide in self.Nuclides:
+                self.activity[id][i_step][nuclide] = self.activities[id][i_step][nuclide]
+                self.atoms[id][nuclide] = results.get_atoms(str(id), nuclide, nuc_units=self.Atoms_Units_CB.currentText(), time_units=self.Time_Units_CB.currentText())[1]
+                self.mass[id][nuclide] = results.get_mass(str(id), nuclide, mass_units=self.Mass_Units_CB.currentText(), time_units=self.Time_Units_CB.currentText())[1]
+                print(f"{id}\t{nuclide}\t{self.atoms[id][nuclide]}\t{self.mass[id][nuclide]}")
+            for nuclide in self._Nuclides_RR:
+                self.reaction_rate[id][nuclide] = {}
+                for reaction in self.Reactions:
+                    self.reaction_rate[id][nuclide][reaction] = results.get_reaction_rate(str(id), nuclide, reaction)[1]
+                    print(f"{id}\t{nuclide}\t{reaction}\t{self.reaction_rate[id][nuclide][reaction]}")
         
-        self.Depl_Nuclides_List_LE.setText(str(list(self.Remained_Nuclides)))
-        if self.Data_Threshold_CB.currentIndex() not in [0, 1]:
-            print(f'Nuclides satisfying {self.Nuclide_Data_type_CB.currentText()} > {Threshold}')
-        elif self.Data_Threshold_CB.currentIndex() == 2:
-            print(f'Nuclides satisfying non null {self.Nuclide_Data_type_CB.currentText()}')
         
-        for time in self.Checked_Time_Steps:
-            t_idx = list(self.times).index(float(time))
-            print(f'\nMaterial {self.mat} data at step {t_idx} :\n')
-            print(f'Remained nuclides : {len(self.Remained_Nuclides)} among {len(self.Checked_Nuclides)} checked nuclides \
-                    with {len(self.Remained_Activities[str(t_idx)])} activity values.')
-            print(f'List of remained nuclides : {list(self.Remained_Nuclides)}')
-            print(f'Nuclide\t{self.Nuclide_Data_type_CB.currentText()}')
-            '''for nuc, act in zip(self.Remained_Nuclides, self.Remained_Activities[str(t_idx)]):    
-                print(f'{str(nuc)}\t{str(act)}')
-            '''
-            for i in range(len(self.Remained[str(t_idx)])):
-                print(f'{self.Remained[str(t_idx)][i][0]}\t{self.Remained[str(t_idx)][i][1]}')
         
-    def generate_powers_of_10(self, min_value, max_value):
-        """Generate powers of 10 (10^n) between min_value and max_value."""
-        if min_value <= 0 or max_value <= 0:
-            raise ValueError("min_value and max_value must be positive")
         
-        powers = []
-        n = -20
-        while True:
-            current_power = 10 ** n
-            if current_power > max_value:
-                break
-            if current_power >= min_value:
-                powers.append(self.sci_notation(current_power))
-            n += 5
         
-        return powers
+        #times = [float(t) for t in self.Time_Steps]
 
-    def sci_notation(self, number, precision=0):
-        superscript_map = str.maketrans("0123456789-", "⁰¹²³⁴⁵⁶⁷⁸⁹⁻")
-        base, exp = f"{number:.{precision}e}".split('e')
-        base = base.rstrip('0').rstrip('.')  # remove trailing .0
-        exp = int(exp)
-        #return f"{base} × 10{str(exp).translate(superscript_map)}"
-        return f"10{str(exp).translate(superscript_map)}"
 
-    def parse_scientific_unicode(self, sci_str):
-        # Mapping from superscript to normal digits
-        superscript_map = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹⁻", "0123456789-")
-        
-        # Split by '× 10'
-        if '10' in sci_str:
-            #base = 1
-            exp = sci_str.split('10', 1)[1]
-            #base = float(base.strip())
-            exp = int(exp.translate(superscript_map))
-            #return base * (10 ** exp)
-            return (10 ** exp)
+
+    def Specify_Nuclides_data(self):
+        # Get the model of the QComboBox
+        model = self.Nuclides_ComboBx.model()
+        if self.Nuclide_Data_type_CB.currentText() == 'reaction rate':
+            self.Reactions_CB.setEnabled(True)  
+            for i in range(model.rowCount()):
+                item = model.item(i)
+                if item.text() in self._Nuclides_No_RR:
+                    # Clear ItemIsSelectable and ItemIsEnabled flags
+                    #item.setFlags(item.flags() & ~Qt.ItemIsSelectable & ~Qt.ItemIsEnabled)
+                    item.setEnabled(False)
+                    item.setCheckState(Qt.Unchecked)
+                    
         else:
-            raise ValueError("Input must be in format like '3 × 10⁻⁶'")
+            self.Reactions_CB.setEnabled(False)
+            for i in range(model.rowCount()):
+                item = model.item(i)
+                if item.text() in self._Nuclides_No_RR:
+                    # Clear ItemIsSelectable and ItemIsEnabled flags
+                    #item.setFlags(item.flags() & ~Qt.ItemIsSelectable & ~Qt.ItemIsEnabled)
+                    item.setEnabled(True)
 
     def Get_specific_nuclides_data(self):
+        
+
         self.Data_Threshold_CB.setCurrentIndex(0)
         if len(self.Checked_Nuclides) == 0 and self.Nuclide_Data_type_CB.currentIndex() != 0:
             self.showDialog('Warning', 'Check nuclides first!')
@@ -715,7 +915,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             activity = {}; activity[mat] = {}
             act_min = 1E+35; act_max = 1E-35
             for time in self.Checked_Time_Steps:
-                t_idx = list(self.times).index(float(time))
+                t_idx = list(self.Time_Steps).index(float(time))
                 activity[mat][t_idx] = [val for val in self.activities[self.id][t_idx].values()]
                 act_min = np.min([act_min, np.min([x for x in activity[mat][t_idx] if x != 0])])
                 act_max = np.max([act_max, np.max(activity[mat][t_idx])])
@@ -839,40 +1039,199 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         # Obtain Xe135 capture reaction rate as a function of time
         _, Xe_capture = self.results.get_reaction_rate("1", 'Xe135', '(n,gamma)')
 
+    def CheckNuclides(self):
+        self.Checked_Nuc_LE.clear()
+        if self.Nuclides_ComboBx.checkedItems():
+            self.Checked_Nuclides = [self.Nuclides_ComboBx.itemText(i) for i in self.Nuclides_ComboBx.checkedItems()]
+            if 'All bins' in self.Checked_Nuclides:
+                self.Checked_Nuclides.pop(self.Checked_Nuclides.index('All bins'))
+            self.Checked_Nuc_LE.setText(str(self.Checked_Nuclides))
+        else:
+            self.Checked_Nuclides = []
+            self.Checked_Nuc_LE.clear()
+        self.Nuclides_ComboBx.setCurrentIndex(0)
+
+    def CheckReactions(self):
+        self.Reactions_LE.clear()
+        if self.Reactions_CB.checkedItems():
+            self.Checked_Reactions = [self.Reactions_CB.itemText(i) for i in self.Reactions_CB.checkedItems()]
+            if 'All bins' in self.Checked_Reactions:
+                self.Checked_Reactions.pop(self.Checked_Reactions.index('All bins'))
+            self.Reactions_LE.setText(str(self.Checked_Reactions))
+        else:
+            self.Checked_Reactions = []
+            self.Reactions_LE.clear()
+        self.Reactions_CB.setCurrentIndex(0)
+
+    def Apply_Filter_Nuclides(self):
+        self.Remained_Nuclides = set()  # Using a set to avoid duplicates
+        self.Rejected_Nuclides = set()
+        self.Remained_Activities = {}; self.Rejected_Activities = {}
+        self.Remained = {}; self.Rejected = {}
+        
+        if self.Data_Threshold_CB.currentIndex() in [-1,0,1]:  # no filter
+            Threshold = -1.
+        elif self.Data_Threshold_CB.currentIndex() == 2:    # only non null data nuclides
+            Threshold = 0
+        else:                                               # only satisfying threshold nuclides 
+            #Threshold = float(self.Data_Threshold_CB.currentText())
+            Threshold = self.parse_scientific_unicode(self.Data_Threshold_CB.currentText())
+
+        if self.Nuclide_Data_type_CB.currentText() == 'atoms':
+            pass
+        elif self.Nuclide_Data_type_CB.currentText() == 'mass':
+            pass
+        elif self.Nuclide_Data_type_CB.currentText() == 'activity':
+            for time in self.Checked_Time_Steps:
+                t_idx = list(self.Time_Steps).index(float(time)) 
+                self.Remained[str(t_idx)] = []; self.Rejected[str(t_idx)] = []
+                self.Remained_Activities[str(t_idx)] = []; self.Rejected_Activities[str(t_idx)] = []  
+                for nuclide in self.Checked_Nuclides:
+                    Nuc_idx = self.Checked_Nuclides.index(nuclide)   
+                    activity = list(self.activities[self.id][t_idx].values())[Nuc_idx]
+                    if activity > Threshold:
+                        self.Remained_Nuclides.add(nuclide)
+                        self.Remained_Activities[str(t_idx)].append(activity)
+                        self.Remained[str(t_idx)].append((nuclide, activity,))
+                    else:
+                        self.Rejected_Nuclides.add(nuclide)
+                        self.Rejected_Activities[str(t_idx)].append(activity)
+                        self.Rejected[str(t_idx)].append((nuclide, activity,))
+                
+        elif self.Nuclide_Data_type_CB.currentText() == 'reaction rate':
+            pass
+        elif self.Nuclide_Data_type_CB.currentText() == 'decay heat':
+            pass
+        
+        self.Checked_Nucl_Thesh_LE.setText(str(list(self.Remained_Nuclides)))
+        if self.Data_Threshold_CB.currentIndex() not in [0, 1]:
+            print(f'Nuclides satisfying {self.Nuclide_Data_type_CB.currentText()} > {Threshold}')
+        elif self.Data_Threshold_CB.currentIndex() == 2:
+            print(f'Nuclides satisfying non null {self.Nuclide_Data_type_CB.currentText()}')
+        
+        for time in self.Checked_Time_Steps:
+            t_idx = list(self.times).index(float(time))
+            print(f'\nMaterial {self.mat} data at step {t_idx} :\n')
+            print(f'Remained nuclides : {len(self.Remained_Nuclides)} among {len(self.Checked_Nuclides)} checked nuclides \
+                    with {len(self.Remained_Activities[str(t_idx)])} activity values.')
+            print(f'List of remained nuclides : {list(self.Remained_Nuclides)}')
+            print(f'Nuclide\t{self.Nuclide_Data_type_CB.currentText()}')
+            '''for nuc, act in zip(self.Remained_Nuclides, self.Remained_Activities[str(t_idx)]):    
+                print(f'{str(nuc)}\t{str(act)}')
+            '''
+            for i in range(len(self.Remained[str(t_idx)])):
+                print(f'{self.Remained[str(t_idx)][i][0]}\t{self.Remained[str(t_idx)][i][1]}')
+        
+    def generate_powers_of_10(self, min_value, max_value):
+        """Generate powers of 10 (10^n) between min_value and max_value."""
+        if min_value <= 0 or max_value <= 0:
+            raise ValueError("min_value and max_value must be positive")
+        
+        powers = []
+        n = -20
+        while True:
+            current_power = 10 ** n
+            if current_power > max_value:
+                break
+            if current_power >= min_value:
+                powers.append(self.sci_notation(current_power))
+            n += 5
+        
+        return powers
+
+    def sci_notation(self, number, precision=0):
+        superscript_map = str.maketrans("0123456789-", "⁰¹²³⁴⁵⁶⁷⁸⁹⁻")
+        base, exp = f"{number:.{precision}e}".split('e')
+        base = base.rstrip('0').rstrip('.')  # remove trailing .0
+        exp = int(exp)
+        #return f"{base} × 10{str(exp).translate(superscript_map)}"
+        return f"10{str(exp).translate(superscript_map)}"
+
+    def parse_scientific_unicode(self, sci_str):
+        # Mapping from superscript to normal digits
+        superscript_map = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹⁻", "0123456789-")
+        
+        # Split by '× 10'
+        if '10' in sci_str:
+            #base = 1
+            exp = sci_str.split('10', 1)[1]
+            #base = float(base.strip())
+            exp = int(exp.translate(superscript_map))
+            #return base * (10 ** exp)
+            return (10 ** exp)
+        else:
+            raise ValueError("Input must be in format like '3 × 10⁻⁶'")
+
+    def Enable_Disable_GB(self):
+        if os.path.isfile(self.Depl_Res_LE.text()):
+            self.groupBox_20.setEnabled(True)
+        else:
+            self.groupBox_20.setEnabled(False)
+
     def Reset_Widgets(self):
         self.Material_CB.setCurrentIndex(0)
         self.Nuclide_Data_type_CB.setCurrentIndex(0)
         self.Data_Threshold_CB.setCurrentIndex(0)
         self.Nuclides_ComboBx.setCurrentIndex(0)
         self.Time_steps_comboBox.setCurrentIndex(0)
-        self.Depl_Nuclides_List_LE.clear()
-        for i in range(1,len(self.Time_Steps) + 2):
-            self.Time_steps_comboBox.setItemChecked(i, False)
-
-    def Get_data_from_Simulation_file(self):
-        if not os.path.isfile(self.Simulation_file):
-            return
-        self._f = h5py.File(self.Simulation_file, 'r')
+        self.Checked_Nuc_LE.clear()
+        self.Reactions_LE.clear()
+        self.Checked_Nucl_Thesh_LE.clear()
+        self.Time_Steps_LE.clear()
+        try:
+            for i in range(1,len(self.Time_Steps) + 2):
+                self.Time_steps_comboBox.setItemChecked(i, False)
+        except:
+            pass
+        if self.Data_CB.currentText() == 'Nuclide data': 
+            self.Material_CB.clear()
+            self.Material_CB.addItem('select material')
+            self.Material_CB.addItems(self.depletable_materials)
+            self.Material_CB.setCurrentIndex(0)
+            self.groupBox_18.setEnabled(True)
+        else:
+            self.Material_CB.clear()
+            self.groupBox_18.setEnabled(False)
 
     def Convert_Time_Units(self):
+        self.Time_Units = 's'
+        for i, result in enumerate(self.results):
+            self.Time_Steps[i] = result.time[0]
         T = np.array(self.Time_Steps)
         self.Time_steps_comboBox.clear()
         self.Time_steps_comboBox.addItems(['Check step', 'All bins'])
+        self.Time_steps_comboBox.model().item(0).setEnabled(False)
+        if self.Time_Units == 's':
+            if self.Time_Units_CB.currentText() == 'min':
+                UNIT_PER_ = 60.
+            elif self.Time_Units_CB.currentText() == 'h':
+                UNIT_PER_ = 3600.
+            elif self.Time_Units_CB.currentText() == 'd':
+                UNIT_PER_ = 24. * 3600. 
+            elif self.Time_Units_CB.currentText() == 'a':
+                UNIT_PER_ = 365.25 * 24. * 3660. 
+            else:
+                UNIT_PER_ = 1
 
-        if self.Time_Units_CB.currentText() == 'min':
-            SECONDS_PER_ = 60
-        elif self.Time_Units_CB.currentText() == 'h':
-            SECONDS_PER_ = 3600
-        elif self.Time_Units_CB.currentText() == 'd':
-            SECONDS_PER_ = 86400
-        elif self.Time_Units_CB.currentText() == 'a':
-            SECONDS_PER_ = 31557600
-        else:
-            SECONDS_PER_ = 1
-        Times = T / SECONDS_PER_
-        
+        self.Time_Units = self.Time_Units_CB.currentText()
+        Times = T / UNIT_PER_
+        self.Time_Steps = [t for t in Times]
+
         self.Time_steps_comboBox.addItems([str(t) for t in Times])
-        #return Times
+        return Times
+
+    def Print_Formated_Data(self, data, cols, LWidth, col_width, StrKind):
+        # Reshape (pad if needed)
+        rows = (len(data) + cols - 1) // cols
+        matrix = np.array(data + [""] * (rows * cols - len(data)), dtype=object).reshape(rows, cols)
+
+        # Compute width
+        if col_width == 0:
+            col_width = max(len(str(x)) for x in matrix.flatten())
+
+        for row in matrix:
+            row = ['\t'] + row
+            print("  ".join(f"{x:<{col_width}}" for x in row))
 
     ################################################################
     # Handle tallies from statepoint file
@@ -1315,11 +1674,14 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 mesh = self.tally.find_filter(openmc.MeshFilter).mesh
                 self.mesh_type = type(mesh).__name__
 
-                if self.mesh_type == 'CylindricalMesh': 
+                if self.mesh_type in ['CylindricalMesh', 'SphericalMesh']: 
                     self.Curve_xLabel.clear()
                     self.Curve_yLabel.clear()
-                    self.Mesh_xy_RB.setText('mesh rphi')
-                    self.Mesh_xz_RB.setText('mesh rz')
+                    self.Mesh_xy_RB.setText('mesh r\u03C6')
+                    if self.mesh_type == 'CylindricalMesh':
+                        self.Mesh_xz_RB.setText('mesh rz')
+                    else:
+                        self.Mesh_xz_RB.setText('mesh r\u03F4')
                     self.Mesh_yz_RB.setEnabled(False)
                 else:
                     self.Mesh_xy_RB.setText('mesh xy')
@@ -1396,8 +1758,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             else:
                 KEY = key
                 KEY1 = ''
-            """if KEY1 in ['x', 'y', 'z']:   #'mesh' in key:
-                pass"""
+
             if 'mesh' in KEY:
                 FMT = '{:<20}'
             elif KEY in ['surface', 'cell', 'cellfrom', 'cellborn', 'universe', 'material', 'collision']:
@@ -1420,7 +1781,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 FMT = '{:<16.6e}'
             elif 'level' in KEY:
                 FMT = '{:<10d}'
-            #df.loc[:, key] = df[key].map(FMT.format)
+
             df[key] = df[key].map(FMT.format)
             try:
                 LJUST = int(FMT.split('<')[1].split('.')[0].replace('d', '').replace('}', ''))
@@ -1467,7 +1828,6 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             cursor.insertText('*'*60 + ' K EFFECTIVE ' + '*'*60 + '\n')
             for key in df.keys():
                 if key in ['mean', 'std_dev']:
-                    #df.loc[:, key] = df[key].map('{:<20.6f}'.format)
                     df[key] = df[key].map('{:<20.6f}'.format)
         elif j == 1:
             cursor.insertText('*'*55 + TITLE + '*'*55 + '\n')
@@ -1661,12 +2021,13 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         self.spinBox.show()
         self.spinBox_2.show()
         self.Mesh_xy_RB.setChecked(True)
-        mesh = tally.filters[idx].mesh
+        self.mesh = tally.filters[idx].mesh
+        mesh = self.mesh
         self.mesh_id = mesh.id
         #self.mesh_type = str(mesh).split('\n')[0]
         self.mesh_type = type(mesh).__name__
         self.mesh_name = tally.name
-        self.mesh_dimension = mesh.dimension
+        self.mesh_dimension = [int(x) for x in mesh.dimension]
         self.mesh_n_dim = mesh.n_dimension 
         self.mesh_key = f'mesh {tally.filters[idx].mesh.id}'
         """if self.mesh_type == 'CylindricalMesh':
@@ -1676,29 +2037,29 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             self.Curve_xLabel.setText('x/cm')
             self.Curve_yLabel.setText('y/cm')  """      
         print('*******************************************************************************************')
-        print('********************                           Mesh summary                             ******************')
+        print('********************                           Mesh summary              ******************')
         print('*******************************************************************************************\n')
         if self.mesh_type in ['RegularMesh', 'RectilinearMesh']:
             if self.mesh_type == 'RectilinearMesh':
-                self.mesh_LL = tally.filters[idx].mesh.lower_left
-                self.mesh_UR = tally.filters[idx].mesh.upper_right
+                self.mesh_LL = [float(x) for x in tally.filters[idx].mesh.lower_left]
+                self.mesh_UR = [float(x) for x in tally.filters[idx].mesh.upper_right]
                 XX = tally.filters[idx].mesh.x_grid; dXX = np.diff(XX)
                 YY = tally.filters[idx].mesh.y_grid; dYY = np.diff(YY)
                 ZZ = tally.filters[idx].mesh.z_grid; dZZ = np.diff(ZZ)                        
                 self.x = XX[:-1] + dXX * 0.5
                 self.y = YY[:-1] + dYY * 0.5
                 self.z = ZZ[:-1] + dZZ * 0.5
-                print('id               :  ', self.mesh_id)
-                print('name            :  ', self.mesh_name)
-                print('type            :  ', self.mesh_type)
-                print('dimension     :  ', self.mesh_n_dim)
-                print('voxels          :  ', self.mesh_dimension)
-                print('lower_left   :  ', self.mesh_LL)
-                print('upper_right  :  ', self.mesh_UR, '\n')
-                print('x grid      :  ', self.x.tolist())
-                print('y grid      :  ', self.y.tolist())
-                print('z grid      :  ', self.z.tolist(), '\n')
-                print('Tally filters : \n', tally.filters, '\n')
+                print(f'id            :\t{self.mesh_id}')
+                print(f'name          :\t{self.mesh_name}')
+                print(f'type          :\t{self.mesh_type}')
+                print(f'dimension     :\t{self.mesh_n_dim}')
+                print(f'voxels        :\t{self.mesh_dimension}')
+                print(f'lower_left    :\t{self.mesh_LL}')
+                print(f'upper_right   :\t{self.mesh_UR}\n')
+                print(f'x grid        :\t{self.x.tolist()}')
+                print(f'y grid        :\t{self.y.tolist()}')
+                print(f'z grid        :\t{self.z.tolist()}\n')
+                print(f'Tally filters :\n{tally.filters}\n')
                 print('*******************************************************************************************\n')
                 
                 self.mesh_ids = tally.filters[idx].bins
@@ -1745,9 +2106,9 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 except:
                     self.showDialog('Warning', 'Filter bins not checked!')
             elif self.mesh_type == 'RegularMesh':
-                mesh_width = tally.filters[idx].mesh.width
-                self.mesh_LL = tally.filters[idx].mesh.lower_left
-                self.mesh_UR = tally.filters[idx].mesh.upper_right
+                mesh_width = [float(x) for x in tally.filters[idx].mesh.width]
+                self.mesh_LL = [float(x) for x in tally.filters[idx].mesh.lower_left]
+                self.mesh_UR = [float(x) for x in tally.filters[idx].mesh.upper_right]
                 self.mesh_ids = tally.filters[idx].bins
                 mesh_grid = tally.filters[idx].mesh._grids
                 if len(mesh_grid) == 3:
@@ -1760,22 +2121,22 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                     self.x = mesh_grid[0][:-1] + mesh_width[0] * 0.5
                     self.y = mesh_grid[1][:-1] + mesh_width[1] * 0.5
                     self.z = ['z axis integrated']
-                    self.mesh_dimension = np.append(self.mesh_dimension, 1)
+                    self.mesh_dimension = np.append(self.mesh_dimension, 1).tolist()
                     self.Mesh_xz_RB.setEnabled(False) 
                     self.Mesh_yz_RB.setEnabled(False)   
                 # ******************************************************************************                     
-                print('id                :  ', self.mesh_id)
-                print('name          :  ', self.mesh_name)
-                print('type            :  ', self.mesh_type)
-                print('dimension   :  ', self.mesh_n_dim)
-                print('voxels         :  ', self.mesh_dimension)
-                print('width          :  ', mesh_width)
-                print('lower_left     :  ', self.mesh_LL)
-                print('upper_right  :  ', self.mesh_UR, '\n')
-                print('x grid      :  ', self.x)
-                print('y grid      :  ', self.y)
-                print('z grid      :  ', self.z, '\n')
-                print('Tally filters : \n', tally.filters, '\n')
+                print(f"id           :\t{self.mesh_id}")
+                print(f"name         :\t{self.mesh_name}")
+                print(f"type         :\t{self.mesh_type}")
+                print(f"dimension    :\t{self.mesh_n_dim}")
+                print(f"voxels       :\t{self.mesh_dimension}")
+                print(f"width        :\t{mesh_width}")
+                print(f"lower_left   :\t{self.mesh_LL}")
+                print(f"upper_right  :\t{self.mesh_UR}\n")
+                print(f"x grid       :\t{self.x}")
+                print(f"y grid       :\t{self.y}")
+                print(f"z grid       :\t{self.z}\n")
+                print(f"Tally filters :\n{tally.filters}\n")
                 print('*******************************************************************************************\n')
 
                 self.Tallies[tally_id][filter_id]['slice_x'] = self.x
@@ -1837,20 +2198,20 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             self.phi_center = self.phi_center * 180. / np.pi                  
             self.z_center = self.z[:-1] + dz * 0.5   
             self.R_range = [str(self.r[i]) + ' < r < ' + str(self.r[i+1]) for i in range(len(self.r) - 1)]               
-            self.Phi_range = [str("{:.1f}°".format(self.phi[i] * 180. / np.pi)) + ' < \u03F4 < ' + str("{:.1f}°".format(self.phi[i+1] * 180. / np.pi)) for i in range(len(self.phi) - 1)]               
+            self.Phi_range = [str("{:.1f}°".format(self.phi[i] * 180. / np.pi)) + ' < \u03C6 < ' + str("{:.1f}°".format(self.phi[i+1] * 180. / np.pi)) for i in range(len(self.phi) - 1)]               
             self.Z_range = [str("{:.1E}cm".format(self.z[i])) + ' < z < ' + str("{:.1E}cm".format(self.z[i+1])) for i in range(len(self.z) - 1)]               
             ##############################################################
-            print('id               :  ', self.mesh_id)
-            print('name            :  ', self.mesh_name)
-            print('type            :  ', self.mesh_type)
-            print('dimension     :  ', self.mesh_n_dim)
-            print('voxels          :  ', self.mesh_dimension)
-            print('lower_left   :  ', self.mesh_LL)
-            print('upper_right  :  ', self.mesh_UR, '\n')
-            print('r grid      :  ', self.r.tolist())
-            print('phi grid      :  ', self.phi.tolist())
-            print('z grid      :  ', self.z.tolist(), '\n')
-            print('Tally filters : \n', tally.filters, '\n')
+            print(f'id            :\t{self.mesh_id}')
+            print(f'name          :\t{self.mesh_name}')
+            print(f'type          :\t{self.mesh_type}')
+            print(f'dimension     :\t{self.mesh_n_dim}')
+            print(f'voxels        :\t{self.mesh_dimension}')
+            print(f'lower_left    :\t{self.mesh_LL}')
+            print(f'upper_right   :\t{self.mesh_UR}\n')
+            print(f'r grid        :\t{self.r.tolist()}')
+            print(f'\u03C6 grid      :\t{self.phi.tolist()}')
+            print(f'z grid        :\t{self.z.tolist()}\n')
+            print(f'Tally filters :\n{tally.filters}\n')
             print('*******************************************************************************************\n')
             
             self.mesh_ids = tally.filters[idx].bins
@@ -1869,13 +2230,11 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
 
             if self.Mesh_xy_RB.isChecked():
                 if len(tally.filters[idx].mesh._grids) == 3:
-                    #self.list_axis = ['slice at z = ' + str("{:.1E}".format(z_)) for z_ in self.z_center]
                     self.list_axis = ['slice at ' + Z for Z in self.Z_range]
                 else:
                     self.list_axis = ['z axis integrated']
             elif self.Mesh_xz_RB.isChecked():
                 self.id_step1 = self.mesh_dimension[0] * self.mesh_dimension[2]
-                #self.list_axis = ['slice at \u03F4 = ' + str("{:.1f}".format(phi_)) for phi_ in self.phi_center]
                 self.list_axis = ['slice at ' + Phi for Phi in self.Phi_range]
             """elif self.Mesh_yz_RB.isChecked():
                 self.id_step2 = self.mesh_dimension[1] * self.mesh_dimension[2]
@@ -1899,7 +2258,79 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                         self.Bins_comboBox[idx].setItemChecked(i, False)
             except:
                 self.showDialog('Warning', 'Filter bins not checked!')
-        
+        elif self.mesh_type == 'SphericalMesh':
+            self.mesh_LL = mesh.lower_left
+            self.mesh_UR = mesh.upper_right 
+            self.r = mesh.r_grid; dr = np.diff(self.r)
+            self.phi = mesh.phi_grid; dphi = np.diff(self.phi)
+            self.theta = mesh.theta_grid; dtheta = np.diff(self.theta)  
+            self.origin = mesh.origin    
+            self.r_center = self.r[:-1] + dr * 0.5                  
+            self.phi_center = self.phi[:-1] + dphi * 0.5                  
+            self.phi_center = self.phi_center * 180. / np.pi                  
+            self.theta_center = self.theta[:-1] + dtheta * 0.5   
+            self.R_range = [str(self.r[i]) + ' < r < ' + str(self.r[i+1]) for i in range(len(self.r) - 1)]               
+            self.Phi_range = [str("{:.1f}°".format(self.phi[i] * 180. / np.pi)) + ' < \u03C6 < ' + str("{:.1f}°".format(self.phi[i+1] * 180. / np.pi)) for i in range(len(self.phi) - 1)]               
+            self.theta_range = [str("{:.1f}°".format(self.theta[i] * 180. / np.pi)) + ' < \u0398 < ' + str("{:.1f}°".format(self.theta[i+1] * 180. / np.pi)) for i in range(len(self.theta) - 1)]               
+            ##############################################################
+            print(f'id            :\t{self.mesh_id}')
+            print(f'name          :\t{self.mesh_name}')
+            print(f'type          :\t{self.mesh_type}')
+            print(f'dimension     :\t{self.mesh_n_dim}')
+            print(f'voxels        :\t{self.mesh_dimension}')
+            print(f'lower_left    :\t{self.mesh_LL}')
+            print(f'upper_right   :\t{self.mesh_UR}\n')
+            print(f'r grid        :\t{self.r.tolist()}')
+            print(f'\u03C6 grid      :\t{self.phi.tolist()}')
+            print(f'\u0398 grid        :\t{self.theta.tolist()}\n')
+            print(f'Tally filters :\n{tally.filters}\n')
+            print('*******************************************************************************************\n')
+            
+            self.mesh_ids = tally.filters[idx].bins
+            self.id_step = self.mesh_dimension[0] * self.mesh_dimension[1]
+            
+            ij_indices = [(self.mesh_ids[i][0], self.mesh_ids[i][1],) for i in range(self.id_step)]
+            ik_indices = []
+            for k in range(self.mesh_dimension[2]):
+                ik_indices += [(self.mesh_ids[i][0], self.mesh_ids[i][2],) for i in
+                            range(k * self.id_step, (k * self.id_step + self.mesh_dimension[0]))]
+            jk_indices = [(self.mesh_ids[i][1], self.mesh_ids[i][2],) for i in
+                        range(0, len(self.mesh_ids), self.mesh_dimension[0])]
+            self.Tallies[tally_id][filter_id]['ik_indices'] = ik_indices
+            self.Tallies[tally_id][filter_id]['jk_indices'] = jk_indices
+            self.Tallies[tally_id][filter_id]['ij_indices'] = ij_indices
+
+            if self.Mesh_xy_RB.isChecked():
+                if len(tally.filters[idx].mesh._grids) == 3:
+                    self.list_axis = ['slice at ' + theta for theta in self.theta_range]
+                else:
+                    self.list_axis = ['theta axis integrated']
+            elif self.Mesh_xz_RB.isChecked():
+                self.id_step1 = self.mesh_dimension[0] * self.mesh_dimension[2]
+                self.list_axis = ['slice at ' + Phi for Phi in self.Phi_range]
+            """elif self.Mesh_yz_RB.isChecked():
+                self.id_step2 = self.mesh_dimension[1] * self.mesh_dimension[2]
+                self.list_axis = ['slice at r = ' + str("{:.1E}".format(r_)) for r_ in self.r_center]"""
+            bins = self.list_axis
+            self.Tallies[tally_id][filter_id]['bins'] = bins
+            self.label_4.setText('Select bins')
+            filter_id = self.filter_ids[idx]
+            self.Bins_comboBox[idx].addItem('Select ' + self.Tallies[tally_id]['filter_names'][idx] + ' bins')
+            self.Bins_comboBox[idx].addItem('All bins')
+            self.Bins_comboBox[idx].model().item(0).setEnabled(False)
+            self.Bins_comboBox[idx].addItems(bins)
+            if 'MeshFilter' in self.Filter_names and len(tally.filters[idx].mesh._grids) == 2:
+                self.Bins_comboBox[self.Filters_comboBox.currentIndex() - 1].setCurrentIndex(2)
+            try:
+                if self.Tallies[tally_id][filter_id]['Checked_bins_indices']:
+                    for j in self.Tallies[tally_id][filter_id]['Checked_bins_indices']: 
+                        self.Bins_comboBox[idx].setItemChecked(j, False)   # (j, True)
+                else:
+                    for i in range(len(bins) + 1):
+                        self.Bins_comboBox[idx].setItemChecked(i, False)
+            except:
+                self.showDialog('Warning', 'Filter bins not checked!')
+
     def SelectBins(self):
         if self.Tally_id_comboBox.currentIndex() > 0 and 'Keff' not in self.Tally_id_comboBox.currentText():
             tally_id = int(self.Tally_id_comboBox.currentText())
@@ -2204,7 +2635,6 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         cursor.insertText('\n' + '*'*27*len(df.keys()))
         for idx in range(self.n_filters):
             if 'MeshFilter' in self.Filter_names[idx]:
-                #Mesh_Filter_idx = self.filter_ids[idx]
                 Mesh_Filter_idx = idx #self.filter_ids[idx]
             cursor.insertText('\nTally bins for filter id = ' + str(self.filter_ids[idx]) + ' : ' + str(self.Tallies[self.tally_id][self.filter_ids[idx]]['bins']).replace("'", ""))
             cursor.insertText('\nSelected bins for filter id = ' + str(self.filter_ids[idx]) + ' : ' + str(self.Tallies[self.tally_id][self.filter_ids[idx]]['Checked_bins']).replace("'", ""))
@@ -2219,7 +2649,8 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         self.df_filtered = self.df.loc[(self.df['nuclide'].isin(self.selected_nuclides)) & (self.df['score'].isin(self.selected_scores))]       
         if 'MeshFilter' in self.Filter_names: 
             tally = self.tally
-            mesh = tally.filters[Mesh_Filter_idx].mesh
+            self.mesh = tally.filters[Mesh_Filter_idx].mesh
+            mesh = self.mesh
             if self.mesh_type in ['RegularMesh', 'RectilinearMesh']:
                 if self.Mesh_xy_RB.isChecked():
                     plot_basis = 'xy'
@@ -2228,34 +2659,43 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 elif self.Mesh_yz_RB.isChecked():
                     plot_basis = 'yz'
                 # Get voxels volume
-                for Slice_index in range(len(self.checked_bins_indices)):
-                    if len(tally.shape)  == 3:
-                        if plot_basis == "xy":
-                            self.slice_volumes = mesh.volumes[:, :, Slice_index].squeeze()
-                        elif plot_basis == "xz":
-                            self.slice_volumes = mesh.volumes[:, Slice_index, :].squeeze()
-                        elif plot_basis == "yz":
-                            self.slice_volumes = mesh.volumes[Slice_index, :, :].squeeze()
-                    elif len(tally.shape)  == 2:
-                        self.slice_volumes = mesh.volumes[:, :].squeeze()
-                    slice = self.Tallies[self.tally_id][self.filter_ids[Mesh_Filter_idx]]['Checked_bins'][Slice_index].replace("'", "")
-                    print('mesh volumes for ' + str(slice) + '\n' + str(self.slice_volumes))
+                if len(mesh.dimension) == 3:
+                    for Slice_index in range(len(self.checked_bins_indices)):
+                        if len(tally.shape)  == 3:
+                            if plot_basis == "xy":
+                                self.slice_volumes = mesh.volumes[:, :, Slice_index].squeeze()
+                            elif plot_basis == "xz":
+                                self.slice_volumes = mesh.volumes[:, Slice_index, :].squeeze()
+                            elif plot_basis == "yz":
+                                self.slice_volumes = mesh.volumes[Slice_index, :, :].squeeze()
+                        elif len(tally.shape)  == 2:
+                            self.slice_volumes = mesh.volumes[:, :].squeeze()
+                        slice = self.Tallies[self.tally_id][self.filter_ids[Mesh_Filter_idx]]['Checked_bins'][Slice_index].replace("'", "")
+                        print('mesh volumes for ' + str(slice) + '\n' + str(self.slice_volumes))
+                else:
+                    s = (mesh.dimension[0],mesh.dimension[1])
+                    v = mesh.width[0] * mesh.width[1]
+                    self.slice_volumes = np.array([v] * (s[0]*s[1])).reshape(s)
+
             elif self.mesh_type in ['CylindricalMesh']:
                 if self.Mesh_xy_RB.isChecked():
                     plot_basis = 'rphi'
                 else:
                     plot_basis = 'rz'
                 # Get voxels volume
-                for Slice_index in range(len(self.checked_bins_indices)):
-                    if len(tally.shape)  == 3:
-                        if plot_basis == "rz":
-                            self.slice_volumes = mesh.volumes[:, Slice_index, :].squeeze()
-                        elif plot_basis == "rphi": 
-                            self.slice_volumes = mesh.volumes[:, :, Slice_index].squeeze()
-                    elif len(tally.shape)  == 2:
-                        self.slice_volumes = mesh.volumes[:, :].squeeze()
-                    slice = self.Tallies[self.tally_id][self.filter_ids[Mesh_Filter_idx]]['Checked_bins'][Slice_index].replace("'", "")
-                    print('mesh volumes for ' + str(slice) + '\n' + str(self.slice_volumes))
+                try:
+                    for Slice_index in range(len(self.checked_bins_indices)):
+                        if len(tally.shape)  == 3:
+                            if plot_basis == "rz":
+                                self.slice_volumes = mesh.volumes[:, Slice_index, :].squeeze()
+                            elif plot_basis == "rphi": 
+                                self.slice_volumes = mesh.volumes[:, :, Slice_index].squeeze()
+                        elif len(tally.shape)  == 2:
+                            self.slice_volumes = mesh.volumes[:, :].squeeze()
+                        slice = self.Tallies[self.tally_id][self.filter_ids[Mesh_Filter_idx]]['Checked_bins'][Slice_index].replace("'", "")
+                        print('mesh volumes for ' + str(slice) + '\n' + str(self.slice_volumes))
+                except:
+                    pass
 
             for index in range(len(self.df.keys()) - 4):
                 key = self.df.keys()[index][0]
@@ -3853,15 +4293,19 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         elif self.Norm_to_SStrength_CB.isChecked():
             self.Normalizing_Factor *= np.array(self.Strength_Factor)
         # Normalize to tally mean value or max
-        if self.Aver_CB.isChecked(): # and 'MeshFilter' not in self.Filter_names: 
+        if self.Aver_CB.isChecked(): 
             self.Normalizing_Factor *= np.array(self.Aver_Factor[0])
             print(str(self.Normalizing_Factor))
-        elif self.Max_CB.isChecked(): # and 'MeshFilter' not in self.Filter_names: 
+        elif self.Max_CB.isChecked(): 
             self.Normalizing_Factor *= np.array(self.Max_Factor[0])
             print(str(self.Normalizing_Factor))
         # Normalize to cells volume
-        if self.Norm_to_Vol_CB.isChecked(): # and 'MeshFilter' not in self.Filter_names: 
-            self.Normalizing_Factor *= self.Volume_Factor 
+        if self.Norm_to_Vol_CB.isChecked():
+            if 'MeshFilter' not in self.Filter_names: 
+                self.Normalizing_Factor *= self.Volume_Factor 
+            else:
+                vol = np.hstack(self.slice_volumes)
+                self.Normalizing_Factor /= vol
         # Normalize to variable bin width
         if self.Norm_to_BW_CB.isChecked():
             self.Normalizing_Factor *= self.Bin_Factor
@@ -3870,11 +4314,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             self.Normalizing_Factor *= self.Lethargy_Factor
     
         # multiply scores and std. dev. by Normalizing_Factor
-        #if self.add_errors:
         df.loc[:,['mean', 'std. dev.']] *= np.array(self.Normalizing_Factor[:, None])  # to be verified
-        #else:
-        #    df.loc[:,['mean']] *= np.array(self.Normalizing_Factor[:, None])  # to be verified
-
         df['multiplier'] = self.Normalizing_Factor.tolist()
 
         self.df_filtered_normalized = df
@@ -4279,52 +4719,52 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 self.Curve_title.setText(Title.replace(' per unit lethargy ', '').replace('  ', ' '))
 
     def Normalize_to_Volume(self, checked):
-        # Obtain the width of Lethargy Energy
         if checked: 
-            #if 'MeshFilter' not in self.Filter_names:
-            self.Volumes = self.LE_to_List(self.Vol_List_LE)
-            n_bins = 0
-            if self.n_filters > 0:
-                if 'cell' in self.df_Keys:
-                    idx = self.Keys.index('cell')
-                    Checked_Cells = self.DATA[idx]['Checked_bins']
-                    n_bins = len(Checked_Cells)
+            if 'MeshFilter' not in self.Filter_names:
+                self.Volumes = self.LE_to_List(self.Vol_List_LE)
+                n_bins = 0
+                if self.n_filters > 0:
+                    if 'cell' in self.df_Keys:
+                        idx = self.Keys.index('cell')
+                        Checked_Cells = self.DATA[idx]['Checked_bins']
+                        n_bins = len(Checked_Cells)
+                    else:
+                        n_bins = 1
+                    if len(self.Volumes) != n_bins:
+                        self.showDialog('Warning', "Numbers of checked cells and entered volumes don't match!\n")
+                        self.Norm_to_Vol_CB.setChecked(False)
+                        return
                 else:
                     n_bins = 1
-                if len(self.Volumes) != n_bins:
-                    self.showDialog('Warning', "Numbers of checked cells and entered volumes don't match!\n")
-                    self.Norm_to_Vol_CB.setChecked(False)
-                    return
-            else:
-                n_bins = 1
-                if len(self.Volumes) > n_bins:
-                    self.showDialog('Warning', 'Only first value of volumes list will be affected to root cell!')
-                    self.Volumes = [self.Volumes[0]]
-                    self.Vol_List_LE.setText(str(self.Volumes[0]))
-                    Checked_Cells = self.DATA['root']['Checked_bins']
-                elif len(self.Volumes) == 0:
-                    self.showDialog('Warning', 'Enter volume of the root cell!')
-                    self.Norm_to_Vol_CB.setChecked(False)
-                    return
+                    if len(self.Volumes) > n_bins:
+                        self.showDialog('Warning', 'Only first value of volumes list will be affected to root cell!')
+                        self.Volumes = [self.Volumes[0]]
+                        self.Vol_List_LE.setText(str(self.Volumes[0]))
+                        Checked_Cells = self.DATA['root']['Checked_bins']
+                    elif len(self.Volumes) == 0:
+                        self.showDialog('Warning', 'Enter volume of the root cell!')
+                        self.Norm_to_Vol_CB.setChecked(False)
+                        return
 
-            df = self.df_filtered.copy()
-            count_row = df.shape[0]                
-            self.All_Volumes = np.ones(count_row)
+                df = self.df_filtered.copy()
+                count_row = df.shape[0]                
+                self.All_Volumes = np.ones(count_row)
 
-            if 'cell' in self.df_Keys:
-                for key in self.Keys:
-                    if key == 'cell':
-                        idx = self.Keys.index(key)
-                        cells = df[key].values[:]
-                        for i in range(count_row):
-                            j = Checked_Cells.index(cells[i])
-                            self.All_Volumes[i] = self.Volumes[j]
-            else:
-                for i in range(count_row):
-                    self.All_Volumes[i] = self.Volumes[0]
-
-            self.Volume_Factor = np.reciprocal(self.All_Volumes).tolist()
-            print(str(self.Volume_Factor))
+                if 'cell' in self.df_Keys:
+                    for key in self.Keys:
+                        if key == 'cell':
+                            idx = self.Keys.index(key)
+                            cells = df[key].values[:]
+                            for i in range(count_row):
+                                j = Checked_Cells.index(cells[i])
+                                self.All_Volumes[i] = self.Volumes[j]
+                else:
+                    for i in range(count_row):
+                        self.All_Volumes[i] = self.Volumes[0]
+                self.Volume_Factor = np.reciprocal(self.All_Volumes).tolist()
+            else:  #
+                self.All_Volumes = self.slice_volumes.tolist()
+                self.Volume_Factor = np.reciprocal(self.All_Volumes)
         self.Normalize_to_Volume_Units(checked)
 
     def Normalize_to_Volume_Units(self, checked):
@@ -4565,6 +5005,9 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                         self.list_axis = ['slice at ' + Z for Z in self.Z_range]
                         self.Curve_xLabel.clear()
                         self.Curve_yLabel.clear()
+                    elif self.mesh_type == 'SphericalMesh':
+                        self.list_axis = ['slice at ' + theta for theta in self.theta_range]
+                        self.Curve_xLabel.setText('r/cm')
                     else:
                         self.list_axis = ['slice at z = ' + str("{:.1E}cm".format(z_)) for z_ in self.z]
                         self.Curve_xLabel.setText('x/cm')
@@ -4577,8 +5020,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                     self.spinBox_2.setMinimum(1)
                     self.spinBox_2.setMaximum(self.mesh_dimension[1])
                 elif self.Mesh_xz_RB.isChecked():
-                    if self.mesh_type == 'CylindricalMesh':
-                        #self.list_axis = ['slice at \u03F4 = ' + str("{:.1f}".format(y_)) + ' °' for y_ in self.phi_center]
+                    if self.mesh_type in ['CylindricalMesh', 'SphericalMesh']:
                         self.list_axis = ['slice at ' + Phi for Phi in self.Phi_range]
                         self.Curve_xLabel.setText('r/cm')
                     else:
@@ -4815,8 +5257,10 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                                                 if len(Keys_Loop) >= 5:
                                                                     yy = yy[df[key5] == bin5]
                                                 self.Print_Formated_df(yy.copy(), self.tally_id, self.editor)
-                                                mean = np.transpose(np.array(yy['mean'].tolist()).reshape((self.dim1, self.dim2)))
-                                                errors = np.transpose(np.array(yy['std. dev.'].tolist()).reshape((self.dim1, self.dim2)))
+                                                #mean = np.transpose(np.array(yy['mean'].tolist()).reshape((self.dim1, self.dim2)))
+                                                mean = np.array(yy['mean'].tolist()).reshape((self.dim1, self.dim2))
+                                                #errors = np.transpose(np.array(yy['std. dev.'].tolist()).reshape((self.dim1, self.dim2)))
+                                                errors = np.array(yy['std. dev.'].tolist()).reshape((self.dim1, self.dim2))
                                                 if self.Add_error_bars_CB.isChecked():
                                                     mean = errors
                                                 
@@ -4934,32 +5378,39 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
     def Plot_CylindricalMesh(self, ax, mean, slice_volumes, Norm, Interpolation, Volume_normalization, Graph_Type, Plot_Basis):
         from scipy.interpolate import RectBivariateSpline
         # Get mesh grids
+        # Example data
+        """theta = np.linspace(0, 2 * np.pi, 45)
+        r = np.linspace(0, 60, 6)
+        R, THETA = np.meshgrid(r, theta)
+        Z = np.sin(R) * np.cos(THETA)
+
+        ax.pcolormesh(THETA, R, Z[:-1, :-1], cmap='viridis', shading='flat')
+        ax.set_rorigin(0)
+        ax.set_ylim(0, 60)
+        plt.show()
+        return"""
+        
         theta = np.linspace(self.phi[0], self.phi[-1], len(self.phi) - 1)
-        r = np.linspace(self.r[0], self.r[-1], len(self.r) - 1)        
+        r = np.linspace(self.r[0], self.r[-1], len(self.r) - 1)  
         z = np.linspace(self.z[0], self.z[-1], len(self.z) - 1)        
-        tally_data = mean.T.squeeze()
+        tally_data = mean.squeeze()
         if Plot_Basis == 'rphi':
-            x_bins = np.array(r)  # Radial bins
-            y_bins = np.array(theta)  # Angular bins (in radians)
-            extent = [self.r[0], self.r[-1], self.phi[0], self.phi[-1],]
+            x_bins = np.array(r)       # Radial bins
+            y_bins = np.array(theta)   # Angular bins (in radians)
+            extent = [self.r[0], self.r[-1], self.phi[0], self.phi[-1]]
         elif Plot_Basis == 'rz':
-            x_bins = np.array(r)  # Radial bins
-            y_bins = np.array(z)
-            extent = [self.r[0], self.r[-1], self.origin[2] + self.z[0],self.origin[2] + self.z[-1],]
+            x_bins = np.array(r)       # Radial bins
+            y_bins = np.array(z)       # Axial bins
+            extent = [self.r[0], self.r[-1], self.origin[2] + self.z[0], self.origin[2] + self.z[-1]]
         x_min, x_max, y_min, y_max = [i for i in extent]
         
         if len(tally_data.shape) == 1:
             data = tally_data[:].reshape(len(x_bins), len(y_bins))
             slice_volumes = slice_volumes[:].reshape(len(x_bins), len(y_bins))
         elif len(tally_data.shape) == 2:
-            data = tally_data[:, :]
+            data = tally_data[:,:]    # .T added
         else:
             raise NotImplementedError("Mesh is not 3d or 2d, can't plot")
-
-        if Volume_normalization:
-            tally_data = data / slice_volumes
-        else:
-            tally_data = data
 
         # reshaping data if column array is 1D
         if tally_data.shape[0] == 1:      # Shape (1, 9)
@@ -4967,7 +5418,7 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
             tally_data = Z
             x_bins = [x_min, x_max]
         # reshaping data if row array is 1D
-        if tally_data.shape[1] == 1:      # Shape (9, 1)
+        elif tally_data.shape[1] == 1:      # Shape (9, 1)
             Z = np.hstack([tally_data, tally_data]) # Shape becomes (9, 2)
             tally_data = Z
             y_bins = [y_min, y_max]
@@ -4992,25 +5443,30 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                 y_mesh, x_mesh = np.meshgrid(y_fine, x_fine)
         else:
             y_mesh, x_mesh = np.meshgrid(y_bins, x_bins)
-                            
+                
+        print(f"(x: {x_mesh.shape}    {x_mesh})" )
+        print(f"(y: {y_mesh.shape}    {y_mesh})" )
+        print(f"(z: {tally_data.shape})" )                            
         if Graph_Type == 'mesh plot': 
             if Plot_Basis == 'rz':
-                im = ax.imshow(tally_data.T,  extent=extent, cmap=cm.rainbow)
+                im = ax.imshow(tally_data, extent=extent, cmap=cm.rainbow)
             else: 
                 if tally_data.shape[1] < 3:
                     self.showDialog('Warning', 'Plot could not be plotted properly due to few data along polar axis !\n Try contourf.')
-                im = ax.pcolormesh(y_mesh, x_mesh, tally_data, norm=Norm, shading=Interpolation, cmap=cm.rainbow)
+                if Interpolation:
+                    im = ax.pcolormesh(y_mesh, x_mesh, tally_data, norm=Norm, shading='auto', cmap=cm.rainbow)
+                else:
+                    im = ax.pcolormesh(y_mesh, x_mesh, tally_data[:-1, :-1], norm=Norm, shading='auto', cmap=cm.rainbow)
         elif Graph_Type == 'contourf':
             if Plot_Basis == 'rz':
-                im = ax.contourf(x_mesh, y_mesh, tally_data, norm=Norm, shading=Interpolation, extent=extent, cmap=cm.rainbow)
+                im = ax.contourf(x_mesh, y_mesh, tally_data, norm=Norm, shading='auto', extent=extent, cmap=cm.rainbow)
             else:
-                im = ax.contourf(y_mesh, x_mesh, tally_data, norm=Norm, shading=Interpolation, extent=extent, cmap=cm.rainbow) 
+                im = ax.contourf(y_mesh, x_mesh, tally_data, norm=Norm, shading='flat', extent=extent, cmap=cm.rainbow) 
         elif Graph_Type == 'contour':
             if Plot_Basis == 'rz':
                 im = ax.contour(x_mesh, y_mesh, tally_data, norm=Norm, cmap=cm.rainbow, extent=extent)
             else:
                 im = ax.contour(y_mesh, x_mesh, tally_data, norm=Norm, cmap=cm.rainbow, extent=extent)
-
         return im
 
     def Plot_Reg_Rect_Mesh(self, ax, mean, slice_volumes, Norm, Interpolation, Volume_normalization, Graph_Type, Plot_basis):
@@ -5032,12 +5488,12 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
         if len(tally_data.shape)  == 2:
             data = tally_data[:, :]
         else:
-            raise NotImplementedError("Mesh is not 3d or 2d, can't plot")
+            raise NotImplementedError("Mesh is not 3d or 2d! Can't plot!")
 
-        if Volume_normalization:
+        """if Volume_normalization:
             tally_data = data / slice_volumes
         else:
-            tally_data = data
+            tally_data = data"""
 
         y_mesh, x_mesh = np.meshgrid(y, x)
         if Graph_Type == 'mesh plot':    
@@ -5180,8 +5636,10 @@ class TallyDataProcessing(QtWidgets.QMainWindow):
                                                                     yy = yy[df[key5] == bin5]
                                                 self.Print_Formated_df(yy.copy(), self.tally_id, self.editor)
                                                 if len(yy) != 0:    
-                                                    mean = np.transpose(np.array(yy['mean'].tolist()).reshape((self.dim1, self.dim2)))
-                                                    errors = np.transpose(np.array(yy['std. dev.'].tolist()).reshape((self.dim1, self.dim2)))
+                                                    #mean = np.transpose(np.array(yy['mean'].tolist()).reshape((self.dim1, self.dim2)))
+                                                    mean = np.array(yy['mean'].tolist()).reshape((self.dim1, self.dim2))
+                                                    #errors = np.transpose(np.array(yy['std. dev.'].tolist()).reshape((self.dim1, self.dim2)))
+                                                    errors = np.array(yy['std. dev.'].tolist()).reshape((self.dim1, self.dim2))
                                                 else:
                                                     mean = None
 
@@ -6342,10 +6800,8 @@ class VLine(QFrame):
 
 
 
-
-
 #  to be removed if called by gui.py
-'''
+"""
 if not QApplication.instance():
     qapp = QApplication(sys.argv)
 else:
@@ -6355,8 +6811,8 @@ mainwindow = TallyDataProcessing('', '', '', '', '')
 mainwindow.show()
 
 # Only call exec() if the event loop hasn't been started yet
-sys.exit(qapp.exec())
-'''
+sys.exit(qapp.exec())"""
+
 
 
 

@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-# -*- coding: utf-8 -*- 
 import sys
 import os
 from datetime import datetime
@@ -30,10 +28,6 @@ import src.source_rc
 from src.syntax_py import Highlighter
 from src.image_viewer import QImageViewer
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 def global_exception_handler(exc_type, exc_value, exc_traceback):
     """
     Custom exception handler to display unhandled exceptions in a dialog.
@@ -55,9 +49,6 @@ def global_exception_handler(exc_type, exc_value, exc_traceback):
 # Assign the custom exception handler
 sys.excepthook = global_exception_handler
 
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 lineBarColor = QColor("#d3d7cf")
 lineHighlightColor = QColor("#fce94f")
 tab = chr(9)
@@ -72,10 +63,6 @@ if "conda3" in CONDA:
         from src.TallyDataProcessing import TallyDataProcessing
     except:
         pass
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 class Application(QtWidgets.QMainWindow):
     from src.func import Surf,Cell,Hex_Lat,Rec_Lat,Comment,Mat,Settings,Tally
@@ -1085,7 +1072,10 @@ class Application(QtWidgets.QMainWindow):
         item_id = line[line.find("(") + 1: line.find(")")].replace(' ', '').split(',')
         self.id = 1
         for w in item_id:
-            if key in w and '=' in w:
+            if key not in w:
+                if self.id_list[key]:
+                    self.id = self.id_list[key][-1] + 1                    
+            elif key in w and '=' in w:
                 try:
                     self.id = int(w.split('=')[1])
                 except:
@@ -1117,9 +1107,6 @@ class Application(QtWidgets.QMainWindow):
                             n += 1
                 else:
                     self.id = 1
-            """else:
-                self.id = ID
-                break"""
 
     def detect_components(self):
         import re
@@ -1180,6 +1167,7 @@ class Application(QtWidgets.QMainWindow):
             self.Tallies = Components_lines["openmc.Tallies"][0].split('=')[0].replace(' ', '')
         if Components_lines["openmc.Settings"]:
             self.Sett = Components_lines["openmc.Settings"][0].split('=')[0].replace(' ', '')
+        
         if Components_lines["batches"]:
             Batches = Components_lines["batches"][0].split('=')[1].replace(' ', '')
             if '#' in Batches:
@@ -1189,6 +1177,7 @@ class Application(QtWidgets.QMainWindow):
                 self.StatePoints = glob.glob(self.directory + '/statepoint*.h5')
         else:
             self.StatePoint = None
+        
         if Components_lines["openmc.Geometry"]:
             self.Geom = Components_lines["openmc.Geometry"][0].split('=')[0].replace(' ', '')
         if Components_lines["openmc.Model"]:
@@ -1208,7 +1197,8 @@ class Application(QtWidgets.QMainWindow):
                 self.Chain = text.split('=')[1].replace(' ', '').replace("'", "")
 
         self.id_list = {}
-        id_keys = ['material_id', 'cell_id', 'universe_id', 'lattice_id', 'source_id', 'mesh_id', 'plot_id', 'filter_id', 'surface_id', 'tally_id']
+        id_keys = ['material_id', 'cell_id', 'universe_id', 'lattice_id', 'source_id', 'mesh_id', 'plot_id', 'filter_id', 'surface_id', 'tally_id', 'mgxs_lib']
+
         for key in id_keys:
             self.id_list[key] = []
         for line in lines:
@@ -1278,20 +1268,6 @@ class Application(QtWidgets.QMainWindow):
                             id = 1
                         self.Source_id_list.append(id)
                     self.id_list['source_id'].append(id)
-            elif 'openmc.RectilinearMesh' in line:
-                item = line.split('=')[0].replace(' ', '')
-                self.mesh_name_list.append(item)
-                #ID = len(self.mesh_name_list)
-                self.detect_component_id(line, 'mesh_id') #, ID)
-                self.mesh_id_list.append(self.id)
-                self.id_list['mesh_id'].append(self.id)
-            elif 'openmc.RegularMesh' in line:
-                item = line.split('=')[0].replace(' ', '')
-                self.mesh_name_list.append(item)
-                #ID = len(self.mesh_name_list)
-                self.detect_component_id(line, 'mesh_id') #, ID)
-                self.mesh_id_list.append(self.id)
-                self.id_list['mesh_id'].append(self.id)
             elif 'openmc.Plot' in line and 'openmc.Plots' not in line:
                 item = line.split('=')[0].replace(' ', '')
                 self.plot_name_list.append(item)
@@ -1302,6 +1278,13 @@ class Application(QtWidgets.QMainWindow):
             elif 'openmc.Plots' in line:
                 item = line.split('=')[0].replace(' ', '')
                 self.plots_file_name = item
+            elif '.add_to_tallies_file' in line:
+                item = line.split('.')[0]
+                self.tally_name_list.append(item)
+                self.detect_component_id(line, 'mgxs_lib') #, ID)
+                self.tally_id_list.append(self.id)
+                self.id_list['mgxs_lib'].append(self.id)
+                self.id_list['tally_id'].append(self.id)
             elif 'openmc.Tally' in line:
                 item = line.split('=')[0].replace(' ', '')
                 self.tally_name_list.append(item)
@@ -1309,6 +1292,7 @@ class Application(QtWidgets.QMainWindow):
                 self.detect_component_id(line, 'tally_id') #, ID)
                 self.tally_id_list.append(self.id)
                 self.id_list['tally_id'].append(self.id)
+                self.id_list['mgxs_lib'].append(self.id)
                 self.filters[self.id] = []
             elif '.filters' in line:
                 tally_filters_lines.append(line)
@@ -1337,8 +1321,8 @@ class Application(QtWidgets.QMainWindow):
                 Domains_fill_lines.append(line)
             elif 'run_mode' in line:
                 self.Run_Mode = line.split('=')[1].lstrip().rstrip().replace("'", "").replace('"', '')
-            else:               # surfaces are detected
-                for key in self.Surfaces_key_list:
+            else:               
+                for key in self.Surfaces_key_list:   # surfaces are detected
                     key = 'openmc.' + key
                     if key in line:
                         item = line.split('=', 1)[0].replace(' ', '')
@@ -1348,6 +1332,16 @@ class Application(QtWidgets.QMainWindow):
                         self.surface_id_list.append(self.id)
                         self.id_list['surface_id'].append(self.id)
                         break
+                
+                for key in ['RegularMesh(', 'CylindricalMesh(', 'SphericalMesh(','RectilinearMesh', 'RegularMesh.from_domain', 'CylindricalMesh.from_domain', 'SphericalMesh.from_domain']:
+                    key = 'openmc.' + key
+                    if key in line.replace(' ', ''): # meshes are detected
+                        item = line.split('=')[0].replace(' ', '')
+                        self.mesh_name_list.append(item)
+                        #ID = len(self.mesh_name_list)
+                        self.detect_component_id(line, 'mesh_id') #, ID)
+                        self.mesh_id_list.append(self.id)
+                        self.id_list['mesh_id'].append(self.id)
             
         # Fill filters dictionary for each tally id
         for line in tally_filters_lines:
@@ -1363,6 +1357,7 @@ class Application(QtWidgets.QMainWindow):
             except:
                 return
             self.filters[id] += filters_list
+
         # fill bins dictionary for each filter
         for line in filter_bins_lines:
             text = line.replace(' ', '').split('=')
@@ -1374,6 +1369,7 @@ class Application(QtWidgets.QMainWindow):
                 bins_list = text1[text1.find('(') + 1: text1.find(',')].replace(' ', '').split(',')
             id = self.filter_id_list[self.filter_name_list.index(Filter_txt)] # + 1]
             self.Bins[id] = bins_list
+
         # fill list of nuclides and elements in the model
         for line in model_elements_lines:
             if 'add_nuclide' in line:
@@ -1394,6 +1390,7 @@ class Application(QtWidgets.QMainWindow):
                 for elem in Elements_In_Material:   
                     if elem not in self.Model_Elements_List:
                         self.Model_Elements_List.append(elem) 
+
         for line in model_depletable_lines:
             mat = line.lstrip()
             self.Depletable_Mats.append(mat) if mat not in model_not_depletable_lines else None
@@ -1466,10 +1463,10 @@ class Application(QtWidgets.QMainWindow):
         """     
         v_1 = self.plainTextEdit_7
         self.detect_components()
-        self.wind5 = ExportSettings(self.openmc_version, v_1, self.Geom, self.Sett, self.directory, self.surface_name_list, 
-                                    self.surface_id_list, self.cell_name_list,
-                                    self.materials_name_list, self.universes_name_list, self.Vol_Calcs_list, self.Source_name_list,
-                                    self.Source_id_list, self.Source_strength_list)
+        self.wind5 = ExportSettings(self.openmc_version, v_1, self.Geom, self.Sett, self.directory, 
+                                    self.surface_name_list, self.surface_id_list, self.cell_name_list,
+                                    self.materials_name_list, self.universes_name_list, self.Vol_Calcs_list, 
+                                    self.Source_name_list, self.Source_id_list, self.Source_strength_list)
         self.wind5.show()
 
         self.SaveFiles()
@@ -1504,6 +1501,7 @@ class Application(QtWidgets.QMainWindow):
 
     def Python_TallyDataProcessing(self):
         self.StatePoint = ''
+        self.StatePoints = []
         self.Depletion_file = ''
         self.Chain = ''
         self.detect_components()
@@ -1635,6 +1633,7 @@ class Application(QtWidgets.QMainWindow):
         plot_openmc = False
         run_deplete = False
         run_get_XS = False
+        vol_calc = False
         self.Process()
         os.environ["PATH"] += os.pathsep + os.pathsep.join([self.app_dir])
         if self.radioButton.isChecked():     #   xml scripts
@@ -1704,6 +1703,7 @@ class Application(QtWidgets.QMainWindow):
         plot_openmc = False
         run_deplete = False
         run_get_XS = False
+        vol_calc = False
         for line in self.plainTextEdit_7.toPlainText().split():
             if self.openmc_version >= 141:
                 if 'rectangular_prism' in line:
@@ -1779,7 +1779,7 @@ class Application(QtWidgets.QMainWindow):
                     if 'openmc.plot_geometry()' in Text and '#openmc.plot_geometry()' not in Text.strip():
                         plot_openmc = True
                     if 'openmc.deplete.get_microxs_and_flux' in Text and '#openmc.deplete.get_microxs_and_flux' not in Text.strip():
-                            run_get_XS = True
+                        run_get_XS = True
                     if not run_openmc and not plot_openmc and not run_deplete and not run_get_XS and not vol_calc:
                         self.showDialog('Warning',
                                         'No simulation neither plot will be processed.\n Only xml files will be created !')
@@ -3144,7 +3144,7 @@ class VLine(QFrame):
 
 
 
-version = '1.4.1'
+version = '1.4.2'
 qapp = QApplication(sys.argv)  
 app  = Application(u'ERSN-OpenMC-Py')
 qapp.setStyleSheet("QPushButton { background-color: palegoldenrod; border-width: 2px; border-color: darkkhaki}"
