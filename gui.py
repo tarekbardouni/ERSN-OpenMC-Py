@@ -95,12 +95,8 @@ class Application(QtWidgets.QMainWindow):
             self.showDialog('Warning', 'OpenMC not yet installed or wrong conda environment chosen!' )
         self.openmc_Ver = ''
         try:
-            import openmc
-            from openmc import __version__
-            #self.openmc_Ver = __version__d
-            self.openmc_Ver = self.get_openmc_version()
-            #self.openmc_version = int(''.join(__version__.split('.')[:3]))
-            self.openmc_version = int(''.join(self.openmc_Ver.split('.')[:3]))
+            self.openmc_Ver = self.OpenMC_Ver1()
+            self.openmc_version = int(''.join(self.openmc_Ver.rsplit('-',1)[0].split('.')[:3]))
         except:
             self.openmc_version = 0
             
@@ -2322,8 +2318,10 @@ class Application(QtWidgets.QMainWindow):
         try:
             import openmc
             self.showDialog('', 'openmc version ' + openmc.__version__ + ' found')
+            return openmc.__version__
         except:
             self.showDialog('', 'openmc not found or unproperly installed!')
+            return 0
 
 
     def Help(self):
@@ -3118,6 +3116,7 @@ class Application(QtWidgets.QMainWindow):
         height = int(QDesktopWidget().availableGeometry().height() * ratio)
         self.setMaximumWidth(width)
         self.setMaximumHeight(height)
+
     #######################################################################################
     #######################################################################################
     #######################################################################################
