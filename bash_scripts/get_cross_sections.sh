@@ -390,56 +390,72 @@ if [[ $DEPLETION_CHAIN_DATA != none ]]; then
         cd $DATA_DIR/depletion_chain
     fi
 fi
+# ----------------------ENDF-BVIII.0 PWR spectrum------------------------------
+if [[ $DEPLETION_CHAIN_DATA == ENDF-BVIII.0_PWR_spectrum ]]; then        
+    # ENDF/B-VII.1 PWR spectrum readable by openmc version 0.12+ only
+    wget https://anl.box.com/shared/static/nyezmyuofd4eqt6wzd626lqth7wvpprr.xml
+    mv nyezmyuofd4eqt6wzd626lqth7wvpprr.xml chain_endfb80_pwr.xml
+    exit
+fi
+
+# ----------------------ENDF-BVIII.0 fast spectrum-----------------------------
+
+if [[ $DEPLETION_CHAIN_DATA == ENDF-BVIII.0_fast_spectrum ]]; then        
+    # Fast spectrum data readable by openmc version 0.12+ only
+    wget https://anl.box.com/shared/static/9058zje1gm0ekd93hja542su50pccvj0.xml
+    mv 9058zje1gm0ekd93hja542su50pccvj0.xml chain_endfb80_sfr.xml
+    exit
+fi
 # ----------------------ENDF-BVII.1 PWR spectrum------------------------------
 if [[ $DEPLETION_CHAIN_DATA == ENDF-BVII.1_PWR_spectrum_v0.11 ]]; then        
     # ENDF/B-VII.1 PWR spectrum readable by openmc version 0.11 only
     wget https://anl.box.com/shared/static/1ndcrc1j042nkdpfobp5ebsyxghziisc.xml
-    mv 1ndcrc1j042nkdpfobp5ebsyxghziisc.xml pwr_spectrum_B71_chain_v011.xml
+    mv 1ndcrc1j042nkdpfobp5ebsyxghziisc.xml chain_endfb71_pwr.xml
     exit
 fi
 if [[ $DEPLETION_CHAIN_DATA == ENDF-BVII.1_PWR_spectrum_v0.12 ]]; then        
     # ENDF/B-VII.1 PWR spectrum data readable by openmc version 0.12 only
     wget https://anl.box.com/shared/static/os1u896bwsbopurpgas72bi6aij2zzdc.xml
-    mv os1u896bwsbopurpgas72bi6aij2zzdc.xml pwr_spectrum_B71_chain_v012.xml
+    mv os1u896bwsbopurpgas72bi6aij2zzdc.xml chain_endfb71_pwr.xml
     exit
 fi
 # ----------------------ENDF-BVII.1 fast spectrum-----------------------------
 if [[ $DEPLETION_CHAIN_DATA == ENDF-BVII.1_fast_spectrum_v0.11 ]]; then        
     # Fast spectrum data readable by openmc version 0.11 only
     wget https://anl.box.com/shared/static/bb7sfrrf6pyyoa5zoa2sxiuy7mvn5kza.xml
-    mv bb7sfrrf6pyyoa5zoa2sxiuy7mvn5kza.xml fast_spectrum_B71_chain_v011.xml
+    mv bb7sfrrf6pyyoa5zoa2sxiuy7mvn5kza.xml chain_endfb71_sfr.xml
     exit
 fi
 if [[ $DEPLETION_CHAIN_DATA == ENDF-BVII.1_fast_spectrum_v0.12 ]]; then        
     # Fast spectrum data readable by openmc version 0.12 only
     wget https://anl.box.com/shared/static/9058zje1gm0ekd93hja542su50pccvj0.xml
-    mv 9058zje1gm0ekd93hja542su50pccvj0.xml fast_spectrum_B71_chain_v012.xml
+    mv 9058zje1gm0ekd93hja542su50pccvj0.xml chain_endfb71_sfr.xml
     exit
 fi
 # ----------------------Simplified chain PWR spectrum-----------------------------
 if [[ $DEPLETION_CHAIN_DATA == Simplified_chain_PWR_spectrum_v0.11 ]]; then        
     # PWR spectrum simplified data readable by openmc version 0.11 only
     wget https://anl.box.com/shared/static/lv4b1epe8kwfvqtzhaik19outb9s4vta.xml
-    mv lv4b1epe8kwfvqtzhaik19outb9s4vta.xml pwr_spectrum_simple_chain_v011.xml
+    mv lv4b1epe8kwfvqtzhaik19outb9s4vta.xml chain_casl_pwr.xml
     exit
 fi
 if [[ $DEPLETION_CHAIN_DATA == Simplified_chain_PWR_spectrum_v0.12 ]]; then        
     # PWR spectrum simplified data readable by openmc version 0.12 only
     wget https://anl.box.com/shared/static/3nvnasacm2b56716oh5hyndxdyauh5gs.xml
-    mv 3nvnasacm2b56716oh5hyndxdyauh5gs.xml pwr_spectrum_simple_chain_v012.xml
+    mv 3nvnasacm2b56716oh5hyndxdyauh5gs.xml chain_casl_pwr.xml
     exit
 fi
 # ----------------------Simplified chain fast spectrum-----------------------------
 if [[ $DEPLETION_CHAIN_DATA == Simplified_chain_fast_spectrum_v0.11 ]]; then        
     # Fast spectrum data readable by openmc version 0.11 only
     wget https://anl.box.com/shared/static/4j27ca0l112krbw9nldj195bqik9qgvn.xml
-    mv 4j27ca0l112krbw9nldj195bqik9qgvn.xml fast_spectrum_simple_chain_v011.xml
+    mv 4j27ca0l112krbw9nldj195bqik9qgvn.xml chain_casl_sfr.xml
     exit
 fi
 if [[ $DEPLETION_CHAIN_DATA == Simplified_chain_fast_spectrum_v0.12 ]]; then        
     # Fast spectrum data readable by openmc version 0.12 only
     wget https://anl.box.com/shared/static/9fqbq87j0tx4m6vfl06pl4ccc0hwamg9.xml
-    mv 9fqbq87j0tx4m6vfl06pl4ccc0hwamg9.xml fast_spectrum_simple_chain_v012.xml
+    mv 9fqbq87j0tx4m6vfl06pl4ccc0hwamg9.xml chain_casl_sfr.xml
     exit
 fi
 

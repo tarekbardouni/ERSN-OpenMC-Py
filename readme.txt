@@ -4,12 +4,17 @@ Our paper: ERSN-OpenMC-Py: A python-based open-source software for OpenMC Monte 
 
 How to use the GUI to install openmc and prerequisistes under miniconda3
 This tutorial is tested for ubuntu 23.04, miniconda3 and python 3.7 3.9 and 3.11
-The new version of ERSN-OpenMC-Py 1.3 allows to post-process tallies created by combining up to 6 filters.
-The version of ERSN-OpenMC-Py 1.3 allows to normalize tallies to cell volume, core power, unit lethargy and bin width.
+The new version 1.3 of ERSN-OpenMC-Py allows to post-process tallies created by combining up to 6 filters.
+The version 1.3 of ERSN-OpenMC-Py allows to normalize tallies to cell volume, core power, unit lethargy and bin width.
 Up to 5 filters are combined with MeshFilter.
 
-Prof. Tarek El Bardouni and Doctor Mohamed Lahdour, University Abdelmalek Essaadi, Radiatios and Nuclear System Team, Tetouan, Morocco
+Prof. Tarek El Bardouni and Doctor Mohamed Lahdour, University Abdelmalek Essaadi, Radiations and Nuclear Systems Team, Tetouan, Morocco
+
 Emails: telbardouni@uae.ac.ma    and mohamedlahdour@gmail.com
+URLs: 	https://github.com/tarekbardouni/ERSN-OpenMC-Py
+		https://github.com/mohamedlahdour/ERSN-OpenMC-Py
+
+		https://github.com/tarekbardouni/ERSN-OpenMC-Tutorials/blob/main/Install_OpenMC_Tutorial.mp4
 
 A/ First make an update of your system and install the following packages if they don't exist:
 
@@ -51,13 +56,13 @@ insteade of : python3 gui.py
 
 6. install prerequisites
 	- Before installing prerequisites it is better to update miniconda on terminal or from the gui.
-	- If the update frozes in "Solving environment" step an issue is:
+	- If the update freezes in "Solving environment" step an issue is:
 		- delete the file : ~/.condarc
 		- then set channel priority : conda config --set channel_priority flexible
 
 
 	It's better to close the gui after prequisites installing is finished, then in a terminal activate the created openmc environment, 
-         for example: conda activate openmc-py3.7
+         for example: conda activate openmc-py3.13
          
 	If you can not run the gui because pyqt5 is not installed under conda, try the command in a terminal : 
          ==> Command : pip install pyqt5
@@ -80,7 +85,7 @@ E/ runing openmc under the GUI
 
 	Use the script bellow to lunch the gui to run openmc :
 
-		conda activate openmc-py3.7
+		conda activate openmc-py3.13
 
 		export OPENMC_CROSS_SECTIONS=$HOME/Py-OpenMC-2024/data/endfb71_hdf5/cross_sections.xml      if endfb71_hdf5 has been downloaded
 
@@ -103,8 +108,38 @@ F/ OpenMC could fail when installed under python 3.11
 	by
 	argspec = inspect.getfullargspec(f)
 
+G/ If you get the following message due to KDE graphical display:
+	qt.glx: qglx_findConfig: Failed to finding matching FBConfig for QSurfaceFormat
 
-G/ License
+	run this command: conda install -c conda-forge libstdcxx-ng
+
+H/ Recent versions of the pandas library may lead to the following error: ValueError: setting an array element with a sequence 
+	at the line self.df = self.tally.get_pandas_dataframe() in TallyDataProcessing.py. 
+	If this occurs, the issue can be resolved by downgrading the pandas library.
+
+I/ Installing on Linux with Conda
+	Once you have conda (Anaconda) installed on your system, OpenMC can be installed via the conda-forge channel.
+	First, add the conda-forge channel with:
+		conda config --add channels conda-forge
+		conda config --set channel_priority strict
+	
+	Then create and activate a new conda enviroment called openmc-env (or whatever you wish) with OpenMC installed.
+		conda create --name openmc-env openmc
+		conda activate openmc-env
+	
+	You are now in a conda environment called openmc-env that has OpenMC installed.
+
+	To run ERSN-OpenMC-Py you need to have pyqt5 installed on your environment. Install pyqt by runing:
+		pip install pyqt5
+
+	You need also to export OPENMC_CROSS_SECTIONS environment variable to point nuclear data directory:
+		export OPENMC_CROSS_SECTIONS=$HOME/Your_Path_To_Data/data/endfb80_hdf5/cross_sections.xml
+	(modify the Your_Path_To_Data)
+
+	Then run :
+		python3 gui.py
+
+J/ License
 
 This software is free software, you can redistribute it and / or modify it under the
 terms of the GNU General Public License as published by the Free Software Foundation;

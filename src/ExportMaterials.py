@@ -15,15 +15,13 @@ from src.syntax_py import Highlighter
 
 class ExportMaterials(QWidget):
     from .func import resize_ui, showDialog, Exit, Move_Commands_to_End
-    def __init__(self, v_1, Mats, available_xs, mat, mat_id, parent=None):
+    def __init__(self, OpenMC_Ver, v_1, Mats, available_xs, mat, mat_id, parent=None):
         super(ExportMaterials, self).__init__(parent)
-        uic.loadUi("src/ui/ExportMaterials.ui", self)  
-        try:
-            from openmc import __version__
-            self.openmc_version = int(__version__.split('-')[0].replace('.', ''))
-        except:
+        uic.loadUi("src/ui/ExportMaterials.ui", self) 
+
+        self.openmc_version = OpenMC_Ver
+        if self.openmc_version == 0:
             self.showDialog('Warning', 'OpenMC not yet installed !')
-            self.openmc_version = 0
  
         #sys.stdout = EmittingStream(textWritten=self.normalOutputWritten)
         #sys.stderr = EmittingStream(textWritten=self.normalOutputWritten)
@@ -51,7 +49,6 @@ class ExportMaterials(QWidget):
         self.plainTextEdit.setWordWrapMode(QTextOption.NoWrap)
         self.numbers = NumberBar(self.plainTextEdit)
         layoutH = QHBoxLayout()
-        #layoutH.setSpacing(1.5)
         layoutH.addWidget(self.numbers)
         layoutH.addWidget(self.plainTextEdit)
         self.EditorLayout.addLayout(layoutH, 0, 0)
@@ -81,6 +78,8 @@ class ExportMaterials(QWidget):
         self.Enrichment = False
         self.nuclide_added = False
         self.element_added = False
+        self.ADD_MAT_ID = False
+        self.ADD_MAT_ID_NEW = False
         if self.add_id_CB.isChecked():
             self.lineEdit.setText(self.material_suffix + str(self.lineEdit_2.text()))
         else:
@@ -126,6 +125,8 @@ class ExportMaterials(QWidget):
         self.Nuclide_Supp_List_CB.clear()
         self.Element_Supp_List_CB.clear()
         self.Mixture_CB.hide()
+        self.label_11.hide()
+        self.Mixture_Density_LE.hide()
         self.Fraction_Type_CB.hide()
         self.label_10.hide()
         self.Mixture_CB.addItem('Select Mixture')
@@ -175,6 +176,20 @@ class ExportMaterials(QWidget):
         self.Mat_To_Suppress_List_CB.currentIndexChanged.connect(self.Read_Mat_Supp_Data)
         self.Modify_Mat_PB.clicked.connect(self.Modify_Material)
         self.Suppress_Component_PB.clicked.connect(self.Suppress_Component)
+        self.Add_Mat_id_CB.stateChanged.connect(self.Add_Mat_ID_Modify)
+        self.Add_id_to_mat_CB.stateChanged.connect(self.Add_Mat_ID_Create)
+
+    def Add_Mat_ID_Modify(self):
+        if self.Add_Mat_id_CB.isChecked():
+            self.ADD_MAT_ID = True
+        else:
+            self.ADD_MAT_ID = False
+
+    def Add_Mat_ID_Create(self):
+        if self.Add_id_to_mat_CB.isChecked():
+            self.ADD_MAT_ID_NEW = True
+        else:
+            self.ADD_MAT_ID_NEW = False
 
     def Increment_Mat_Id(self):
         if self.materials_id_list: #len(self.materials_id_list) > 0:
@@ -282,63 +297,79 @@ class ExportMaterials(QWidget):
             self.lines = self.v_1.toPlainText().split('\n')
 
     def Read_Mat_Data(self):
-        if self.Materials_Construct.currentIndex() == 1 and self.Mat_List_CB.currentIndex() >= 1:
-            self.lines = self.v_1.toPlainText().split('\n')
+        #if self.Materials_Construct.currentIndex() == 1 and self.Mat_List_CB.currentIndex() >= 1:
+        if self.Mat_List_CB.currentIndex() >= 1:
+            Mat_Name = self.Mat_List_CB.currentText()  
+            self.lines = [line for line in self.v_1.toPlainText().split('\n') if Mat_Name in line]
             self.Value_To_Find = None
             self.Nuclide_CB.clear()
-            if self.materials_name_list:
-                if self.Mat_List_CB.currentIndex() >= 1:
-                    Mat_Name = self.Mat_List_CB.currentText()  
-                    Mat_Id = self.materials_id_list[self.materials_name_list.index(Mat_Name)]   
-                    self.Mat_Name = Mat_Name
-                    self.Mat_Id = Mat_Id
-                    self.Mat_ID_LE.setText(str(Mat_Id))
-                    self.Check_If_Material_Modified(Mat_Name)
-                    self.find_Temperature(self.lines, Mat_Name, 'temperature')
-                    if self.Value_To_Find:
-                        self.Temperature = self.Value_To_Find
-                        self.Temp_LE.setText(self.Value_To_Find)
-                    else:
-                        self.Temp_LE.setText('')
-                    self.Value_To_Find = None
+            #if self.materials_name_list:
+            Mat_Id = self.materials_id_list[self.materials_name_list.index(Mat_Name)]   
+            self.Mat_Name = Mat_Name
+            self.Mat_Id = Mat_Id
+            self.Mat_ID_LE.setText(str(Mat_Id))
+            self.Check_If_Material_Modified(Mat_Name)
+            self.find_Temperature(self.lines, Mat_Name, 'temperature')
+            if self.Value_To_Find:
+                self.Temperature = self.Value_To_Find
+                self.Temp_LE.setText(self.Value_To_Find)
+            else:
+                self.Temp_LE.setText('')
+            self.Value_To_Find = None
 
-                    self.find_Density(self.lines, Mat_Name, 'set_density')
-                    if self.Value_To_Find:
-                        if self.Density_Unit == 'sum':
-                            self.Mat_Density = None
-                            self.Density_Unit_CB.setCurrentIndex(self.Density_Unit_CB.findText(self.Density_Unit.replace("'", ''), QtCore.Qt.MatchFixedString))
-                        else:
-                            self.Density_Unit_CB.setCurrentIndex(self.Density_Unit_CB.findText(self.Density_Unit.replace("'", ''), QtCore.Qt.MatchFixedString))
-                            self.Density_LE.setText(self.Value_To_Find)
-                            self.Mat_Density = self.Value_To_Find
-                    else:
-                        self.Density_Unit_CB.setCurrentIndex(0)
-                        self.Density_LE.setText('')
-                        
-                    self.Value_To_Find = None
-
-                    self.find_SAB(self.lines, Mat_Name, 'add_s_alpha_beta')
-                    if self.Value_To_Find:
-                        self.SAB_CB.setCurrentIndex(self.SAB_CB.findText(self.Value_To_Find.replace("'", ''), QtCore.Qt.MatchFixedString))
-                        self.SAB = self.Value_To_Find
-                    else:
-                        self.SAB_CB.setCurrentIndex(0)
-                        self.SAB = ''
-                    self.Value_To_Find = None
-                    self.Store_Materials_Info(Mat_Name, Mat_Id)
-                    self.find_Nuclides(self.lines, Mat_Name, 'add_nuclide')
-                    self.find_Elements(self.lines, Mat_Name, 'add_element')
-                    self.Update_Nuclides_CB()
-                    self.Update_Elements_CB()
-                    self.Update_Element_Data()
-                    if self.Mat_Element_List[self.Mat_Name]:
-                        if not self.Mat_Nuclide_List[self.Mat_Name]:
-                            self.Elm_Modif_RB.setChecked(True)
-                    elif self.Mat_Nuclide_List[self.Mat_Name]:
-                        if not self.Mat_Element_List[self.Mat_Name]:
-                            self.Nucl_Modif_RB.setChecked(True)
+            self.find_Density(self.lines, Mat_Name, 'set_density')
+            if self.Value_To_Find:
+                if self.Density_Unit == 'sum':
+                    self.Mat_Density = None
+                    self.Density_Unit_CB.setCurrentIndex(self.Density_Unit_CB.findText(self.Density_Unit.replace("'", ''), QtCore.Qt.MatchFixedString))
                 else:
-                    self.reset_Modify_Data()
+                    self.Density_Unit_CB.setCurrentIndex(self.Density_Unit_CB.findText(self.Density_Unit.replace("'", ''), QtCore.Qt.MatchFixedString))
+                    self.Density_LE.setText(self.Value_To_Find)
+                    self.Mat_Density = self.Value_To_Find
+            else:
+                self.Density_Unit_CB.setCurrentIndex(0)
+                self.Density_LE.setText('')
+                
+            self.Value_To_Find = None
+
+            self.find_SAB(self.lines, Mat_Name, 'add_s_alpha_beta')
+            if self.Value_To_Find:
+                self.SAB_CB.setCurrentIndex(self.SAB_CB.findText(self.Value_To_Find.replace("'", ''), QtCore.Qt.MatchFixedString))
+                self.SAB = self.Value_To_Find
+            else:
+                self.SAB_CB.setCurrentIndex(0)
+                self.SAB = ''
+            
+            self.Value_To_Find = None
+            
+            self.Find_Depletable(self.lines, Mat_Name, 'depletable')
+            if self.Value_To_Find:
+                self.Deplete_CB2.setChecked(True)
+            else:
+                self.Deplete_CB2.setChecked(False)
+
+            self.Find_Volume(self.lines, Mat_Name, 'volume')
+            if self.Value_To_Find:
+                self.Volume_LE.setText(str(self.Value_To_Find))
+            else:
+                self.Volume_LE.setText('')
+
+            self.Value_To_Find = None 
+
+            self.Store_Materials_Info(Mat_Name, Mat_Id)
+            self.find_Nuclides(self.lines, Mat_Name, 'add_nuclide')
+            self.find_Elements(self.lines, Mat_Name, 'add_element')
+            self.Update_Nuclides_CB()
+            self.Update_Elements_CB()
+            self.Update_Element_Data()
+            if self.Mat_Element_List[self.Mat_Name]:
+                if not self.Mat_Nuclide_List[self.Mat_Name]:
+                    self.Elm_Modif_RB.setChecked(True)
+            elif self.Mat_Nuclide_List[self.Mat_Name]:
+                if not self.Mat_Element_List[self.Mat_Name]:
+                    self.Nucl_Modif_RB.setChecked(True)
+        else:
+            self.reset_Modify_Data()
         if self.Mat_List_CB.currentIndex() != 0:
             for item in self.Liste1:
                 item.setEnabled(True)
@@ -364,15 +395,19 @@ class ExportMaterials(QWidget):
     def Modify_Material(self):
         self.Mat_Nuclide_Add_List[self.Mat_Name] = []
         self.Mat_List_to_Modify.append(self.Mat_Name)
+        if self.ADD_MAT_ID:
+            MAT_ID = "material_id=" + str(self.Mat_ID_LE.text()) +', '
+        else:
+            MAT_ID = ""
         if self.Mat_List_CB.currentIndex() >= 1:
             if self.Nucl_Modif_RB.isChecked():    # modify existing nuclide
                 self.Clear_plainTextEdit(self.Mat_Name)
                 if self.Temp_LE.text():
-                    print('\n' + self.Mat_Name, "= openmc.Material(material_id=" + str(self.Mat_ID_LE.text()) +
-                        ", name='" + self.Mat_List_CB.currentText() + "',", "temperature=", str(self.Temp_LE.text()), ')')
+                    print('\n' + self.Mat_Name, "= openmc.Material(" + MAT_ID +
+                        "name='" + self.Mat_List_CB.currentText() + "',", "temperature=", str(self.Temp_LE.text()), ')')
                 else:
-                    print('\n' + self.Mat_Name, "= openmc.Material(material_id=" + str(self.Mat_ID_LE.text()) +
-                        ", name='" + self.Mat_List_CB.currentText() + "'", ')')
+                    print('\n' + self.Mat_Name, "= openmc.Material(" + MAT_ID +
+                        "name='" + self.Mat_List_CB.currentText() + "'", ')')
                 if self.Density_Unit_CB.currentText() == 'sum':
                     print(self.Mat_Name + '.set_density(' + "'" + self.Density_Unit_CB.currentText() + "')")
                 else:
@@ -384,11 +419,11 @@ class ExportMaterials(QWidget):
             elif self.Elm_Modif_RB.isChecked():  # modify existing element
                 self.Clear_plainTextEdit(self.Mat_Name)
                 if self.Temp_LE.text():
-                    print('\n' + self.Mat_Name, "= openmc.Material(material_id=" + str(self.Mat_ID_LE.text()) +
-                        ", name='" + self.Mat_List_CB.currentText() + "',", "temperature=", str(self.Temp_LE.text()) + ')')
+                    print('\n' + self.Mat_Name, "= openmc.Material(" + MAT_ID +
+                        "name='" + self.Mat_List_CB.currentText() + "',", "temperature=", str(self.Temp_LE.text()) + ')')
                 else:
-                    print('\n' + self.Mat_Name, "= openmc.Material(material_id=" + str(self.Mat_ID_LE.text()) +
-                        ", name='" + self.Mat_List_CB.currentText() + "'" + ')')
+                    print('\n' + self.Mat_Name, "= openmc.Material(" + MAT_ID +
+                        "name='" + self.Mat_List_CB.currentText() + "'" + ')')
                 if self.Density_Unit == 'sum':
                     print(self.Mat_Name + '.set_density(' + "'" + self.Density_Unit_CB.currentText() +"')")
                 else:
@@ -460,6 +495,7 @@ class ExportMaterials(QWidget):
                     self.Mat_Element_Percent_List[self.Mat_Name].append(fraction)
                     self.Mat_Element_Percent_Type_List[self.Mat_Name].append(fraction_type)
                     self.Store_Material_Elements_Info(element, fraction, fraction_type, enrichment, enrichment_target_list, enrichment_target, enrichment_type)
+
             elif self.Nucl_Add_RB.isChecked():              # add new nuclide to material
                 if not self.nuclide_added and not self.element_added:
                     document = self.v_1.toPlainText()
@@ -508,6 +544,10 @@ class ExportMaterials(QWidget):
 
             if self.SAB_CB.currentText() != 'None':
                 print(self.Mat_Name + ".add_s_alpha_beta(" + "'" + self.SAB_CB.currentText() + "')")
+            if self.Deplete_CB2.isChecked():
+                print(self.Mat_Name + ".depletable = True")
+            if self.is_numeric(self.Volume_LE.text()) or self.Volume_LE.text().isdigit():
+                print(self.Mat_Name + ".volume = " + str(self.Volume_LE.text()))
         else:
             return
 
@@ -531,6 +571,13 @@ class ExportMaterials(QWidget):
         self.Element_CB.setCurrentIndex(0)
         self.Nuclide_CB.setCurrentIndex(0)
 
+    def is_numeric(self, s):
+        try:
+            float(s)  # Tries to convert the string to a float
+            return True
+        except ValueError:
+            return False
+
     def modify_nuclides(self):
         for nuclide in self.Mat_Nuclide_List[self.Mat_Name]:
             if self.Nuclide_CB.currentText() == nuclide:
@@ -549,7 +596,6 @@ class ExportMaterials(QWidget):
                 self.paste_not_modified_elements(element)
 
         self.Store_Material_Nuclides_Info(nuclide, fraction, fraction_type)
-        #self.modify_elements()
 
     def modify_elements(self):
         for element in self.Mat_Element_List[self.Mat_Name]:
@@ -592,7 +638,7 @@ class ExportMaterials(QWidget):
         if self.Mat_Nuclide_List[self.Mat_Name]:
             for nuclide in self.Mat_Nuclide_List[self.Mat_Name]:
                 self.paste_not_modified_nuclides(nuclide)
-        
+
     def paste_not_modified_elements(self, element):
         fraction = self.Elements_In_Material[element]['Fraction']
         fraction_type = self.Elements_In_Material[element]['Fraction_type']
@@ -665,12 +711,15 @@ class ExportMaterials(QWidget):
             self.Update_Mat_List()
             self.lines[:] = [item for item in self.lines if self.Mat_Name not in item]
             self.v_1.clear()
+            line_to_insert = self.Mats + " = openmc.Materials([" + ', '.join(self.materials_name_list) + "])" + \
+                                "\n" + self.Mats + ".export_to_xml()"
             for line in self.lines:
                 if line:
                     if 'openmc.Material' in line:
                         self.v_1.insertPlainText('\n')
+                    if self.Mats + ".export_to_xml()" in line:
+                        line = line_to_insert
                     self.v_1.insertPlainText(line + '\n')
-            self.v_1.insertPlainText('\nmaterials = openmc.Materials(' + '[' + ', '.join(self.materials_name_list) + ']' + ')')
         elif ret == qm.No:
             pass
 
@@ -879,8 +928,13 @@ class ExportMaterials(QWidget):
         self.Mat_Element_Percent_List.setdefault(Mat_Name, [])
         self.Mat_Element_Percent_Type_List.setdefault(Mat_Name, [])
         self.Element_Enrichment = ''
+        self.Enrichment = False
         for line in lines:
             if Mat_Name in line and key in line:
+                if 'enrichment' in line:
+                    self.Enrichment = True
+                else:
+                    self.Enrichment = False
                 items = line[line.find("(") + 1: line.find(")")].replace(' ', '').split(',')
                 self.Element_to_find = items[0].replace("'", '')
                 self.Element_to_find_percent = items[1]
@@ -908,6 +962,8 @@ class ExportMaterials(QWidget):
                                     self.Element_Enrichment_Type = w.split('=')[1]
                         else:
                             self.Enrichment = False
+                            self.Element_Enrichment_Target = ''
+                            self.Element_Enrichment_Type = ''
                             self.Element_Enrichment = ''
                 else: 
                     self.Percent_Elm_Type = 'ao'
@@ -929,16 +985,19 @@ class ExportMaterials(QWidget):
                         enrichment_target = self.Element_Enrichment_Target
                         enrichment_type = self.Element_Enrichment_Type
                     self.Store_Material_Elements_Info(element, fraction, fraction_type, enrichment, enrichment_target_list, enrichment_target, enrichment_type)
-                    
+
     def Store_Materials_Info(self, Mat_Name, Mat_Id):
         # new dictionary filling : parent
-        self.Materials_In_Model[Mat_Name] = {}
-        self.Materials_In_Model[Mat_Name]['id'] = Mat_Id
-        self.Materials_In_Model[Mat_Name]['name'] = Mat_Name
-        self.Materials_In_Model[Mat_Name]['temperature'] = self.Temperature
-        self.Materials_In_Model[Mat_Name]['density'] = self.Mat_Density
-        self.Materials_In_Model[Mat_Name]['density_unit'] = self.Density_Unit
-        self.Materials_In_Model[Mat_Name]['SAB'] = self.SAB
+        try:
+            self.Materials_In_Model[Mat_Name] = {}
+            self.Materials_In_Model[Mat_Name]['id'] = Mat_Id
+            self.Materials_In_Model[Mat_Name]['name'] = Mat_Name
+            self.Materials_In_Model[Mat_Name]['temperature'] = self.Temperature
+            self.Materials_In_Model[Mat_Name]['density'] = self.Mat_Density
+            self.Materials_In_Model[Mat_Name]['density_unit'] = self.Density_Unit
+            self.Materials_In_Model[Mat_Name]['SAB'] = self.SAB
+        except:
+            self.showDialog("Warning", "Make sure the " + Mat_Name + " material is defined!")
 
     def Store_Material_Nuclides_Info(self, nuclide, fraction, fraction_type):
         # nested dictionaries : childs
@@ -984,7 +1043,7 @@ class ExportMaterials(QWidget):
     def find_Temperature(self, lines, Mat_Name, key):
         from string import ascii_letters
         for line in lines:
-            if Mat_Name in line:
+            if Mat_Name == line.split('=',1)[0].replace(' ',''):
                 if key in line:
                     items = line.replace(' ', '').split(',')
                     for w in items:
@@ -997,7 +1056,7 @@ class ExportMaterials(QWidget):
 
     def find_Density(self, lines, Mat_Name, key):
         for line in lines:
-            if Mat_Name in line:
+            if Mat_Name == line.split('.', 1)[0].replace(' ',''):
                 if key in line:
                     items = line[line.find("(") + 1: line.find(")")].replace(' ', '').split(',')
                     if len(items) >=2:    
@@ -1008,14 +1067,23 @@ class ExportMaterials(QWidget):
                         self.Value_To_Find = items[0]
                     break
 
-    def Detect_Data(self, line, key):
-        items = line[line.find("(") + 1: line.find(")")].replace(' ', '').split(',')
-        for w in items:
-            if key in w:
-                self.Value_To_Find = w.split('=')[1]
-                break
-            else:
-                self.Value_To_Find = None
+    def Find_Depletable(self, lines, Mat_Name, key):
+        for line in lines:
+            if Mat_Name == line.split('.', 1)[0].replace(' ',''):
+                if key in line:
+                    self.Value_To_Find = line.split('=')[1]
+                    break
+                else:
+                    self.Value_To_Find = None
+
+    def Find_Volume(self, lines, Mat_Name, key):
+        for line in lines:
+            if Mat_Name == line.split('.', 1)[0].replace(' ',''):
+                if key in line:
+                    self.Value_To_Find = line.split('=')[1]
+                    break
+                else:
+                    self.Value_To_Find = None
 
     def sync_name1(self):
         import string
@@ -1057,11 +1125,14 @@ class ExportMaterials(QWidget):
     def Add_Material(self):
         Mat_Exists = False
         self.Insert_Header_Text()
-
+        if self.ADD_MAT_ID_NEW:
+            MAT_ID_NEW = "material_id=" + str(self.lineEdit_2.text()) +", "
+        else:
+            MAT_ID_NEW = ""
         if self.lineEdit.text() == '':
             self.showDialog('Warning', 'Cannot create material, select name first !')
             return
-        elif self.lineEdit_2.text() == '':
+        elif self.lineEdit_2.text() == '' and self.ADD_MAT_ID_NEW:
             self.showDialog('Warning', 'Cannot create material, select id first !')
             return
         if self.Check_Mixture_CB.isChecked():
@@ -1078,7 +1149,7 @@ class ExportMaterials(QWidget):
             return
         else:
             Mat_Exists = False
-        if int(self.lineEdit_2.text()) in self.materials_id_list:
+        if int(self.lineEdit_2.text()) in self.materials_id_list and self.ADD_MAT_ID_NEW:
             self.showDialog('Warning', 'Material id already used, select new id !')
             Mat_Exists = True
             return
@@ -1091,14 +1162,7 @@ class ExportMaterials(QWidget):
                 self.showDialog('Warning', 'Cannot create material, specify density first !')
                 return
             self.Find_string(self.plainTextEdit, "materials.xml")
-            '''if self.Insert_Header:
-                self.Find_string(self.v_1, "materials.xml")
-                if self.Insert_Header:
-                    print('\n############################################################################### \n'
-                   '#                 Exporting to OpenMC materials.xml file \n'
-                   '###############################################################################')
-                else:
-                    self.Find_string(self.v_1, "openmc.Materials")'''
+
             if self.Check_Mixture_CB.isChecked():
                 Density_Unit = "g/cc"
                 Density = self.Mixture_Density
@@ -1107,8 +1171,8 @@ class ExportMaterials(QWidget):
                 Density = self.lineEdit_4.text()
             if self.Check_Mixture_CB.isChecked():
                 self.Def_Mixture_Fraction()
-                print('\n' + str(self.lineEdit.text()), "= openmc.Material(material_id=" + str(self.lineEdit_2.text()) +
-                      ", name='" + self.Mixture_Name + "',", "temperature=" + str(self.lineEdit_3.text()) + ')')
+                print('\n' + str(self.lineEdit.text()), "= openmc.Material(" + MAT_ID_NEW +
+                      "name='" + self.Mixture_Name + "',", "temperature=" + str(self.lineEdit_3.text()) + ')')
 
                 for element in self.Mixt_Element_List:
                     index = self.Mixt_Element_List.index(element)
@@ -1119,14 +1183,20 @@ class ExportMaterials(QWidget):
                     else:
                         print(str(self.lineEdit.text()) + ".add_element('" + element + "',", str(fraction) + ",", "'" + self.Fraction_Type + "'" + ")")
             else:
-                print('\n' + str(self.lineEdit.text()), "= openmc.Material(material_id=" + str(self.lineEdit_2.text()) +
-                      ", name='" + self.lineEdit.text() + "',", "temperature=" + str(self.lineEdit_3.text()) + ')')
+                if self.lineEdit_3.text() != '':
+                    print('\n' + str(self.lineEdit.text()), "= openmc.Material(" + MAT_ID_NEW +
+                      "name='" + self.lineEdit.text() + "',", "temperature=" + str(self.lineEdit_3.text()) + ')')
+                else:
+                    print('\n' + str(self.lineEdit.text()), "= openmc.Material(" + MAT_ID_NEW +
+                      "name='" + self.lineEdit.text() + "')")
             if self.comboBox.currentText() == 'sum':
                 print(str(self.lineEdit.text()) + ".set_density('sum')")
             elif self.comboBox.currentText() == 'macro':
                 print(str(self.lineEdit.text()) + ".set_density('macro')")
             else:
                 print(str(self.lineEdit.text())+'.set_density(' + "'" + Density_Unit + "',", str(Density) + ")")
+            if self.Deplete_CB1.isChecked():
+                print(str(self.lineEdit.text())+'.depletable = True')
             if self.comboBox_2.currentText() != 'None':
                 print(str(self.lineEdit.text() + ".add_s_alpha_beta(") + str("'"+self.comboBox_2.currentText() + "')"))
 
@@ -1184,19 +1254,26 @@ class ExportMaterials(QWidget):
 
     def Fill_Mixture_List(self):
         if self.Check_Mixture_CB.isChecked():
+            #self.label_12.hide()
             self.Mixture_CB.show()
             self.Fraction_Type_CB.show()
             self.label_10.show()
+            self.label_11.show()
+            self.Mixture_Density_LE.show()
+            self.Mixture_Density_LE.setEnabled(False)
             self.label_38.hide()
-            self.label_42.hide()
+            #self.label_42.hide()
             self.lineEdit_4.hide()
             self.comboBox.hide()
         else:
+            #self.label_12.show()
             self.Mixture_CB.hide()
             self.Fraction_Type_CB.hide()
             self.label_10.hide()
+            self.label_11.hide()
+            self.Mixture_Density_LE.hide()
             self.label_38.show()
-            self.label_42.show()
+            #self.label_42.show()
             self.lineEdit_4.show()
             self.comboBox.show()
             self.lineEdit_3.setText('293.6')
@@ -1231,6 +1308,10 @@ class ExportMaterials(QWidget):
                 self.Mixt_Element_Atom_Frac_List.append(Atom_Fraction)
                 self.Mixt_Element_Weight_Frac_List.append(Weight_Fraction)
                 self.Mixt_Element_Atom_Density_List.append(Atom_Density)
+            self.Mixture_Density_LE.setText(str(self.Mixture_Density))
+        else:
+            self.Mixture_Density_LE.clear()
+            self.lineEdit_3.clear()
 
     def Def_Mixture_Fraction(self):
         if self.Fraction_Type_CB.currentIndex() == 0:
@@ -1321,10 +1402,12 @@ class ExportMaterials(QWidget):
         export_to_main_window = False
         self.v_1.moveCursor(QTextCursor.End)
         if self.plainTextEdit.toPlainText():
-            lines = self.plainTextEdit.toPlainText().split('\n')
+            if 'openmc.Material' in self.plainTextEdit.toPlainText():
+                export_to_main_window = True
+            """lines = self.plainTextEdit.toPlainText().split('\n')
             for line in lines:
                 if 'openmc.Material' in line:
-                    export_to_main_window = True
+                    export_to_main_window = True"""
         if export_to_main_window:
             string_to_find = self.Mats + ".export_to_xml()"
             document = self.v_1.toPlainText()
@@ -1343,7 +1426,7 @@ class ExportMaterials(QWidget):
                     cursor.insertText(str(Code_to_Insert))                 
             else:                   # Materials already exist
                 if self.Materials_Construct.currentIndex() == 1:
-                    for mat in self.Mat_List_to_Modify:
+                    for mat in self.Mat_List_to_Modify: 
                         self.lines[:] = [item for item in self.lines if mat not in item]
                     self.v_1.clear()
                     for line in self.lines:
@@ -1351,7 +1434,7 @@ class ExportMaterials(QWidget):
                             if 'openmc.Material' in line:   # and 'openmc.Materials' not in line:
                                 self.v_1.insertPlainText('\n')
                             self.v_1.insertPlainText(line + '\n')
-                    for mat in self.Mat_List_to_Modify:
+                    for mat in self.Mat_List_to_Modify: 
                         if mat not in self.materials_name_list:
                             self.materials_name_list.append(mat)
                     self.materials_name_list.sort()
@@ -1373,7 +1456,7 @@ class ExportMaterials(QWidget):
             self.element_added = False
             self.nuclide_added = False
         else:
-            pass
+            export_to_main_window = False
         
         document = self.v_1.toPlainText()
         document = self.Move_Commands_to_End(document)
@@ -1381,6 +1464,7 @@ class ExportMaterials(QWidget):
         self.v_1.clear()
         cursor.insertText(document)
         self.mat = None
+        self.Mat_List_to_Modify.clear()
 
     def Clear_Output(self):
         self.plainTextEdit.clear()

@@ -15,7 +15,7 @@ from PyQt5 import Qt
 
 class InfoPythonScript(QWidget):
     from .func import resize_ui
-    def __init__(self,v_1,parent=None):
+    def __init__(self,v_1,v_7,parent=None):
         super(InfoPythonScript, self).__init__(parent)
         uic.loadUi("src/ui/InfoPythonScript.ui", self)   
         self.v_1 = v_1
@@ -24,7 +24,7 @@ class InfoPythonScript(QWidget):
         self.Header_text = '<!-- hi -->'
         self.dateTimeCreateNew.setDateTime(QDateTime.currentDateTime())
         self.dateTimeCreateNew.setDisplayFormat("dd/MM/yyyy hh:mm:ss")
-
+        self.v_7 = v_7
         # to show window at the middle of the screen and resize it to the screen size
         self.resize_ui()
     
@@ -56,28 +56,35 @@ class InfoPythonScript(QWidget):
         msgBox.exec()
         
     def NewProject(self):
-             
         ProjectFolder = self.workspace.text() + '/' + self.projectName.text() + self.projectCase.text()
         if QDir(ProjectFolder).exists() :
             self.showDialog('Warning', 'Cannot create project directory, already exists or requested data not provided ! Change Project name or case id.')
         else:
             QDir().mkdir(ProjectFolder)  
             self.Fill_Header(ProjectFolder)
-
         self.directory = ProjectFolder
-        
+
+
     def Fill_Header(self, ProjectFolder): #
         self.filename = ProjectFolder + '/build_xml.py'
         self.file = open(self.filename,'w')
-        Header_text0 = "#! /usr/bin/python3 \n#! -*- coding:utf-8 -*- \nimport openmc \n''' \n"
-        self.Header_text = " =========================================================================="+\
+        if self.writtenBy.text():
+            author = str(self.writtenBy.text())
+        else:
+            author = os.getlogin()
+        Header_text0 = "import openmc\n"
+        self.Header_text = "'''\n =========================================================================="+\
                       '\n Description: '+ str( self.description.text()) + \
                       '\n Case: ' + str(self.projectCase.text()) + \
-                      '\n Writen by: ' + str( self.writtenBy.text()) + \
+                      '\n Writen by: ' + author + \
                       '\n DateTime: ' + self.dateTimeCreateNew.text() + \
-                      "\n =========================================================================="
+                      "\n ==========================================================================\n'''\n"
         cursor = self.v_1.textCursor()
-        cursor.insertText(Header_text0 + self.Header_text + "\n'''")
+        cursor.insertText(self.Header_text + Header_text0 + "\n")
 
         self.file.write(Header_text0 + self.Header_text  + "\n'''")
+        self.v_7.showMessage("Project python file : " + self.filename)  
+        self.v_7.setStyleSheet("QStatusBar{padding-left:8px;color:blue;}")
         self.close()
+
+        
