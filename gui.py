@@ -2321,7 +2321,7 @@ class Application(QtWidgets.QMainWindow):
             return openmc.__version__
         except:
             self.showDialog('', 'openmc not found or unproperly installed!')
-            return 0
+            return "0"
 
 
     def Help(self):
