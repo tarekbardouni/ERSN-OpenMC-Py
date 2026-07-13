@@ -88,11 +88,8 @@ class ExportGeometry(QWidget):
         self.resize_ui()
 
     def Instanciate_Lists(self):
-        self.lineEdit_18.setValidator(QIntValidator())
-        self.validator = QDoubleValidator(self)
-
         for LE in [self.lineEdit_19, self.lineEdit_20, self.lineEdit_21, self.lineEdit_22, self.lineEdit_23, self.lineEdit_24]:
-            LE.setValidator(self.validator)
+            LE.setValidator(QDoubleValidator())
         self.Liste = [self.lineEdit, self.lineEdit_2, self.lineEdit_3, self.lineEdit_4, self.lineEdit_5,
                       self.lineEdit_6, self.lineEdit_7, self.lineEdit_8, self.lineEdit_9, self.lineEdit_10]
         self.Liste1 = [self.label, self.label_2, self.label_3, self.label_4, self.label_5,
@@ -101,10 +98,9 @@ class ExportGeometry(QWidget):
         for lbl in self.Liste1:
             lbl.setAlignment(QtCore.Qt.AlignCenter)
         for LE in self.Liste:
-            LE.setValidator(self.validator)
-        self.lineEdit_12.setValidator(QIntValidator())
-        self.lineEdit_14.setValidator(QIntValidator())
-        self.lineEdit_15.setValidator(QIntValidator())
+            LE.setValidator(QDoubleValidator())
+        for LE in [self.lineEdit_12, self.lineEdit_14, self.lineEdit_15, self.lineEdit_18]:
+            LE.setValidator(QIntValidator())
         for item in [self.lineEdit_19, self.lineEdit_24, self.spinBox_3, self.label_21, self.label_26]:
             item.setEnabled(False)
         self.comboBox_6.show()
