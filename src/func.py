@@ -292,6 +292,7 @@ def Def_Source_ToolTips(self):
                                            '\nusing the Settings.surf_source_write attribute:' +
                                            "\n\nsettings.surf_source_write = {'surfaces_ids': [1, 2, 3],'max_particles': 10000 }"
                                            '\n\nIn this example, at most 10,000 source particles are stored when particles cross surfaces with IDs of 1, 2, or 3.')
+    
     self.Photon_CB.setToolTip('In addition to neutrons, OpenMC is also capable of simulating the passage of photons through matter.'+
                      '\nThis allows the modeling of photon production from neutrons as well as pure photon calculations. ' +
                      '\nThe Settings.photon_transport attribute can be used to enable photon transport')
@@ -299,8 +300,18 @@ def Def_Source_ToolTips(self):
                      '\nBy default, the thick-target bremsstrahlung (TTB) approximation is used to generate bremsstrahlung radiation emitted by ' +
                      '\nelectrons and positrons created in photon interactions. To neglect secondary bremsstrahlung photons and instead deposit all' +
                      '\nenergy from electrons locally, the local energy deposition option can be selected: TEL')
-    self.Photon_Cut.setToolTip('Because photon interactions depend on material properties below ∼1 keV, this is typically the cutoff ' +
-                     '\nenergy used in photon calculations to ensure that the free atom model remains valid.')
+    self.CutOff_DB.setToolTip("cutoff (dict) – Dictionary defining weight cutoff, energy cutoff and time cutoff. " \
+                              "\nThe dictionary may have the following keys, ‘weight’, ‘weight_avg’, ‘survival_normalization’,"\
+                              "\n ‘energy_neutron’, ‘energy_photon’, ‘energy_electron’, ‘energy_positron’, ‘time_neutron’, "\
+                              "\n‘time_photon’, ‘time_electron’, and ‘time_positron’. Value for ‘weight’ should be a float "\
+                              "\nindicating weight cutoff below which particle undergo Russian roulette. Value for ‘weight_avg’ "\
+                              "\nshould be a float indicating weight assigned to particles that are not killed after Russian roulette. "\
+                              "\nValue of energy should be a float indicating energy in eV below which particle type will be killed. "\
+                              "\nValue of time should be a float in seconds. Particles will be killed exactly at the specified time. "\
+                              "\nValue for ‘survival_normalization’ is a bool indicating whether or not the weight cutoff parameters "\
+                              "\nwill be applied relative to the particle’s starting weight or to its current weight.")
+    
+    self.Source_Type_CB.setItemData(0, '')
     self.Source_Geom_CB.setToolTip('The spatial distribution can be set equal to a sub-class of openmc.stats.Spatial;' +
                                   '\ncommon choices are openmc.stats.Point or openmc.stats.Box. To independently specify ' +
                                   '\ndistributions in the xxx, yyy, and zzz coordinates, you can use openmc.stats.CartesianIndependent.' +
@@ -436,10 +447,11 @@ def Def_Source_ToolTips(self):
             self.Z_LL.setToolTip('Enter a list of Z values, separated by comma')
             self.Z_UR.setToolTip('Enter a list of corresponding probabilities')
         self.Origin_LE.setToolTip('Enter coordinates of cylindrical source: 0.0, 0.0, 0.0')
-    self.Source_GB.setToolTip(
-            'The openmc.Source class has three main attributes that one can set: Source.space, ' +
+    self.groupBox_7.setToolTip('The openmc.Source class has three main attributes that one can set: Source.space, ' +
             '\nwhich defines the spatial distribution, Source.angle, which defines the angular distribution,' +
             ' \n and Source.energy, which defines the energy distribution.')
+    
+    #['discrete', 'uniform', 'powerlaw', 'maxwell', 'watt', 'normal', 'muir', 'tabular', 'legendre'])  # , 'mixture'])
     self.Energy_Dist_CB.setItemData(1, 'Distribution characterized by a probability mass function', QtCore.Qt.ToolTipRole)
     self.Energy_Dist_CB.setItemData(2, 'Maxwellian distribution in energy', QtCore.Qt.ToolTipRole)
     self.Energy_Dist_CB.setItemData(3, 'Watt fission energy spectrum', QtCore.Qt.ToolTipRole)
@@ -448,18 +460,38 @@ def Def_Source_ToolTips(self):
     self.Direction_Dist_CB.setItemData(2, 'Monodirectional angular distribution', QtCore.Qt.ToolTipRole)
     self.Direction_Dist_CB.setItemData(3, 'Distribution of points on the unit sphere', QtCore.Qt.ToolTipRole)
     self.Direction_Dist_CB.setItemData(4, 'Angular distribution represented by polar and azimuthal angles', QtCore.Qt.ToolTipRole)
-    if self.Energy_Dist_CB.currentIndex() == 1:
+    if self.Energy_Dist_CB.currentText() == 'discrete':
         self.Energy_LE.setToolTip('Enter Energy or list of Energies in eV separated by blank, comma or semicolon : 0.025 0.1E3 20E6')
         self.Proba_LE.setToolTip('Enter Probability or list of Probabilities separated by blank, comma or semicolon : 0.5 0.2 0.3')
-    if self.Energy_Dist_CB.currentIndex() == 2:
-        self.Energy_LE.setToolTip('Enter the temperature parameter of Maxwellian spectrum in eV')
+    elif self.Energy_Dist_CB.currentText() == 'uniform':
+        self.Energy_LE.setToolTip('a : float, optional\n    Lower bound of the sampling interval. Defaults to zero.')
+        self.Proba_LE.setToolTip('b : float, optional\n     Upper bound of the sampling interval. Defaults to unity.')
+    elif self.Energy_Dist_CB.currentText() == 'powerlow':
+        self.Energy_LE.setToolTip('a : float, optional\n    Lower bound of the sampling interval. Defaults to zero.')
+        self.Proba_LE.setToolTip('b : float, optional\n     Upper bound of the sampling interval. Defaults to unity.')
+        self.Exponent_LE.setToolTip('n : float, optional\n   Power law exponent. Defaults to zero, which is equivalent to a uniform distribution.')
+    elif self.Energy_Dist_CB.currentText() == 'maxwell':
+        self.Energy_LE.setToolTip('theta : float\n     Effective temperature for Maxwell distribution in eV')
         self.Proba_LE.setToolTip(None)
-    if self.Energy_Dist_CB.currentIndex() == 3:
-        self.Energy_LE.setToolTip('Enter the a parameter of Watt spectrum in eV')
-        self.Proba_LE.setToolTip('Enter the b parameter of Watt spectrum in 1/eV')
-    if self.Energy_Dist_CB.currentIndex() == 4:
-        self.Energy_LE.setToolTip('Enter the list of energies in eV separated by blank, comma or semicolon for interpolation')
-        self.Proba_LE.setToolTip('Enter the list of Probabilities per eV separated by blank, comma or semicolon for interpolation')
+    elif self.Energy_Dist_CB.currentText() == 'watt':
+        self.Energy_LE.setToolTip('a : float\n    First parameter of distribution in units of eV')
+        self.Proba_LE.setToolTip('b : float\n    Second parameter of distribution in units of 1/eV')
+    elif self.Energy_Dist_CB.currentText() == 'normal':
+        self.Energy_LE.setToolTip('mean_value : float\n       Mean value of the  distribution')
+        self.Proba_LE.setToolTip('std_dev : float\n          Standard deviation of the Normal distribution')
+    elif self.Energy_Dist_CB.currentText() == 'muir':
+        self.Energy_LE.setToolTip('e0 : float\n     Mean of the Muir distribution in [eV]')
+        self.Proba_LE.setToolTip('m_rat : float\n    Ratio of the sum of the masses of the reaction inputs to 1 amu')
+        self.Exponent_LE.setToolTip('kt : float\n     Ion temperature for the Muir distribution in [eV]')
+    elif self.Energy_Dist_CB.currentText() == 'tabular':
+        self.Energy_LE.setToolTip('x : Iterable of float\n    Tabulated values of the random variable')
+        self.Proba_LE.setToolTip('p : Iterable of float\n    Tabulated probabilities. For histogram interpolation, if the length of\n'
+                                                             '`p` is the same as `x`, the last value is ignored. Probabilities `p` are\n'
+                                                             'given per unit of `x`.')
+        self.Interpolate_CB.setToolTip("interpolation : {'histogram', 'linear-linear', 'linear-log', 'log-linear', 'log-log'}, optional\n     Indicates how the density function is interpolated between tabulated\n" +
+                                                    "points. Defaults to 'linear-linear'.")
+    elif self.Energy_Dist_CB.currentText() == 'legendre':
+        self.Energy_LE.setToolTip('coefficients : Iterable of Real\n        Expansion coefficients :math:`a_\ell`. \nNote that the :math:`(2\ell + 1)/2` factor should not be included.')
 
     if self.Direction_Dist_CB.currentIndex() == 1:
         self.Energy_LE.setToolTip(None)

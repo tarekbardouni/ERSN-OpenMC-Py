@@ -7,7 +7,7 @@ This tutorial is tested for ubuntu 23.04, miniconda3 and python 3.7 3.9 and 3.11
 The new version 1.3 of ERSN-OpenMC-Py allows to post-process tallies created by combining up to 6 filters.
 The version 1.3 of ERSN-OpenMC-Py allows to normalize tallies to cell volume, core power, unit lethargy and bin width.
 Up to 5 filters are combined with MeshFilter.
- 
+
 Prof. Tarek El Bardouni and Doctor Mohamed Lahdour, University Abdelmalek Essaadi, Radiations and Nuclear Systems Team, Tetouan, Morocco
 
 Emails: telbardouni@uae.ac.ma    and mohamedlahdour@gmail.com
@@ -113,7 +113,11 @@ G/ If you get the following message due to KDE graphical display:
 
 	run this command: conda install -c conda-forge libstdcxx-ng
 
-H/ Installing on Linux with Conda
+H/ Recent versions of the pandas library may lead to the following error: ValueError: setting an array element with a sequence 
+	at the line self.df = self.tally.get_pandas_dataframe() in TallyDataProcessing.py. 
+	If this occurs, the issue can be resolved by downgrading the pandas library.
+
+I/ Installing on Linux with Conda
 	Once you have conda (Anaconda) installed on your system, OpenMC can be installed via the conda-forge channel.
 	First, add the conda-forge channel with:
 		conda config --add channels conda-forge
@@ -135,7 +139,7 @@ H/ Installing on Linux with Conda
 	Then run :
 		python3 gui.py
 
-H/ License
+J/ License
 
 This software is free software, you can redistribute it and / or modify it under the
 terms of the GNU General Public License as published by the Free Software Foundation;
